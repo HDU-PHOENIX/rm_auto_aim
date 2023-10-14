@@ -15,26 +15,23 @@ namespace rm_auto_aim {
 
 // 装甲板类型：小、大、无效
 enum class ArmorType { SMALL, LARGE, INVALID };
-const std::string ARMOR_TYPE_STR[3] = {"small", "large", "invalid"};
+const std::string ARMOR_TYPE_STR[3] = { "small", "large", "invalid" };
 
-struct Light : public cv::RotatedRect {
+struct Light: public cv::RotatedRect {
     Light() = default;
-    explicit Light(cv::RotatedRect box) : cv::RotatedRect(box) {
+    explicit Light(cv::RotatedRect box): cv::RotatedRect(box) {
         cv::Point2f p[4];
         box.points(p);
 
         // 对四个角点从上到下排序，保证前两个为 top，后两个为 bottom
-        std::sort(p, p + 4, [](const cv::Point2f &a, const cv::Point2f &b) {
-            return a.y < b.y;
-        });
+        std::sort(p, p + 4, [](const cv::Point2f& a, const cv::Point2f& b) { return a.y < b.y; });
         top = (p[0] + p[1]) / 2;
         bottom = (p[2] + p[3]) / 2;
 
         // 计算灯条长度、宽度、倾斜角度
         length = cv::norm(top - bottom);
         width = cv::norm(p[0] - p[1]);
-        tilt_angle =
-                std::atan2(std::abs(top.x - bottom.x), std::abs(top.y - bottom.y));
+        tilt_angle = std::atan2(std::abs(top.x - bottom.x), std::abs(top.y - bottom.y));
         tilt_angle = tilt_angle / CV_PI * 180;
     }
 
@@ -52,7 +49,7 @@ struct Light : public cv::RotatedRect {
 
 struct Armor {
     Armor() = default;
-    Armor(const Light &l1, const Light &l2) {
+    Armor(const Light& l1, const Light& l2) {
         if (l1.center.x < l2.center.x) {
             left_light = l1, right_light = l2;
         } else {
@@ -61,15 +58,14 @@ struct Armor {
         center = (left_light.center + right_light.center) / 2;
     }
 
-    
-    Light left_light, right_light;      // 左右灯条
-    cv::Point2f center;                 // 装甲板中心
-    ArmorType type;                     // 装甲板类型
+    Light left_light, right_light; // 左右灯条
+    cv::Point2f center; // 装甲板中心
+    ArmorType type; // 装甲板类型
 
-    cv::Mat number_img;                 // 装甲板数字图像
-    std::string number;                 // 装甲板数字
-    float confidence;                   // 装甲板数字分类置信度
-    std::string classfication_result;   // 装甲板数字分类结果
+    cv::Mat number_img; // 装甲板数字图像
+    std::string number; // 装甲板数字
+    float confidence; // 装甲板数字分类置信度
+    std::string classfication_result; // 装甲板数字分类结果
 };
 
 } // namespace rm_auto_aim

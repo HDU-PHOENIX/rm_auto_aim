@@ -25,14 +25,14 @@ public:
      * @param src 原始图像
      * @param armors 包含所有装甲板的容器
      */
-    void extractNumbers(const cv::Mat &src, std::vector<Armor> &armors);
+    void ExtractNumbers(const cv::Mat &src, std::vector<Armor> &armors);
 
     /**
      * @brief 对装甲板进行分类，结果存入 armor.classfication_result
      *
      * @param armors 装甲板的容器
      */
-    void classify(std::vector<Armor> &armors);
+    void Classify(std::vector<Armor> &armors);
 
     // 数字分类置信度阈值
     double threshold;

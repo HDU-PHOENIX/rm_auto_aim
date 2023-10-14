@@ -23,38 +23,37 @@
 
 namespace rm_auto_aim {
 
-class ArmorDetectorNode : public rclcpp::Node {
+class ArmorDetectorNode: public rclcpp::Node {
 public:
-    ArmorDetectorNode(const rclcpp::NodeOptions &options);
+    explicit ArmorDetectorNode(const rclcpp::NodeOptions& options);
 
 private:
-    void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img_msg);
+    void ImageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img_msg);
 
     /**
      * @brief 初始化装甲板识别器，设置识别器参数
      *
      * @return std::unique_ptr<Detector> 识别器指针
      */
-    std::unique_ptr<Detector> initDetector();
+    std::unique_ptr<Detector> InitDetector();
 
     /**
      * @brief 识别装甲板
      *
      * @return std::vector<Armor> 识别到的装甲板
      */
-    std::vector<Armor>
-    detectArmors(const sensor_msgs::msg::Image::ConstSharedPtr &img_msg);
+    std::vector<Armor> DetectArmors(const sensor_msgs::msg::Image::ConstSharedPtr& img_msg);
 
     /**
      * @brief debug 模式下发布识别到的装甲板信息
      */
-    void createDebugPublishers();
-    void destroyDebugPublishers();
+    void CreateDebugPublishers();
+    void DestroyDebugPublishers();
 
     /**
-     * @brief 创建发布者
+     * @brief 创建标记发布者
      */
-    void publishMarkers();
+    void PublishMarkers();
 
     // 装甲板识别器
     std::unique_ptr<Detector> detector_;
@@ -69,8 +68,7 @@ private:
     visualization_msgs::msg::Marker text_marker_;
     visualization_msgs::msg::MarkerArray marker_array_;
     // 可视化标记发布者
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-            marker_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 
     // 相机信息订阅者
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
@@ -88,10 +86,8 @@ private:
     bool debug_;
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::DebugLights>::SharedPtr
-            lights_data_pub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::DebugArmors>::SharedPtr
-            armors_data_pub_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::DebugLights>::SharedPtr lights_data_pub_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::DebugArmors>::SharedPtr armors_data_pub_;
     image_transport::Publisher binary_img_pub_;
     image_transport::Publisher number_img_pub_;
     image_transport::Publisher result_img_pub_;

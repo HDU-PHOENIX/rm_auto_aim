@@ -25,7 +25,7 @@ public:
      * @param tvec TODO: description
      * @return bool 
      */
-    bool solvePnP(const Armor &armor, cv::Mat &rvec, cv::Mat &tvec);
+    bool SolvePnP(const Armor &armor, cv::Mat &rvec, cv::Mat &tvec);
 
     /**
      * @brief 计算装甲板中心到图像中心的距离
@@ -35,7 +35,7 @@ public:
      * @return float 距离 
      */
     // Calculate the distance between armor center and image center
-    float calculateDistanceToCenter(const cv::Point2f &image_point);
+    float CalculateDistanceToCenter(const cv::Point2f &image_point);
 
 private:
     cv::Mat camera_matrix_;  // 相机参数矩阵 ？
