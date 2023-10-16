@@ -19,7 +19,6 @@ public:
     /**
      * @brief PnP 解算，获取 3D 位姿
      *
-     * @tparam tparam description
      * @param armor 装甲板
      * @param rvec TODO: description 
      * @param tvec TODO: description
@@ -30,7 +29,6 @@ public:
     /**
      * @brief 计算装甲板中心到图像中心的距离
      *
-     * @tparam tparam description
      * @param image_point 装甲板中心点
      * @return float 距离 
      */

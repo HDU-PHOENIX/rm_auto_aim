@@ -70,5 +70,5 @@ SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard: C++11
+Standard: c++17
 UseTab: Never
