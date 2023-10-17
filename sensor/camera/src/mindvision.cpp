@@ -1,19 +1,8 @@
-#include "CameraApi.h" //相机SDK的API头文件
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/core/types_c.h>
-// #include <rclcpp/logger.hpp>
-#include <rclcpp/logging.hpp>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "camera/mindvision.hpp"
 
 unsigned char* g_p_rgb_buffer; //处理后数据缓存区
 
-namespace sensor {
-sensor::MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
+MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
     CameraSdkInit(1);
 
     //枚举设备，并建立设备列表
@@ -65,7 +54,8 @@ sensor::MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
     }
 }
 
-bool sensor::MindVision::GetFrame(cv::Mat& frame) {
+bool MindVision::GetFrame(cv::Mat& frame) {
+    auto start = rclcpp::Clock().now();
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
         return false;
     }
@@ -83,13 +73,13 @@ bool sensor::MindVision::GetFrame(cv::Mat& frame) {
     //在成功调用CameraGetImageBuffer后，必须调用CameraReleaseImageBuffer来释放获得的buffer。
     //否则再次调用CameraGetImageBuffer时，程序将被挂起一直阻塞，直到其他线程中调用CameraReleaseImageBuffer来释放了buffer
     CameraReleaseImageBuffer(h_camera, pby_buffer);
+    auto end = rclcpp::Clock().now();
+    printf("fps of get mv: %lf\n", 1 / (end - start).seconds());
     return true;
 }
 
-sensor::MindVision::~MindVision() {
+MindVision::~MindVision() {
     CameraUnInit(h_camera);
     //注意，现反初始化后再free
     free(g_p_rgb_buffer);
 }
-
-} // namespace sensor

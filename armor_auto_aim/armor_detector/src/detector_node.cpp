@@ -95,71 +95,71 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img_msg) {
     // auto armors = DetectArmors(img_msg);
     RCLCPP_INFO(this->get_logger(), "Recieve image");
-    // if (pnp_solver_ != nullptr) {
-    //     armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
-    //     armors_msg_.armors.clear();
-    //     marker_array_.markers.clear();
-    //     armor_marker_.id = 0;
-    //     text_marker_.id = 0;
+    if (pnp_solver_ != nullptr) {
+        armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
+        armors_msg_.armors.clear();
+        marker_array_.markers.clear();
+        armor_marker_.id = 0;
+        text_marker_.id = 0;
 
-    //     auto_aim_interfaces::msg::Armor armor_msg;
-    //     for (const auto& armor: armors) {
-    //         cv::Mat rvec, tvec;
-    //         bool success = pnp_solver_->SolvePnP(armor, rvec, tvec);
-    //         if (success) {
-    //             // Fill basic info
-    //             armor_msg.type = ARMOR_TYPE_STR[static_cast<int>(armor.type)];
-    //             armor_msg.number = armor.number;
+        auto_aim_interfaces::msg::Armor armor_msg;
+        for (const auto& armor: armors) {
+            cv::Mat rvec, tvec;
+            bool success = pnp_solver_->SolvePnP(armor, rvec, tvec);
+            if (success) {
+                // Fill basic info
+                armor_msg.type = ARMOR_TYPE_STR[static_cast<int>(armor.type)];
+                armor_msg.number = armor.number;
 
-    //             // Fill pose
-    //             armor_msg.pose.position.x = tvec.at<double>(0);
-    //             armor_msg.pose.position.y = tvec.at<double>(1);
-    //             armor_msg.pose.position.z = tvec.at<double>(2);
-    //             // rvec to 3x3 rotation matrix
-    //             cv::Mat rotation_matrix;
-    //             cv::Rodrigues(rvec, rotation_matrix);
-    //             // rotation matrix to quaternion
-    //             tf2::Matrix3x3 tf2_rotation_matrix(
-    //                 rotation_matrix.at<double>(0, 0),
-    //                 rotation_matrix.at<double>(0, 1),
-    //                 rotation_matrix.at<double>(0, 2),
-    //                 rotation_matrix.at<double>(1, 0),
-    //                 rotation_matrix.at<double>(1, 1),
-    //                 rotation_matrix.at<double>(1, 2),
-    //                 rotation_matrix.at<double>(2, 0),
-    //                 rotation_matrix.at<double>(2, 1),
-    //                 rotation_matrix.at<double>(2, 2)
-    //             );
-    //             tf2::Quaternion tf2_q;
-    //             tf2_rotation_matrix.getRotation(tf2_q);
-    //             armor_msg.pose.orientation = tf2::toMsg(tf2_q);
+                // Fill pose
+                armor_msg.pose.position.x = tvec.at<double>(0);
+                armor_msg.pose.position.y = tvec.at<double>(1);
+                armor_msg.pose.position.z = tvec.at<double>(2);
+                // rvec to 3x3 rotation matrix
+                cv::Mat rotation_matrix;
+                cv::Rodrigues(rvec, rotation_matrix);
+                // rotation matrix to quaternion
+                tf2::Matrix3x3 tf2_rotation_matrix(
+                    rotation_matrix.at<double>(0, 0),
+                    rotation_matrix.at<double>(0, 1),
+                    rotation_matrix.at<double>(0, 2),
+                    rotation_matrix.at<double>(1, 0),
+                    rotation_matrix.at<double>(1, 1),
+                    rotation_matrix.at<double>(1, 2),
+                    rotation_matrix.at<double>(2, 0),
+                    rotation_matrix.at<double>(2, 1),
+                    rotation_matrix.at<double>(2, 2)
+                );
+                tf2::Quaternion tf2_q;
+                tf2_rotation_matrix.getRotation(tf2_q);
+                armor_msg.pose.orientation = tf2::toMsg(tf2_q);
 
-    //             // Fill the distance to image center
-    //             armor_msg.distance_to_image_center =
-    //                 pnp_solver_->CalculateDistanceToCenter(armor.center);
+                // Fill the distance to image center
+                armor_msg.distance_to_image_center =
+                    pnp_solver_->CalculateDistanceToCenter(armor.center);
 
-    //             // Fill the markers
-    //             armor_marker_.id++;
-    //             armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
-    //             armor_marker_.pose = armor_msg.pose;
-    //             text_marker_.id++;
-    //             text_marker_.pose.position = armor_msg.pose.position;
-    //             text_marker_.pose.position.y -= 0.1;
-    //             text_marker_.text = armor.classfication_result;
-    //             armors_msg_.armors.emplace_back(armor_msg);
-    //             marker_array_.markers.emplace_back(armor_marker_);
-    //             marker_array_.markers.emplace_back(text_marker_);
-    //         } else {
-    //             RCLCPP_WARN(this->get_logger(), "PnP failed!");
-    //         }
-    //     }
+                // Fill the markers
+                armor_marker_.id++;
+                armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
+                armor_marker_.pose = armor_msg.pose;
+                text_marker_.id++;
+                text_marker_.pose.position = armor_msg.pose.position;
+                text_marker_.pose.position.y -= 0.1;
+                text_marker_.text = armor.classfication_result;
+                armors_msg_.armors.emplace_back(armor_msg);
+                marker_array_.markers.emplace_back(armor_marker_);
+                marker_array_.markers.emplace_back(text_marker_);
+            } else {
+                RCLCPP_WARN(this->get_logger(), "PnP failed!");
+            }
+        }
 
-    //     // Publishing detected armors
-    //     armors_pub_->publish(armors_msg_);
+        // Publishing detected armors
+        armors_pub_->publish(armors_msg_);
 
-    //     // Publishing marker
-    //     PublishMarkers();
-    // }
+        // Publishing marker
+        PublishMarkers();
+    }
 }
 
 std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {

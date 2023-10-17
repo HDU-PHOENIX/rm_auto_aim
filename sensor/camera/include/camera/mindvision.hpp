@@ -1,3 +1,6 @@
+#ifndef MINDVISION_HPP
+#define MINDVISION_HPP
+
 #include "CameraApi.h"
 
 #include "opencv2/core/core.hpp"
@@ -6,8 +9,6 @@
 #include <rclcpp/node.hpp>
 #include <stdio.h>
 #include <stdlib.h>
-
-namespace sensor {
 
 class MindVision {
 public:
@@ -24,4 +25,4 @@ public:
     BYTE* pby_buffer;
 };
 
-} // namespace sensor
+#endif // MINDVISION_HPP
