@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(camera)
+project(auto_aim)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -17,16 +17,17 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 add_compile_options(-g)
 
+## Export compile commands for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 find_package (ament_cmake_auto REQUIRED) 
 ament_auto_find_build_dependencies()
 
-ament_auto_add_library(${PROJECT_NAME}
+
+ament_auto_add_executable(${PROJECT_NAME}
     DIRECTORY src
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN CameraNode
-    EXECUTABLE camera_node
-)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} MVSDK)
 
 ament_auto_package()

@@ -92,9 +92,16 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 }
 
-void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img_msg) {
-    // auto armors = DetectArmors(img_msg);
-    RCLCPP_INFO(this->get_logger(), "Recieve image");
+void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
+    RCLCPP_INFO(
+        this->get_logger(),
+        "timestamp: %d image address in detector %p",
+        img_msg->header.stamp.nanosec,
+        static_cast<void*>(const_cast<sensor_msgs::msg::Image*>(img_msg.get()))
+    );
+
+    auto armors = DetectArmors(img_msg);
+
     if (pnp_solver_ != nullptr) {
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
         armors_msg_.armors.clear();
@@ -209,9 +216,9 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
 }
 
 std::vector<Armor>
-ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image::ConstSharedPtr& img_msg) {
-    // Convert ROS img to cv::Mat
-    auto img = cv_bridge::toCvShare(img_msg, "rgb8")->image;
+ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
+    // 通过 img_msg 指针构造图像
+    auto &&img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
 
     // Update params
     detector_->binary_thres = get_parameter("binary_thres").as_int();

@@ -28,7 +28,7 @@ public:
     explicit ArmorDetectorNode(const rclcpp::NodeOptions& options);
 
 private:
-    void ImageCallback(const sensor_msgs::msg::Image::ConstSharedPtr img_msg);
+    void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
 
     /**
      * @brief 初始化装甲板识别器，设置识别器参数
@@ -42,7 +42,7 @@ private:
      *
      * @return std::vector<Armor> 识别到的装甲板
      */
-    std::vector<Armor> DetectArmors(const sensor_msgs::msg::Image::ConstSharedPtr& img_msg);
+    std::vector<Armor> DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     /**
      * @brief debug 模式下发布识别到的装甲板信息
