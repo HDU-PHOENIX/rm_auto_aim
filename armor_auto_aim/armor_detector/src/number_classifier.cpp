@@ -19,7 +19,7 @@
 #include "armor_detector/armor.hpp"
 #include "armor_detector/number_classifier.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 NumberClassifier::NumberClassifier(
     const std::string& model_path,
     const std::string& label_path,
@@ -146,4 +146,4 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
     );
 }
 
-} // namespace rm_auto_aim
+} // namespace armor

@@ -14,7 +14,7 @@
 #include "auto_aim_interfaces/msg/debug_armor.hpp"
 #include "auto_aim_interfaces/msg/debug_light.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 Detector::Detector(
     const int& bin_thres,
     const int& color,
@@ -267,4 +267,4 @@ void Detector::DrawResults(cv::Mat& img) {
     }
 }
 
-} // namespace rm_auto_aim
+} // namespace armor

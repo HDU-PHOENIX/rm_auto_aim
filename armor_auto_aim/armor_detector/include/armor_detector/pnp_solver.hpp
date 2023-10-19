@@ -10,7 +10,7 @@
 
 #include "armor_detector/armor.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 class PnPSolver {
 public:
     PnPSolver(const std::array<double, 9> &camera_matrix,
@@ -51,6 +51,6 @@ private:
     std::vector<cv::Point3f> large_armor_points_;
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_DETECTOR__PNP_SOLVER_HPP_

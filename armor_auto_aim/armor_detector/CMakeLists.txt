@@ -33,12 +33,11 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
     DIRECTORY src
 )
 
-# TODO: 这两行是否需要？
 target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN rm_auto_aim::ArmorDetectorNode
+    PLUGIN armor::ArmorDetectorNode
     EXECUTABLE armor_detector_node
 )
 

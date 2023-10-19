@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     }
 
     // 创建 detector_node
-    auto detector_node = std::make_shared<rm_auto_aim::ArmorDetectorNode>(options);
+    auto detector_node = std::make_shared<armor::ArmorDetectorNode>(options);
 
     // 将 camera_node 和 detector_node 添加到单线程执行器中
     executor.add_node(camera_node);

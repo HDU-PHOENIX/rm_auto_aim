@@ -15,7 +15,7 @@
 #include "auto_aim_interfaces/msg/debug_armors.hpp"
 #include "auto_aim_interfaces/msg/debug_lights.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 class Detector {
 public:
     // 灯条参数
@@ -127,6 +127,6 @@ private:
     std::vector<Armor> armors_;  // 存放装甲板的容器
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_DETECTOR__DETECTOR_HPP_

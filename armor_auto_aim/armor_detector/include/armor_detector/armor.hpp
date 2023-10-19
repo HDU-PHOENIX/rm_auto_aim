@@ -11,7 +11,7 @@
 #define RED 0
 #define BLUE 1
 
-namespace rm_auto_aim {
+namespace armor {
 
 // 装甲板类型：小、大、无效
 enum class ArmorType { SMALL, LARGE, INVALID };
@@ -68,6 +68,6 @@ struct Armor {
     std::string classfication_result; // 装甲板数字分类结果
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_DETECTOR__ARMOR_HPP_

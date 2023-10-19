@@ -21,7 +21,7 @@
 #include "armor_detector/pnp_solver.hpp"
 #include "auto_aim_interfaces/msg/armors.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 
 class ArmorDetectorNode: public rclcpp::Node {
 public:
@@ -93,6 +93,6 @@ private:
     image_transport::Publisher result_img_pub_;
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_DETECTOR__DETECTOR_NODE_HPP_

@@ -13,7 +13,7 @@
 
 #include "armor_detector/armor.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 class NumberClassifier {
 public:
     NumberClassifier(const std::string &model_path, const std::string &label_path,
@@ -42,6 +42,6 @@ private:
     std::vector<std::string> class_names_;     // 类别名字
     std::vector<std::string> ignore_classes_;  // 忽略的类别
 };
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_DETECTOR__NUMBER_CLASSIFIER_HPP_

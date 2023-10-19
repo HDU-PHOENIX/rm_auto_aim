@@ -21,7 +21,7 @@
 #include "armor_detector/armor.hpp"
 #include "armor_detector/detector_node.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     Node("armor_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
@@ -308,11 +308,11 @@ void ArmorDetectorNode::PublishMarkers() {
     marker_pub_->publish(marker_array_);
 }
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable
 // when its library is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(rm_auto_aim::ArmorDetectorNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(armor::ArmorDetectorNode)

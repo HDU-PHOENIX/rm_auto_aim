@@ -3,7 +3,7 @@
 #include <opencv2/calib3d.hpp>
 #include <vector>
 
-namespace rm_auto_aim {
+namespace armor {
 PnPSolver::PnPSolver(
     const std::array<double, 9>& camera_matrix,
     const std::vector<double>& dist_coeffs
@@ -58,4 +58,4 @@ float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& image_point) {
     return cv::norm(image_point - cv::Point2f(cx, cy));
 }
 
-} // namespace rm_auto_aim
+} // namespace armor
