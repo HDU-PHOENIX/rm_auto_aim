@@ -1,52 +1,52 @@
 #ifndef RUNE_DETECTOR__DETECTOR_HPP_
 #define RUNE_DETECTOR__DETECTOR_HPP_
 
+#include "nn.h"
+#include "rune_type.hpp"
 // OpenCV
 #include <opencv2/core.hpp>
 #include <opencv2/core/types.hpp>
 
 // STD
 #include <cmath>
+#include <opencv4/opencv2/core/types.hpp>
 #include <string>
 #include <vector>
 
-#include "rune_detector/rune.hpp"
-#include "rune_detector/number_classifier.hpp"
-#include "auto_aim_interfaces/msg/debug_runes.hpp"
 #include "auto_aim_interfaces/msg/debug_lights.hpp"
+#include "auto_aim_interfaces/msg/debug_runes.hpp"
+#include "rune_detector/number_classifier.hpp"
+#include "rune_detector/rune.hpp"
 
-namespace rm_auto_aim {
-class Detector {
+namespace rune {
+class RuneDetector {
 public:
     // 神符参数
-    struct RuneParams {
-        
+    struct Data {
+        cv::Point2f symbol; // 神符中心
+        cv::Point2f armor_center; // 装甲板中心
+        std::vector<cv::Point2f> vertices; // 灯条中心
     };
 
-    Detector();
+    RuneDetector();
 
     /**
-     * @brief 检测神符 通过灯条检测和灯条匹配
+     * @brief 检测神符 神经网络
      *
      * @param input 需要检测的图片
      * @return std::vector<Rune> 检测到的神符
      */
-    std::vector<Rune> Detect(const cv::Mat &input);
-
-    void DrawResults(cv::Mat &img);
-
-    int detect_color;           // 识别到的颜色
-    RuneParams rune_params;   // 神符参数
-
-    // Debug 信息
-    cv::Mat binary_img;
-    auto_aim_interfaces::msg::DebugLights debug_lights;
-    auto_aim_interfaces::msg::DebugRunes debug_runes;
+    void Detect(const cv::Mat& input);
 
 private:
-    std::vector<Rune> runes_;  // 存放神符的容器
+    NeuralNetwork yolo;
+    bool Yolo();
+    double confidence;
+    std::vector<NeuralNetwork::RuneObject> objects;
+    Data* data;
+    // std::vector<Rune> runes_;  // 存放神符的容器
 };
 
-} // namespace rm_auto_aim
+} // namespace rune
 
 #endif // RUNE_DETECTOR__DETECTOR_HPP_

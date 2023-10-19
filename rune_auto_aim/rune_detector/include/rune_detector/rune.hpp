@@ -1,29 +1,85 @@
-#ifndef ARMOR_DETECTOR__ARMOR_HPP_
-#define ARMOR_DETECTOR__ARMOR_HPP_
+#pragma once
 
-// OpenCV
-#include <opencv2/core.hpp>
+#include "nn.h"
+namespace rm_auto_aim{
 
-// STL
-#include <algorithm>
-#include <string>
+    class Rune {
+    public:
+        struct Data {
+            cv::Point2f symbol;
+            cv::Point2f armor;
+            std::vector<cv::Point2d> vertices;
+        };
+        explicit Rune();
+        void detect(sptr<Component::Data> data) override;
+        struct RuneTracker {
+            int id;
+            RuneClass runeclass;
+            cv::Point2f symbol;
+            std::vector<cv::Point2f> vertices;
+            cv::Point2f center;
+            Timestamp timestamp;
+        };
 
-#define RED 0
-#define BLUE 1
+    private:
+        bool Neural_Network;
+        NeuralNetwork yolo;
 
-namespace rm_auto_aim {
+        sptr<Data> data;
 
-// 装甲板类型：小、大、无效
-enum class RuneType { SMALL, LARGE, INVALID };
-// const std::string ARMOR_TYPE_STR[3] = { "small", "large", "invalid" };
+        cv::Mat src, dst, roi;
+        cv::Rect last;
+        cv::Mat mask_hsv, mask_gray, mask;
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<std::vector<cv::Point>> approximations;
+        std::vector<cv::Vec4i> hierarchy;
+        std::vector<std::vector<int>> children;
+        std::vector<std::vector<cv::Point>> convex_hulls;
+        std::vector<double> areas;
+        std::vector<cv::RotatedRect> rects;
+        std::vector<std::size_t> possible_leaves;
+        std::vector<std::size_t> possible_symbols;
 
-struct Rune {
-    Rune() = default;
+        std::vector<std::size_t> possible_outer_lightbar;
+        std::vector<std::size_t> possible_inside_lightbar;
 
-    float confidence;     // 装甲板数字分类置信度
-    std::string classfication_result; // 装甲板数字分类结果
-};
+        std::vector<std::size_t> ring;
 
-} // namespace rm_auto_aim
+        std::pair<int, int> matched_lightbar;
+        std::vector<cv::RotatedRect> ellipse;
 
-#endif // ARMOR_DETECTOR__ARMOR_HPP_
+        bool layer_bool;
+        int layer1;
+        int layer2[5];
+        int layer3;
+        int layer4;
+
+        int outer_lightbar;
+        int inside_lightbar;
+        int symbol;
+        // gray滤亮度,color提高颜色阈值
+        uchar BLUE_GRAY_THRESH;
+        uchar BLUE_COLOR_THRESH;
+        uchar RED_GRAY_THRESH;
+        uchar RED_COLOR_THRESH;
+
+        uchar COUNT = 0;
+
+        int contour_size;
+
+        bool Prepare();
+        bool Binarize();
+        bool FindContours();
+        bool Filter();
+        bool Select();
+        bool Closeout();
+        bool Yolo();
+
+        std::vector<NeuralNetwork::RuneObject> objects;
+        double CONFIDENCE;
+        bool is_last_target_exists;
+        int lost_cnt;
+        double last_target_area;
+    };
+
+}  // namespace phoenix::detector

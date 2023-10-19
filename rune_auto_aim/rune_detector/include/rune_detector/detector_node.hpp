@@ -16,11 +16,14 @@
 #include <string>
 #include <vector>
 
+#include "auto_aim_interfaces/msg/runes.hpp"
 #include "rune_detector/detector.hpp"
 #include "rune_detector/pnp_solver.hpp"
-#include "auto_aim_interfaces/msg/runes.hpp"
 
-namespace rm_auto_aim {
+//yolo神经网络
+#include "nn.h"
+
+namespace rune {
 
 class RuneDetectorNode: public rclcpp::Node {
 public:
@@ -34,7 +37,7 @@ private:
      *
      * @return std::unique_ptr<Detector> 识别器指针
      */
-    std::unique_ptr<Detector> InitDetector();
+    std::unique_ptr<NeuralNetwork> InitDetector();
 
     /**
      * @brief 识别神符
@@ -55,7 +58,8 @@ private:
     void PublishMarkers();
 
     // 神符识别器
-    std::unique_ptr<Detector> detector_;
+    std::unique_ptr<NeuralNetwork> detector_;
+    std::vector<RuneObject> objects_;
 
     // 自定义的神符信息
     auto_aim_interfaces::msg::Runes runes_msg_;
@@ -90,6 +94,6 @@ private:
     image_transport::Publisher result_img_pub_;
 };
 
-} // namespace rm_auto_aim
+} // namespace rune
 
 #endif // RUNE_DETECTOR__DETECTOR_NODE_HPP_
