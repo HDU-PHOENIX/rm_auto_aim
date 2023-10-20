@@ -10,7 +10,7 @@
 
 #include "rune_detector/rune.hpp"
 
-namespace rm_auto_aim {
+namespace rune {
 class PnPSolver {
 public:
     PnPSolver(const std::array<double, 9> &camera_matrix,
@@ -24,7 +24,7 @@ public:
      * @param tvec TODO: description
      * @return bool 
      */
-    bool SolvePnP(const Rune &rune, cv::Mat &rvec, cv::Mat &tvec);
+    bool SolvePnP(std::vector<cv::Point2f>, cv::Mat &rvec, cv::Mat &tvec);
 
     /**
      * @brief 计算装甲板中心到图像中心的距离
@@ -40,7 +40,7 @@ private:
     cv::Mat dist_coeffs_;    // 距离系数 ？
 
     // 神符的顶点的三维坐标
-    std::vector<cv::Point3f> rune_points_;
+    //std::vector<cv::Point3f> rune_points_;
 };
 
 } // namespace rm_auto_aim

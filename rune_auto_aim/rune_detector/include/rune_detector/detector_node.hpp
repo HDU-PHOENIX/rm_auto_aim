@@ -44,7 +44,7 @@ private:
      *
      * @return std::vector<Rune> 识别到的神符
      */
-    std::vector<Rune> DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
+    bool DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     /**
      * @brief debug 模式下发布识别到的神符信息
@@ -60,11 +60,12 @@ private:
     // 神符识别器
     std::unique_ptr<NeuralNetwork> detector_;
     std::vector<RuneObject> objects_;
+    double confidence_threshold_;
 
     // 自定义的神符信息
     auto_aim_interfaces::msg::Runes runes_msg_;
     // 发布者，发布检测到的神符
-    rclcpp::Publisher<auto_aim_interfaces::msg::Runes>::SharedPtr runes_pub_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::Rune>::SharedPtr runes_pub_;
 
     // 用于视化的标记信息
     visualization_msgs::msg::Marker rune_marker_;

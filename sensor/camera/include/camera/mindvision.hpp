@@ -1,7 +1,8 @@
 #ifndef MINDVISION_HPP
 #define MINDVISION_HPP
 
-#include "CameraApi.h"
+// #include "CameraApi.h"
+#include <mindvision/CameraApi.h>
 
 #include "opencv2/core/core.hpp"
 #include <opencv2/core/types_c.h>

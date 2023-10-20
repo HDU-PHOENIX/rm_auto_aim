@@ -18,28 +18,34 @@
 #include <string>
 #include <vector>
 
-#include "armor_detector/armor.hpp"
-#include "armor_detector/detector_node.hpp"
+// #include "armor_detector/armor.hpp"
+#include "rune_detector/detector_node.hpp"
 
-namespace rune {
+#include "rune_detector/rune_type.hpp"
+
+namespace rune 
+{
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
-    rclcpp::Node("rune_detector", options) {
+    rclcpp::Node("rune_detector", options) 
+    {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
-    // ��ʼ�����ʶ����
+    // 初始化神符识别器
+    confidence_threshold_ = 0.7;
     detector_ = InitDetector();
 
-    // ������Ƿ�����
+    // 创建标记发布者
     debug_ = this->declare_parameter("debug", false);
     if (debug_) {
         CreateDebugPublishers();
     }
 
-    // ���������Ϣ������
+    // 创建神符信息发布者
     runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Runes>(
         "/detector/runes",
-         rclcpp::SensorDataQoS());
+        rclcpp::SensorDataQoS()
+    );
 
-    // ����ͼ������
+    // 创建图像订阅者
     image_sub_ = image_transport::create_camera_subscription(
         this,
         "image_raw",
@@ -48,7 +54,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         rmw_qos_profile_sensor_data
     );
 
-    // ���������Ϣ������
+    // 创建相机信息订阅者
     camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         "/camera_info",
         rclcpp::SensorDataQoS(),
@@ -66,37 +72,175 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     );
 }
 
-std::vector<Rune>
-RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg){
-    auto &&img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
-    detector_->detect(img, objects_);//�����ʶ�����ŵ�objects_����
-    //TODO: ʶ�𵽵������Ϣת��Ϊ�Զ���������Ϣ
+bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
+    auto&& img = cv::Mat(
+        img_msg->height,
+        img_msg->width,
+        CV_8UC3,
+        img_msg->data.data()
+    ); //把图像信息转换为cv::Mat格式
+
+    detector_->detect(img, objects_); //把神符识别结果放到objects_里面
+
+    RuneClass cls; //符叶枚举类对象 用于标记符叶的种类
+    bool flag1 = false, flag2 = false, flag3 = false;
+    cv::Point2f symbol; //符叶R标的位置
+    cv::Point2f rune_armor; //符叶未激活装甲板中心
+    std::vector<cv::Point2f> rune_points_; //未激活符叶的五个点
+    ///------------------------生成扇叶对象----------------------------------------------
+    for (auto object: objects_) {
+        //遍历所有的神符识别结果，把R标和未激活的符叶的信息画出来
+        auto prob = object.prob;
+        if (prob < confidence_threshold_) {
+            Log::Info("the confidence is :{}", prob); //如果置信度小于阈值，则不进行处理
+            continue;
+        }
+
+        auto&& detect_center = (object.vertices[0] + object.vertices[1] + object.vertices[2]
+                                + object.vertices[3] + object.vertices[4])
+            / 5; //用于计算R标位置
+
+        auto&& get_symbol = [](const cv::Point2f& lightbar_mid_point,
+                               const cv::Point2f& armor_center,
+                               const double& center_lightbar_ratio,
+                               const bool& flag) {
+            //get_symbol是通过符叶的坐标来计算中心R标的位置
+            if (flag == 0) {
+                //flag = 0使用装甲板中心和内灯条算出标识符位置
+                return ((lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center);
+
+            } else if (flag == 1) {
+                //flag = 1使用装甲板中心和外灯条算出标识符位置
+                return (
+                    -(lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center
+                );
+            }
+            return cv::Point2f(0, 0);
+        };
+
+        if (object.color == 0 && object.cls == 0) {
+            cls = RuneClass::Blue;
+            flag1 = true;
+            symbol = detect_center;
+
+        } else if (object.color == 1 && object.cls == 0) {
+            cls = RuneClass::Red;
+            flag1 = true;
+            symbol = detect_center;
+
+        } else if (object.color == 0 && object.cls == 1) {
+            cls = RuneClass::BlueUnActivated;
+            rune_points_.clear();
+
+            rune_points_.push_back(object.vertices[1]);
+            rune_points_.push_back(object.vertices[2]);
+            rune_points_.push_back(object.vertices[4]);
+            rune_points_.push_back(object.vertices[0]);
+            auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
+            auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
+            auto&& armor = (tmp1 + tmp2) / 2; //装甲板中心
+            rune_armor = armor;
+            if (!flag1) //如果yolo没有检测到R标
+            {
+                // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 3.5542, 0)) / 2;
+                symbol =
+                    (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 4.0542, 0)) / 2;
+            }
+            cv::circle(img, armor, 4, Colors::Aqua, -1);
+            cv::circle(img, symbol, 4, Colors::Yellow, -1);
+            flag1 = true;
+            flag2 = true;
+        } else if (object.color == 1 && object.cls == 1) {
+            cls = RuneClass::RedUnActivated;
+            rune_points_.clear();
+
+            rune_points_.push_back(object.vertices[1]);
+            rune_points_.push_back(object.vertices[2]);
+            rune_points_.push_back(object.vertices[4]);
+            rune_points_.push_back(object.vertices[0]);
+            auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
+            auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
+            auto&& armor = (tmp1 + tmp2) / 2;
+            rune_armor = armor;
+            if (!flag1) {
+                // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 3.5542, 0)) / 2;
+                symbol =
+                    (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 4.0542, 0)) / 2;
+            } //如果yolo没有检测到R标
+
+            //data->armor = armor;
+            cv::circle(img, armor, 6, Colors::Aqua, -1);
+            cv::circle(img, symbol, 6, Colors::Yellow, -1);
+            flag1 = true;
+            flag2 = true;
+
+        } else if (object.color == 0 && object.cls == 2)
+        { //已激活的符叶，可以用来扩展一张图中的得到的信息数量
+            cls = RuneClass::BlueActivated;
+            flag3 = true;
+
+        } else if (object.color == 1 && object.cls == 2)
+        { //已激活的符叶，可以用来扩展一张图中的得到的信息数量
+            cls = RuneClass::RedActivated;
+            flag3 = true;
+        }
+
+        for (int i = 0; i < 5; i++) { //画出五个关键点
+            cv::circle(img, object.vertices[i], 5, Colors::White, -1);
+        }
+        cv::circle(
+            img,
+            (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[4]) / 4,
+            5,
+            Colors::White,
+            -1
+        );
+    }
+    if (flag1 && flag2) //有R标数据和符叶数据，则认为识别完成
+    {
+        //data->find = true;
+        RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
+    }
+    else {
+        //data->find = false;
+        RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
+        return false;
+    }
+
+    cv::Mat rvec, tvec;
+    bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec);//输出旋转向量和平移向量
+    if(!success) {
+        RCLCPP_WARN(this->get_logger(), "PnP failed!");
+        return false;
+    } else {
+        RCLCPP_WARN(this->get_logger(), "PnP success!");
+        
+        runes_msg_.pose.position.x = tvec.at<double>(0);
+        runes_msg_.pose.position.y = tvec.at<double>(1);
+        runes_msg_.pose.position.z = tvec.at<double>(2);//未激活符叶相机坐标系下的位置
+        runes_msg_.leaf_dir.position.x = (rune_armor - symbol).x;
+        runes_msg_.leaf_dir.position.y = (rune_armor - symbol).y;
+    }
 }
 
-
-void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg){
+void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
     RCLCPP_INFO(
         this->get_logger(),
         "timestamp: %d image address in detector %p",
         img_msg->header.stamp.nanosec,
         static_cast<void*>(const_cast<sensor_msgs::msg::Image*>(img_msg.get()))
     );
-    auto runes = DetectRunes(img_msg);
-
-
+    if(DetectRunes(img_msg))
+    {
+        runes_pub_->publish(runes_msg_);
+    }
 }
 
-
-
 std::unique_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
-    
     auto&& detector = std::make_unique<NeuralNetwork>();
     detector->init("path to yolox model");
 
     return detector;
 }
-
-
-
 
 } // namespace rune
