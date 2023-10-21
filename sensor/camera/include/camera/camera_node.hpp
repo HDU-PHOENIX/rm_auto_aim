@@ -11,14 +11,14 @@ class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
     ~CameraNode() override;
-    void Loop();
+    void LoopForPublish();
 
 private:
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
 
     // 线程相关
-    std::thread thread_;
+    std::thread thread_for_publish_;
     std::atomic<bool> canceled_;
 
     // debug 时间数据

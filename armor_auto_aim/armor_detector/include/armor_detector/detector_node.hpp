@@ -28,6 +28,12 @@ public:
     explicit ArmorDetectorNode(const rclcpp::NodeOptions& options);
 
 private:
+    /**
+     * @brief 接收图片的回调函数
+     *        识别装甲板 & PnP 解算
+     * 
+     * @param img_msg 
+     */
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
 
     /**
@@ -38,7 +44,7 @@ private:
     std::unique_ptr<Detector> InitDetector();
 
     /**
-     * @brief 识别装甲板
+     * @brief 节点内的识别装甲板方法，在此方法内调用 Detector 内的方法
      *
      * @return std::vector<Armor> 识别到的装甲板
      */

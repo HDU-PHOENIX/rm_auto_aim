@@ -40,11 +40,17 @@ public:
         double max_angle;
     };
 
-    Detector(const int &bin_thres, const int &color,
-             const LightParams &light_params, const ArmorParams &armor_params);
+    Detector(
+        const int& bin_thres,
+        const int& color,
+        const LightParams& light_params,
+        const ArmorParams& armor_params
+    );
 
     /**
-     * @brief 检测装甲板 通过灯条检测和灯条匹配
+     * @brief   检测装甲板
+     * @details 处理图像 -> 寻找灯条 -> 匹配灯条 -> 提取数字 -> 分类
+     *          PreprocessImage -> FindLights -> MatchLights -> ExtractNumbers -> Classify
      *
      * @param input 需要检测的图片
      * @return std::vector<Armor> 检测到的装甲板
@@ -66,8 +72,7 @@ public:
      * @param binary_img 二值化图像
      * @return std::vector<Light> 寻找到的灯条的容器
      */
-    std::vector<Light> FindLights(const cv::Mat &rbg_img,
-                                  const cv::Mat &binary_img);
+    std::vector<Light> FindLights(const cv::Mat& rbg_img, const cv::Mat& binary_img);
 
     /**
      * @brief 匹配灯条
@@ -75,16 +80,16 @@ public:
      * @param lights 灯条的容器
      * @return std::vector<Armor> 通过灯条匹配到的装甲板
      */
-    std::vector<Armor> MatchLights(const std::vector<Light> &lights);
+    std::vector<Armor> MatchLights(const std::vector<Light>& lights);
 
     // TODO: For debug usage
     cv::Mat GetAllNumbersImage();
-    void DrawResults(cv::Mat &img);
+    void DrawResults(cv::Mat& img);
 
-    int binary_thres;           // 二值化阈值
-    int detect_color;           // 识别到的颜色
-    LightParams light_params;   // 灯条参数
-    ArmorParams armor_params;   // 装甲板参数
+    int binary_thres; // 二值化阈值
+    int detect_color; // 识别到的颜色
+    LightParams light_params; // 灯条参数
+    ArmorParams armor_params; // 装甲板参数
 
     // 数字分类器
     std::unique_ptr<NumberClassifier> classifier;
@@ -101,7 +106,7 @@ private:
      * @param possible_light 可能的灯条
      * @return bool
      */
-    bool IsLight(const Light &possible_light);
+    bool IsLight(const Light& possible_light);
 
     /**
      * @brief 两灯条间是否包含灯条
@@ -111,8 +116,7 @@ private:
      * @param lights  所有灯条的容器
      * @return bool
      */
-    bool ContainLight(const Light &light_1, const Light &light_2,
-                                        const std::vector<Light> &lights);
+    bool ContainLight(const Light& light_1, const Light& light_2, const std::vector<Light>& lights);
 
     /**
      * @brief 判度是否是装甲板
@@ -121,10 +125,10 @@ private:
      * @param light_2     装甲板灯条 2
      * @return ArmorType  装甲板类型
      */
-    ArmorType IsArmor(const Light &light_1, const Light &light_2);
+    ArmorType IsArmor(const Light& light_1, const Light& light_2);
 
-    std::vector<Light> lights_;  // 存放灯条的容器
-    std::vector<Armor> armors_;  // 存放装甲板的容器
+    std::vector<Light> lights_; // 存放灯条的容器
+    std::vector<Armor> armors_; // 存放装甲板的容器
 };
 
 } // namespace armor

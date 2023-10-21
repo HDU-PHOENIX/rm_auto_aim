@@ -1,4 +1,6 @@
 #include "camera/mindvision.hpp"
+#include <cstdio>
+#include <ctime>
 
 MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
     // 相机 SDK 初始化
@@ -74,7 +76,6 @@ bool MindVision::GetFrame(cv::Mat& frame) {
 }
 
 bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
-    auto start = rclcpp::Clock().now();
     // 获取缓存区图像
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
         return false;
@@ -92,8 +93,6 @@ bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
     //在成功调用 CameraGetImageBuffer 后，必须调用 CameraReleaseImageBuffer 来释放获得的 buffer。
     //否则再次调用 CameraGetImageBuffer 时，程序将被挂起一直阻塞，直到其他线程中调用 CameraReleaseImageBuffer 来释放了 buffer
     CameraReleaseImageBuffer(h_camera, pby_buffer);
-    auto end = rclcpp::Clock().now();
-    printf("fps of get mv: %lf\n", 1 / (end - start).seconds());
     return true;
 }
 
