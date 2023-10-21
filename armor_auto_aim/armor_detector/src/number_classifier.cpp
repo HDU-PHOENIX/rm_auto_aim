@@ -28,8 +28,10 @@ NumberClassifier::NumberClassifier(
 ):
     threshold(thre),
     ignore_classes_(ignore_classes) {
+    // 加载模型
     net_ = cv::dnn::readNetFromONNX(model_path);
 
+    // 加载标签
     std::ifstream label_file(label_path);
     std::string line;
     while (std::getline(label_file, line)) {
@@ -38,17 +40,18 @@ NumberClassifier::NumberClassifier(
 }
 
 void NumberClassifier::ExtractNumbers(const cv::Mat& src, std::vector<Armor>& armors) {
-    // Light length in image
+    // 图片中的灯条长度
     const int light_length = 12;
-    // Image size after warp
+    // 透视变化之后的图片大小
     const int warp_height = 28;
     const int small_armor_width = 32;
     const int large_armor_width = 54;
-    // Number ROI size
+    // 数字 ROI 大小
     const cv::Size roi_size(20, 28);
 
+    // 遍历所有装甲板
     for (auto& armor: armors) {
-        // Warp perspective transform
+        // 透视变换
         cv::Point2f lights_vertices[4] = { armor.left_light.bottom,
                                            armor.left_light.top,
                                            armor.right_light.top,
@@ -68,11 +71,11 @@ void NumberClassifier::ExtractNumbers(const cv::Mat& src, std::vector<Armor>& ar
         auto rotation_matrix = cv::getPerspectiveTransform(lights_vertices, target_vertices);
         cv::warpPerspective(src, number_image, rotation_matrix, cv::Size(warp_width, warp_height));
 
-        // Get ROI
+        // 获取数字 ROI
         number_image =
             number_image(cv::Rect(cv::Point((warp_width - roi_size.width) / 2, 0), roi_size));
 
-        // Binarize
+        // 二值化
         cv::cvtColor(number_image, number_image, cv::COLOR_RGB2GRAY);
         cv::threshold(number_image, number_image, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
 
@@ -117,21 +120,28 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
         armor.classfication_result = result_ss.str();
     }
 
+    // erase 删除从 first 到 last 之间
+    // first: remove_if 返回的要 remove 的首个元素的 iterator
+    // last: 装甲板结尾
     armors.erase(
+        // 返回值真的元素移至末尾，返回首个要 remove 的首个元素的 iterator
         std::remove_if(
             armors.begin(),
             armors.end(),
             [this](const Armor& armor) {
+                // 装甲板置信度过低
                 if (armor.confidence < threshold) {
                     return true;
                 }
 
+                // 忽略的装甲板类型
                 for (const auto& ignore_class: ignore_classes_) {
                     if (armor.number == ignore_class) {
                         return true;
                     }
                 }
 
+                // 错误匹配的类型
                 bool mismatch_armor_type = false;
                 if (armor.type == ArmorType::LARGE) {
                     mismatch_armor_type =

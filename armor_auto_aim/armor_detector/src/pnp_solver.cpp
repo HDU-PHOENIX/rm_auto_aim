@@ -30,16 +30,16 @@ PnPSolver::PnPSolver(
 }
 
 bool PnPSolver::SolvePnP(const Armor& armor, cv::Mat& rvec, cv::Mat& tvec) {
+    // 装甲板四个点在图像中的坐标
     std::vector<cv::Point2f> image_armor_points;
-
-    // Fill in image points
     image_armor_points.emplace_back(armor.left_light.bottom);
     image_armor_points.emplace_back(armor.left_light.top);
     image_armor_points.emplace_back(armor.right_light.top);
     image_armor_points.emplace_back(armor.right_light.bottom);
 
-    // Solve pnp
+    // 装甲板四个点在三维坐标系中的坐标
     auto object_points = armor.type == ArmorType::SMALL ? small_armor_points_ : large_armor_points_;
+    // PnP
     return cv::solvePnP(
         object_points,
         image_armor_points,
@@ -52,10 +52,10 @@ bool PnPSolver::SolvePnP(const Armor& armor, cv::Mat& rvec, cv::Mat& tvec) {
     );
 }
 
-float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& image_point) {
-    float cx = camera_matrix_.at<double>(0, 2);
-    float cy = camera_matrix_.at<double>(1, 2);
-    return cv::norm(image_point - cv::Point2f(cx, cy));
+float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& armor_center) {
+    float cx = camera_matrix_.at<double>(0, 2); // 光学中心 x
+    float cy = camera_matrix_.at<double>(1, 2); // 光学中心 y
+    return cv::norm(armor_center - cv::Point2f(cx, cy));
 }
 
 } // namespace armor

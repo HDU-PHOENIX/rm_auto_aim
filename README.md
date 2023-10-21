@@ -15,6 +15,8 @@
 |── auto_aim_interfaces
 |
 └── auto_aim
+
+rosdep install --from-paths ./ --ignore-src -r -y
 ```
 
 ## armor_auto_aim

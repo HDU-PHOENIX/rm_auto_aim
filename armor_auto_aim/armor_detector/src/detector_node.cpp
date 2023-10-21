@@ -27,10 +27,10 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     Node("armor_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
 
-    // Detector
+    // 初始化 Detector
     detector_ = InitDetector();
 
-    // Armors Publisher
+    // 创建装甲板消息发布器
     armors_pub_ = this->create_publisher<auto_aim_interfaces::msg::Armors>(
         "/detector/armors",
         rclcpp::SensorDataQoS()
@@ -61,7 +61,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     marker_pub_ =
         this->create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
 
-    // Debug Publishers
+    // Debug 信息发布者
     debug_ = this->declare_parameter("debug", false);
     if (debug_) {
         CreateDebugPublishers();
@@ -75,6 +75,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
             debug_ ? CreateDebugPublishers() : DestroyDebugPublishers();
         });
 
+    // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         "/camera_info",
         rclcpp::SensorDataQoS(),
@@ -86,6 +87,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         }
     );
 
+    // 创建图像订阅者
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "/image_raw",
         rclcpp::SensorDataQoS(),
@@ -94,8 +96,10 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
+    // 识别装甲板
     auto armors = DetectArmors(img_msg);
 
+    // PnP 求解
     if (pnp_solver_ != nullptr) {
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
         armors_msg_.armors.clear();
@@ -103,23 +107,26 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
         armor_marker_.id = 0;
         text_marker_.id = 0;
 
+        // 创建装甲板消息
         auto_aim_interfaces::msg::Armor armor_msg;
+        // 遍历装甲板进行 PnP 求解
         for (const auto& armor: armors) {
+            // 旋转矩阵和平移向量
             cv::Mat rvec, tvec;
             bool success = pnp_solver_->SolvePnP(armor, rvec, tvec);
             if (success) {
-                // Fill basic info
+                // 写入装甲板基础消息
                 armor_msg.type = ARMOR_TYPE_STR[static_cast<int>(armor.type)];
                 armor_msg.number = armor.number;
 
-                // Fill pose
+                // 写入 PnP 求解结果
                 armor_msg.pose.position.x = tvec.at<double>(0);
                 armor_msg.pose.position.y = tvec.at<double>(1);
                 armor_msg.pose.position.z = tvec.at<double>(2);
-                // rvec to 3x3 rotation matrix
+                // rvec to 3x3 旋转矩阵
                 cv::Mat rotation_matrix;
                 cv::Rodrigues(rvec, rotation_matrix);
-                // rotation matrix to quaternion
+                // 旋转矩阵 to 四元数
                 tf2::Matrix3x3 tf2_rotation_matrix(
                     rotation_matrix.at<double>(0, 0),
                     rotation_matrix.at<double>(0, 1),
@@ -135,7 +142,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 tf2_rotation_matrix.getRotation(tf2_q);
                 armor_msg.pose.orientation = tf2::toMsg(tf2_q);
 
-                // Fill the distance to image center
+                // 计算装甲板中心到图像中心的距离
                 armor_msg.distance_to_image_center =
                     pnp_solver_->CalculateDistanceToCenter(armor.center);
 
@@ -155,7 +162,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             }
         }
 
-        // Publishing detected armors
+        // 发布已识别到的装甲板的信息
         armors_pub_->publish(armors_msg_);
 
         // Publishing marker
@@ -194,9 +201,10 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     a_params.max_large_center_distance = declare_parameter("armor.max_large_center_distance", 5.5);
     a_params.max_angle = declare_parameter("armor.max_angle", 35.0);
 
+    // 初始化 Detector
     auto detector = std::make_unique<Detector>(binary_thres, detect_color, l_params, a_params);
 
-    // Init classifier
+    // 初始化分类器
     auto pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
     auto model_path = pkg_path + "/model/mlp.onnx";
     auto label_path = pkg_path + "/model/label.txt";
@@ -214,24 +222,26 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
     // 通过 img_msg 指针构造图像
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
 
-    // Update params
+    // 更新参数
     detector_->binary_thres = get_parameter("binary_thres").as_int();
     detector_->detect_color = get_parameter("detect_color").as_int();
     detector_->classifier->threshold = get_parameter("classifier_threshold").as_double();
 
+    // 检测装甲板
     auto armors = detector_->Detect(img);
 
+    // 计算检测时间
     auto final_time = this->now();
     auto latency = (final_time - img_msg->header.stamp).seconds() * 1000;
     RCLCPP_DEBUG_STREAM(this->get_logger(), "Latency: " << latency << "ms");
 
-    // Publish debug info
+    // 发布 debug 信息
     if (debug_) {
         binary_img_pub_.publish(
             cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg()
         );
 
-        // Sort lights and armors data by x coordinate
+        // 根据 x 坐标对灯条和装甲板排序
         std::sort(
             detector_->debug_lights.data.begin(),
             detector_->debug_lights.data.end(),
@@ -243,18 +253,22 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
             [](const auto& a1, const auto& a2) { return a1.center_x < a2.center_x; }
         );
 
+        // 发布灯条和装甲板 debug 信息
         lights_data_pub_->publish(detector_->debug_lights);
         armors_data_pub_->publish(detector_->debug_armors);
 
         if (!armors.empty()) {
+            // 获取所有的数字图像
             auto all_num_img = detector_->GetAllNumbersImage();
+            // 发布数字图像
             number_img_pub_.publish(
                 *cv_bridge::CvImage(img_msg->header, "mono8", all_num_img).toImageMsg()
             );
         }
 
+        // 在图像上画出结果，显示数字和置信度
         detector_->DrawResults(img);
-        // Draw camera center
+        // 画出相机中心
         cv::circle(img, cam_center_, 5, cv::Scalar(255, 0, 0), 2);
         // Draw latency
         std::stringstream latency_ss;
@@ -269,6 +283,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
             cv::Scalar(0, 255, 0),
             2
         );
+        // 发布结果图像
         result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "rgb8", img).toImageMsg());
     }
 
@@ -287,9 +302,11 @@ void ArmorDetectorNode::CreateDebugPublishers() {
 }
 
 void ArmorDetectorNode::DestroyDebugPublishers() {
+    // 重置
     lights_data_pub_.reset();
     armors_data_pub_.reset();
 
+    // 关闭
     binary_img_pub_.shutdown();
     number_img_pub_.shutdown();
     result_img_pub_.shutdown();

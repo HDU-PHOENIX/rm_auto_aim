@@ -82,8 +82,17 @@ public:
      */
     std::vector<Armor> MatchLights(const std::vector<Light>& lights);
 
-    // TODO: For debug usage
+    /**
+     * @brief 获取所有数字的图像
+     * 
+     * @return cv::Mat 
+     */
     cv::Mat GetAllNumbersImage();
+    /**
+     * @brief 在图像上画出结果，显示数字和置信度
+     * 
+     * @param img 原始图像
+     */
     void DrawResults(cv::Mat& img);
 
     int binary_thres; // 二值化阈值

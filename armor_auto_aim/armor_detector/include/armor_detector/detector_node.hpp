@@ -54,6 +54,10 @@ private:
      * @brief debug 模式下发布识别到的装甲板信息
      */
     void CreateDebugPublishers();
+    /**
+     * @brief 销毁 debug 信息发布者
+     * 
+     */
     void DestroyDebugPublishers();
 
     /**

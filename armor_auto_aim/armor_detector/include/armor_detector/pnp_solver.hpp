@@ -32,12 +32,11 @@ public:
      * @param image_point 装甲板中心点
      * @return float 距离 
      */
-    // Calculate the distance between armor center and image center
-    float CalculateDistanceToCenter(const cv::Point2f &image_point);
+    float CalculateDistanceToCenter(const cv::Point2f &armor_center);
 
 private:
-    cv::Mat camera_matrix_;  // 相机参数矩阵 ？
-    cv::Mat dist_coeffs_;    // 距离系数 ？
+    cv::Mat camera_matrix_;  // 相机内参矩阵 TODO: from camera_info
+    cv::Mat dist_coeffs_;    // 相机畸变系数 TODO: from camera_info
 
     // 大小装甲板宽高参数 Unit: mm
     static constexpr float SMALL_ARMOR_WIDTH  = 135,

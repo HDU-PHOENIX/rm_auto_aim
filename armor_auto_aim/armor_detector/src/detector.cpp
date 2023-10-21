@@ -41,9 +41,11 @@ std::vector<Armor> Detector::Detect(const cv::Mat& input) {
 }
 
 cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
+    // 灰度
     cv::Mat gray_img;
     cv::cvtColor(rgb_img, gray_img, cv::COLOR_RGB2GRAY);
 
+    // 二值化
     cv::Mat binary_img;
     cv::threshold(gray_img, binary_img, binary_thres, 255, cv::THRESH_BINARY);
 
@@ -63,7 +65,6 @@ std::vector<Light> Detector::FindLights(const cv::Mat& rbg_img, const cv::Mat& b
 
     // 遍历轮廓，寻找灯条并判断颜色
     for (const auto& contour: contours) {
-        // TODO: 为什么要大于等于 5
         if (contour.size() < 5) {
             continue;
         }
@@ -133,17 +134,20 @@ std::vector<Armor> Detector::MatchLights(const std::vector<Light>& lights) {
     std::vector<Armor> armors;
     this->debug_armors.data.clear();
 
-    // Loop all the pairing of lights
+    // 循环遍历所有配对的灯
     for (auto light_1 = lights.begin(); light_1 != lights.end(); light_1++) {
         for (auto light_2 = light_1 + 1; light_2 != lights.end(); light_2++) {
+            // 跳过己方灯条
             if (light_1->color != detect_color || light_2->color != detect_color) {
                 continue;
             }
 
+            // 两灯条间是否包含灯条
             if (ContainLight(*light_1, *light_2, lights)) {
                 continue;
             }
 
+            // 判断装甲板类型
             auto type = IsArmor(*light_1, *light_2);
             if (type != ArmorType::INVALID) {
                 auto armor = Armor(*light_1, *light_2);
@@ -156,7 +160,6 @@ std::vector<Armor> Detector::MatchLights(const std::vector<Light>& lights) {
     return armors;
 }
 
-// Check if there is another light in the boundingRect formed by the 2 lights
 bool Detector::ContainLight(
     const Light& light_1,
     const Light& light_2,
@@ -182,11 +185,12 @@ bool Detector::ContainLight(
 }
 
 ArmorType Detector::IsArmor(const Light& light_1, const Light& light_2) {
-    // Ratio of the length of 2 lights (short side / long side)
+    // 两个灯的长度比 (short side / long side)
     float light_length_ratio = light_1.length < light_2.length ? light_1.length / light_2.length
                                                                : light_2.length / light_1.length;
     bool light_ratio_ok = light_length_ratio > armor_params.min_light_ratio;
 
+    // 两个灯条的距离 (unit : light length)
     // Distance between the center of 2 lights (unit : light length)
     float avg_light_length = (light_1.length + light_2.length) / 2;
     float center_distance = cv::norm(light_1.center - light_2.center) / avg_light_length;
@@ -195,18 +199,18 @@ ArmorType Detector::IsArmor(const Light& light_1, const Light& light_2) {
         || (armor_params.min_large_center_distance <= center_distance
             && armor_params.max_large_center_distance > center_distance);
 
-    // Angle of light center connection
+    // 灯条倾斜角度
     cv::Point2f diff = light_1.center - light_2.center;
     float angle = std::abs(std::atan(diff.y / diff.x)) / CV_PI * 180;
     bool angle_ok = angle < armor_params.max_angle;
 
+    // 判断是否为装甲板
     bool is_armor = light_ratio_ok && center_distance_ok && angle_ok;
 
-    // Judge armor type
+    // 判断装甲板类型
     ArmorType type;
     if (is_armor) {
-        type = center_distance > armor_params.min_large_center_distance ? ArmorType::LARGE
-                                                                        : ArmorType::SMALL;
+        type = center_distance > armor_params.min_large_center_distance ? ArmorType::LARGE : ArmorType::SMALL;
     } else {
         type = ArmorType::INVALID;
     }
