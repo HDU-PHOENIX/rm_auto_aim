@@ -87,7 +87,7 @@ namespace rune {
      */
     static void generateYoloxProposals(std::vector<GridAndStride> grid_strides, const float* feat_ptr,
                                        Eigen::Matrix<float, 3, 3>& transform_matrix, float prob_threshold,
-                                       std::vector<phoenix::detector::NeuralNetwork::RuneObject>& objects) {
+                                       std::vector<NeuralNetwork::RuneObject>& objects) {
         const int num_anchors = grid_strides.size();
         //Travel all the anchors
         for (int anchor_idx = 0; anchor_idx < num_anchors; anchor_idx++) {
@@ -124,7 +124,7 @@ namespace rune {
             float box_prob = box_objectness;
 
             if (box_prob >= prob_threshold) {
-                phoenix::detector::NeuralNetwork::RuneObject obj;
+                NeuralNetwork::RuneObject obj;
 
                 Eigen::Matrix<float, 3, 5> vertices_norm;
                 Eigen::Matrix<float, 3, 5> vertices_dst;
@@ -160,12 +160,12 @@ namespace rune {
      * @param b Object b.
      * @return Area of intersection.
      */
-    static inline float intersection_area(const phoenix::detector::NeuralNetwork::RuneObject& a, const phoenix::detector::NeuralNetwork::RuneObject& b) {
+    static inline float intersection_area(const NeuralNetwork::RuneObject& a, const NeuralNetwork::RuneObject& b) {
         cv::Rect_<float> inter = a.rect & b.rect;
         return inter.area();
     }
 
-    static void qsort_descent_inplace(std::vector<phoenix::detector::NeuralNetwork::RuneObject>& faceobjects, int left, int right) {
+    static void qsort_descent_inplace(std::vector<NeuralNetwork::RuneObject>& faceobjects, int left, int right) {
         int i = left;
         int j = right;
         float p = faceobjects[(left + right) / 2].prob;
@@ -201,14 +201,14 @@ namespace rune {
         }
     }
 
-    static void qsort_descent_inplace(std::vector<phoenix::detector::NeuralNetwork::RuneObject>& objects) {
+    static void qsort_descent_inplace(std::vector<NeuralNetwork::RuneObject>& objects) {
         if (objects.empty())
             return;
 
         qsort_descent_inplace(objects, 0, objects.size() - 1);
     }
 
-    static void nms_sorted_bboxes(std::vector<phoenix::detector::NeuralNetwork::RuneObject>& faceobjects, std::vector<int>& picked,
+    static void nms_sorted_bboxes(std::vector<NeuralNetwork::RuneObject>& faceobjects, std::vector<int>& picked,
                                   float nms_threshold) {
         picked.clear();
         const int n = faceobjects.size();
@@ -221,11 +221,11 @@ namespace rune {
         }
 
         for (int i = 0; i < n; i++) {
-            phoenix::detector::NeuralNetwork::RuneObject& a = faceobjects[i];
+            NeuralNetwork::RuneObject& a = faceobjects[i];
             std::vector<cv::Point2f> vertices_a(a.vertices, a.vertices + 5);
             int keep = 1;
             for (int j = 0; j < (int)picked.size(); j++) {
-                phoenix::detector::NeuralNetwork::RuneObject& b = faceobjects[picked[j]];
+                NeuralNetwork::RuneObject& b = faceobjects[picked[j]];
                 std::vector<cv::Point2f> vertices_b(b.vertices, b.vertices + 5);
                 std::vector<cv::Point2f> vertices_inter;
                 // intersection over union
@@ -259,9 +259,9 @@ namespace rune {
      * @param img_w Width of Image.
      * @param img_h Height of Image.
      */
-    static void decodeOutputs(const float* prob, std::vector<phoenix::detector::NeuralNetwork::RuneObject>& objects,
+    static void decodeOutputs(const float* prob, std::vector<NeuralNetwork::RuneObject>& objects,
                               Eigen::Matrix<float, 3, 3>& transform_matrix, const int img_w, const int img_h) {
-        std::vector<phoenix::detector::NeuralNetwork::RuneObject> proposals;
+        std::vector<NeuralNetwork::RuneObject> proposals;
         std::vector<int> strides = {8, 16, 32};
         std::vector<GridAndStride> grid_strides;
 
@@ -321,7 +321,8 @@ namespace rune {
         // Step 4. Create an infer request
         infer_request = executable_network.CreateInferRequest();
         const InferenceEngine::Blob::Ptr output_blob = infer_request.GetBlob(output_name);
-        moutput = as<InferenceEngine::MemoryBlob>(output_blob);
+        // moutput = as<InferenceEngine::MemoryBlob>(output_blob);
+        moutput = InferenceEngine::as<InferenceEngine::MemoryBlob>(output_blob);
         // Blob::Ptr input = infer_request.GetBlob(input_name);     // just wrap Mat data by Blob::Ptr
         if (!moutput) {
             throw std::logic_error("We expect output to be inherited from MemoryBlob, "
@@ -332,7 +333,7 @@ namespace rune {
         return true;
     }
 
-    bool NeuralNetwork::detect(cv::Mat& src, std::vector<phoenix::detector::NeuralNetwork::RuneObject>& objects) {
+    bool NeuralNetwork::detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>& objects) {
         if (src.empty()) {
             return false;
         }
@@ -401,4 +402,4 @@ namespace rune {
             return false;
     }
 
-}  // namespace phoenix::detector
+}  // namespace rune

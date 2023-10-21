@@ -16,10 +16,12 @@
 #include <string>
 #include <vector>
 
-#include "auto_aim_interfaces/msg/runes.hpp"
-#include "rune_detector/detector.hpp"
-#include "rune_detector/pnp_solver.hpp"
+#include "auto_aim_interfaces/msg/rune.hpp"
+// #include "auto_aim_interfaces/msg/armor.hpp"
 
+#include "pnp_solver.hpp"
+
+#include "colors.hpp"
 //yolo神经网络
 #include "nn.h"
 
@@ -57,13 +59,23 @@ private:
      */
     void PublishMarkers();
 
+    // struct RuneObject {
+    //         cv::Point2f vertices[5];//符叶的五个顶点
+    //         cv::Rect_<float> rect;
+    //         int cls;
+    //         int color;
+    //         float prob;
+    //         std::vector<cv::Point2f> pts;
+    //         //cv::Point2f symbol;
+    //     };
+
     // 神符识别器
     std::unique_ptr<NeuralNetwork> detector_;
-    std::vector<RuneObject> objects_;
+    std::vector<rune::NeuralNetwork::RuneObject> objects_;
     double confidence_threshold_;
 
     // 自定义的神符信息
-    auto_aim_interfaces::msg::Runes runes_msg_;
+    auto_aim_interfaces::msg::Rune runes_msg_;
     // 发布者，发布检测到的神符
     rclcpp::Publisher<auto_aim_interfaces::msg::Rune>::SharedPtr runes_pub_;
 
@@ -90,7 +102,6 @@ private:
     bool debug_;
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::DebugRunes>::SharedPtr runes_data_pub_;
     image_transport::Publisher binary_img_pub_;
     image_transport::Publisher result_img_pub_;
 };

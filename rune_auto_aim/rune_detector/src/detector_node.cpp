@@ -41,22 +41,14 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     }
 
     // 创建神符信息发布者
-    runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Runes>(
+    runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Rune>(
         "/detector/runes",
         rclcpp::SensorDataQoS()
     );
 
-    // 创建图像订阅者
-    image_sub_ = image_transport::create_camera_subscription(
-        this,
-        "image_raw",
-        std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1),
-        "raw",
-        rmw_qos_profile_sensor_data
-    );
 
     // 创建相机信息订阅者
-    camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+    cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         "/camera_info",
         rclcpp::SensorDataQoS(),
         [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
@@ -66,6 +58,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
             cam_info_sub_.reset();
         }
     );
+    
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "/image_raw",
         rclcpp::SensorDataQoS(),
@@ -93,7 +86,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         //遍历所有的神符识别结果，把R标和未激活的符叶的信息画出来
         auto prob = object.prob;
         if (prob < confidence_threshold_) {
-            Log::Info("the confidence is :{}", prob); //如果置信度小于阈值，则不进行处理
+            RCLCPP_WARN(this->get_logger(), "prob is too low"); //如果置信度小于阈值，则不进行处理
             continue;
         }
 
@@ -216,11 +209,11 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     } else {
         RCLCPP_WARN(this->get_logger(), "PnP success!");
         
-        runes_msg_.pose.position.x = tvec.at<double>(0);
-        runes_msg_.pose.position.y = tvec.at<double>(1);
-        runes_msg_.pose.position.z = tvec.at<double>(2);//未激活符叶相机坐标系下的位置
-        runes_msg_.leaf_dir.position.x = (rune_armor - symbol).x;
-        runes_msg_.leaf_dir.position.y = (rune_armor - symbol).y;
+        runes_msg_.pose_c.position.x = tvec.at<double>(0);
+        runes_msg_.pose_c.position.y = tvec.at<double>(1);
+        runes_msg_.pose_c.position.z = tvec.at<double>(2);//未激活符叶相机坐标系下的位置
+        runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
+        runes_msg_.leaf_dir.y = (rune_armor - symbol).y;//符叶向量
         runes_msg_.header = img_msg->header;//包含时间戳
     }
 }
@@ -239,10 +232,17 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
 }
 
 std::unique_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
-    auto&& detector = std::make_unique<NeuralNetwork>();
-    detector->init("path to yolox model");
+    auto detector = std::make_unique<NeuralNetwork>();
+    detector->Init("path to yolox model");
 
     return detector;
 }
 
 } // namespace rune
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable
+// when its library is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(rune::RuneDetectorNode)

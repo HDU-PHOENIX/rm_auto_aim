@@ -2,7 +2,7 @@
 
 #include <opencv2/opencv.hpp>
 
-namespace phoenix {
+namespace rune {
 
     using llong = long long;
     using ldouble = long double;
