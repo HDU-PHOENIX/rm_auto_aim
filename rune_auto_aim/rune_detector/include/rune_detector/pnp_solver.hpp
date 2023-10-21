@@ -1,14 +1,16 @@
-#ifndef ARMOR_DETECTOR__PNP_SOLVER_HPP_
-#define ARMOR_DETECTOR__PNP_SOLVER_HPP_
+#ifndef RUNE_DETECTOR__PNP_SOLVER_HPP_
+#define RUNE_DETECTOR__PNP_SOLVER_HPP_
 
 #include <geometry_msgs/msg/point.hpp>
 #include <opencv2/core.hpp>
 
 // STD
 #include <array>
+#include <opencv4/opencv2/core/types.hpp>
 #include <vector>
 
-#include "rune_detector/rune.hpp"
+// #include "rune_detector/rune.hpp"
+#include "rune_detector/sizes.hpp"
 
 namespace rune {
 class PnPSolver {
@@ -24,7 +26,7 @@ public:
      * @param tvec TODO: description
      * @return bool 
      */
-    bool SolvePnP(std::vector<cv::Point2f>, cv::Mat &rvec, cv::Mat &tvec);
+    bool SolvePnP(std::vector<cv::Point2d> &rune, cv::Mat &rvec, cv::Mat &tvec);
 
     /**
      * @brief 计算装甲板中心到图像中心的距离
@@ -35,6 +37,7 @@ public:
     // Calculate the distance between rune center and image center
     float CalculateDistanceToCenter(const cv::Point2f &image_point);
 
+    static std::vector<cv::Point3d> GeneratePw(double outerwidth, double insidewidth, double height);
 private:
     cv::Mat camera_matrix_;  // 相机参数矩阵 ？
     cv::Mat dist_coeffs_;    // 距离系数 ？

@@ -1,4 +1,5 @@
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/types.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/convert.h>
@@ -86,7 +87,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     bool flag1 = false, flag2 = false, flag3 = false;
     cv::Point2f symbol; //符叶R标的位置
     cv::Point2f rune_armor; //符叶未激活装甲板中心
-    std::vector<cv::Point2f> rune_points_; //未激活符叶的五个点
+    std::vector<cv::Point2d> rune_points_; //未激活符叶的五个点
     ///------------------------生成扇叶对象----------------------------------------------
     for (auto object: objects_) {
         //遍历所有的神符识别结果，把R标和未激活的符叶的信息画出来
@@ -220,6 +221,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         runes_msg_.pose.position.z = tvec.at<double>(2);//未激活符叶相机坐标系下的位置
         runes_msg_.leaf_dir.position.x = (rune_armor - symbol).x;
         runes_msg_.leaf_dir.position.y = (rune_armor - symbol).y;
+        runes_msg_.header = img_msg->header;//包含时间戳
     }
 }
 
