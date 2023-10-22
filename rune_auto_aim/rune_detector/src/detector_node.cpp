@@ -215,6 +215,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
         runes_msg_.leaf_dir.y = (rune_armor - symbol).y;//符叶向量
         runes_msg_.header = img_msg->header;//包含时间戳
+        // runes_msg_.motion = ;//判断大小符
     }
 }
 

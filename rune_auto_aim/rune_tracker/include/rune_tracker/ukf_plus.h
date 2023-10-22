@@ -1,6 +1,6 @@
 #ifndef UKF_PLUS_H
 #define UKF_PLUS_H
-
+#pragma once
 #include <vector>
 
 #include "filter.h"
