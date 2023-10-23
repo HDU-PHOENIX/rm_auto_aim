@@ -6,79 +6,63 @@
 #include <vector>
 
 namespace sensor {
-struct ReceivePacket {
-    uint8_t header = 0x5A;
-    float angular_velocity_x = 0.f;
-    float angular_velocity_y = 0.f;
-    float angular_velocity_z = 0.f;
-    float linear_acceleration_x = 0.f;
-    float linear_acceleration_y = 0.f;
-    float linear_acceleration_z = 0.f;
-    float motor_pitch = 0.f;
-    float motor_yaw = 0.f;
-    uint16_t checksum = 0;
-} __attribute__((packed));
-
-struct SendPacket {
-    uint8_t header = 0xA5;
-    bool is_request = false;
-    bool shoot_cmd = false;
-    int16_t pitch_command = 0;
-    int16_t yaw_command = 0;
-    uint16_t checksum = 0;
-} __attribute__((packed));
-
 struct DataSend {
-    char start; // 开始位           0
+    char start = 's'; // 开始位(s)         0
+    char is_find; // 是否找到目标       1
+    char can_shoot; // 是否可以射击       2
 
-    float chassis_vx; // 底盘速度 vx      1 ~ 4
-    float chassis_vy; // 底盘速度 vy      5 ~ 8
+    float yaw_value; // yaw 偏移量        3 ~ 6
+    float pitch_value; // pitch 偏移量      7 ~ 10
+    float enemy_yaw_speed; // yaw 平移速度      11 ~ 14
+    float enemy_pitch_speed; // pitch 平移速度    15 ~ 18
+    float target_distance; // 目标距离          19 ~ 22
+    char mode; // 模式             23
+    int id = -1; // ???             24 - 27
+    char unused[3] = {}; // ???             28 - 30
+    char end; // 结束位           27
 
-    int gimbal_mode; // yaw 模式        9 ~ 12
-    float pitch; // 云台 pitch 角   13 ~ 16
-    float yaw; // 云台 yaw 角     17 ~ 20
-
-    bool fire; // 射击指令        21
-
-    uint32_t a1; // 空闲位          22 ~ 25
-    uint32_t a2; // 空闲位          26 ~ 29
-    uint8_t a3; // 空闲位          30
-
-    char end; // 结束位          31
-};
+    /**
+     * @brief 检查数据是否合法
+     *
+     * @return 数据是否合法
+     */
+    bool Legal() {
+        return start == 's' && end == 'e';
+    }
+} __attribute__((packed));
 
 struct DataRecv {
-    char start; // 开始位           0
+    char start = 's';
+    char color;
+    char mode;
+    float speed = 20;
+    float euler[3] = {}; //(0,1,2) = (yaw,roll,pitch)
+    char shoot_bool = 0;
+    char rune_flag = 0; //0为不可激活，1为小符，2为大符
+    char unused[10] = {};
+    char end = 'e';
 
-    float chassis_vx; // 底盘转速 vx      1 ~ 4
-    float chassis_vy; // 底盘转速 vy      5 ~ 8
+    /**
+     * @brief 检查数据是否合法
+     *
+     * @return 数据是否合法
+     */
+    bool Legal() const {
+        return start == 's' && end == 'e';
+    }
+} __attribute__((packed));
 
-    float delta_yaw_angle; // 偏航角           9 ~ 12
-    float displacement_x; // x 方向位移       13 ~ 16
-    float displacement_y; // y 方向位移       17 ~ 20
-
-    float pitch_gyro_angle; //                 21 ~ 24
-    float yaw_gyro_angle; //                 25 ~ 28
-
-    float location_x; //                 49 ~ 52
-    float location_y; //                 53 ~ 56
-
-    uint16_t a1; //                 57 ~ 58
-    uint32_t a2; //                 59 ~ 62
-    char end; //                 63
-};
-
-inline ReceivePacket FromVector(const std::vector<uint8_t>& data) {
-    ReceivePacket packet;
+inline DataRecv FromVector(const std::vector<uint8_t>& data) {
+    DataRecv packet;
     std::copy(data.begin(), data.end(), reinterpret_cast<uint8_t*>(&packet) + 1);
     return packet;
 }
 
-inline std::vector<uint8_t> ToVector(const SendPacket& data) {
-    std::vector<uint8_t> packet(sizeof(SendPacket));
+inline std::vector<uint8_t> ToVector(const DataSend& data) {
+    std::vector<uint8_t> packet(sizeof(DataSend));
     std::copy(
         reinterpret_cast<const uint8_t*>(&data),
-        reinterpret_cast<const uint8_t*>(&data) + sizeof(SendPacket),
+        reinterpret_cast<const uint8_t*>(&data) + sizeof(DataSend),
         packet.begin()
     );
     return packet;

@@ -14,13 +14,29 @@
 #include "serial/serial.hpp"
 
 namespace sensor {
-Serial::Serial(const std::unordered_map<std::string, std::string>& params):
-    logger_(rclcpp::get_logger("SerialDriver")) {
-    // owned_ctx_ { new IoContext(2) },
-    // serial_driver_ { new drivers::serial_driver::SerialDriver(*owned_ctx_) } {
-    RCLCPP_INFO(logger_, "Start RMSerialDriver!");
 
-    ResolveParams(params);
+Serial::Serial():
+    Node("serial"),
+    owned_ctx_ { new IoContext(2) },
+    serial_driver_ { new drivers::serial_driver::SerialDriver(*owned_ctx_) } {
+    ResolveParams();
+
+    this->target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
+        "target",
+        10,
+        [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {}
+    );
+
+    // this->declare_parameter("device_name", "/dev/ttyUSB0");
+    // this->declare_parameter("flow_control", "NONE");
+    // this->declare_parameter("parity", "NONE");
+    // this->declare_parameter("stop_bits", "ONE");
+
+    // this->get_parameter("baud_rate", baud_rate);
+    // this->get_parameter("device_name", device_name_);
+    // this->get_parameter("flow_control", flow_control);
+    // this->get_parameter("parity", parity);
+    // this->get_parameter("stop_bits", stop_bits);
 
     try {
         serial_driver_->init_port(device_name_, *device_config_);
@@ -29,7 +45,7 @@ Serial::Serial(const std::unordered_map<std::string, std::string>& params):
         }
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
-            logger_,
+            this->get_logger(),
             "Error creating serial port: %s - %s",
             device_name_.c_str(),
             ex.what()
@@ -41,14 +57,14 @@ Serial::Serial(const std::unordered_map<std::string, std::string>& params):
 Serial::~Serial() {
     serial_driver_->port()->close();
 
-    // if (owned_ctx_) {
-    //     owned_ctx_->waitForExit();
-    // }
+    if (owned_ctx_) {
+        owned_ctx_->waitForExit();
+    }
 }
 
 void Serial::SendRequest() {
-    SendPacket packet;
-    packet.is_request = true;
+    DataSend packet;
+    // packet.is_request = true;
     // crc16::appendCRC16CheckSum(reinterpret_cast<uint8_t*>(&packet), sizeof(packet));
 
     auto data = ToVector(packet);
@@ -56,125 +72,83 @@ void Serial::SendRequest() {
     try {
         serial_driver_->port()->send(data);
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(logger_, "Error sending data: %s - %s", device_name_.c_str(), ex.what());
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Error sending data: %s - %s",
+            device_name_.c_str(),
+            ex.what()
+        );
         ReopenPort();
     }
 }
 
-ReceivePacket Serial::ReadData() {
+DataRecv Serial::ReadData() {
     try {
         std::vector<uint8_t> header(1);
         serial_driver_->port()->receive(header);
 
         if (header[0] == 0x5A) {
-            std::vector<uint8_t> data(sizeof(ReceivePacket) - 1);
+            std::vector<uint8_t> data(sizeof(DataRecv) - 1);
             serial_driver_->port()->receive(data);
-
-            ReceivePacket packet = FromVector(data);
-            // bool crc_ok = crc16::verifyCRC16CheckSum(
-            //     reinterpret_cast<const uint8_t*>(&packet),
-            //     sizeof(packet)
-            // );
-            // if (crc_ok) {
-            //     return packet;
-            // } else {
-            //     RCLCPP_ERROR(logger_, "CRC error!");
-            // }
+            DataRecv packet = FromVector(data);
+            if (packet.Legal()) {
+                return packet;
+            } else {
+                RCLCPP_ERROR(this->get_logger(), "Invalid packet!");
+            }
         } else {
-            RCLCPP_WARN(logger_, "Invalid header: %02X", header[0]);
+            RCLCPP_WARN(this->get_logger(), "Invalid header: %02X", header[0]);
         }
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(logger_, "Error while receiving data: %s", ex.what());
+        RCLCPP_ERROR(this->get_logger(), "Error while receiving data: %s", ex.what());
         ReopenPort();
     }
 
-    return ReceivePacket();
+    return DataRecv();
 }
 
-void Serial::WriteCommand(
-    const double& pitch_command,
-    const double& yaw_command,
-    const bool& shoot_command
-) {
+void Serial::WriteCommand() {
     try {
-        SendPacket packet;
-        packet.is_request = false;
-        packet.pitch_command = static_cast<int16_t>(pitch_command);
-        packet.yaw_command = static_cast<int16_t>(yaw_command);
-        packet.shoot_cmd = shoot_command;
-        // crc16::appendCRC16CheckSum(reinterpret_cast<uint8_t*>(&packet), sizeof(packet));
+        DataSend packet;
+
+        // TODO: set packet
 
         std::vector<uint8_t> data = ToVector(packet);
         serial_driver_->port()->send(data);
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(logger_, "Error while writing data: %s", ex.what());
+        RCLCPP_ERROR(this->get_logger(), "Error while writing data: %s", ex.what());
         ReopenPort();
     }
 }
 
-void Serial::ResolveParams(const std::unordered_map<std::string, std::string>& params) {
+void Serial::ResolveParams() {
     using FlowControl = drivers::serial_driver::FlowControl;
     using Parity = drivers::serial_driver::Parity;
     using StopBits = drivers::serial_driver::StopBits;
 
-    uint32_t baud_rate {};
-    auto fc = FlowControl::NONE;
-    auto pt = Parity::NONE;
-    auto sb = StopBits::ONE;
+    this->baud_rate = 115200;
+    this->flow_control = FlowControl::NONE;
+    this->parity = Parity::NONE;
+    this->stop_bits = StopBits::ONE;
 
-    device_name_ = params.at("device_name");
-
-    baud_rate = std::stoi(params.at("baud_rate"));
-
-    const auto fc_string = params.at("flow_control");
-    if (fc_string == "none") {
-        fc = FlowControl::NONE;
-    } else if (fc_string == "hardware") {
-        fc = FlowControl::HARDWARE;
-    } else if (fc_string == "software") {
-        fc = FlowControl::SOFTWARE;
-    } else {
-        throw std::invalid_argument {
-            "The flow_control parameter must be one of: none, software, or hardware."
-        };
-    }
-
-    const auto pt_string = params.at("parity");
-    if (pt_string == "none") {
-        pt = Parity::NONE;
-    } else if (pt_string == "odd") {
-        pt = Parity::ODD;
-    } else if (pt_string == "even") {
-        pt = Parity::EVEN;
-    } else {
-        throw std::invalid_argument { "The parity parameter must be one of: none, odd, or even." };
-    }
-
-    const auto sb_string = params.at("stop_bits");
-    if (sb_string == "1" || sb_string == "1.0") {
-        sb = StopBits::ONE;
-    } else if (sb_string == "1.5") {
-        sb = StopBits::ONE_POINT_FIVE;
-    } else if (sb_string == "2" || sb_string == "2.0") {
-        sb = StopBits::TWO;
-    } else {
-        throw std::invalid_argument { "The stop_bits parameter must be one of: 1, 1.5, or 2." };
-    }
-
-    device_config_ =
-        std::make_unique<drivers::serial_driver::SerialPortConfig>(baud_rate, fc, pt, sb);
+    device_config_ = std::make_unique<drivers::serial_driver::SerialPortConfig>(
+        this->baud_rate,
+        this->flow_control,
+        this->parity,
+        this->stop_bits
+    );
 }
 
 void Serial::ReopenPort() {
-    RCLCPP_WARN(logger_, "Attempting to reopen port");
+    RCLCPP_WARN(this->get_logger(), "Attempting to reopen port");
     try {
         if (serial_driver_->port()->is_open()) {
             serial_driver_->port()->close();
         }
         serial_driver_->port()->open();
-        RCLCPP_INFO(logger_, "Successfully reopened port");
+        RCLCPP_INFO(this->get_logger(), "Successfully reopened port");
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(logger_, "Error while reopening port: %s", ex.what());
+        RCLCPP_ERROR(this->get_logger(), "Error while reopening port: %s", ex.what());
         if (rclcpp::ok()) {
             rclcpp::sleep_for(std::chrono::seconds(1));
             ReopenPort();

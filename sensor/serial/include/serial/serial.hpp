@@ -1,7 +1,8 @@
 #ifndef _SERIAL_HPP_
 #define _SERIAL_HPP_
 
-#include <rclcpp/logger.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/subscription_base.hpp>
 #include <serial_driver/serial_driver.hpp>
 
 // C++ system
@@ -9,39 +10,42 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <unordered_map>
+// #include <unordered_map>
 
+#include "auto_aim_interfaces/msg/target.hpp"
 #include "serial/packet.hpp"
 
-namespace sensor
-{
+namespace sensor {
 
-
-class Serial
-{
+class Serial: public rclcpp::Node {
 public:
-  explicit Serial(const std::unordered_map<std::string, std::string> & params);
+    explicit Serial();
 
-  ~Serial();
+    ~Serial() override;
 
-  void SendRequest();
-  ReceivePacket ReadData();
+    void SendRequest();
+    DataRecv ReadData();
 
-  void WriteCommand(
-    const double & pitch_command, const double & yaw_command, const bool & shoot_command);
+    void WriteCommand();
 
 private:
-  void ResolveParams(const std::unordered_map<std::string, std::string> & params);
+    void ResolveParams();
 
-  void ReopenPort();
+    void ReopenPort();
 
-  rclcpp::Logger logger_;
+    std::unique_ptr<IoContext> owned_ctx_;
 
-//   std::unique_ptr<IoContext> owned_ctx_;
-  std::string device_name_;
-  std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_;
-  std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;
+    uint32_t baud_rate;
+    std::string device_name_;
+    drivers::serial_driver::FlowControl flow_control;
+    drivers::serial_driver::Parity parity;
+    drivers::serial_driver::StopBits stop_bits;
+
+    std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_;
+    std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;
+
+    rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
 };
-}  // namespace sensor
+} // namespace sensor
 
-#endif  // _SERIAL_HPP_
+#endif // _SERIAL_HPP_
