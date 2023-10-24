@@ -17,11 +17,21 @@
 
 namespace sensor {
 
-class Serial: public rclcpp::Node {
-public:
-    explicit Serial();
+using drivers::serial_driver::FlowControl;
+using drivers::serial_driver::Parity;
+using drivers::serial_driver::StopBits;
 
-    ~Serial() override;
+class Serial {
+public:
+    explicit Serial(
+        uint32_t baud_rate,
+        std::string device_name,
+        FlowControl flow_control,
+        Parity parity,
+        StopBits stop_bits
+    );
+
+    ~Serial();
 
     void SendRequest();
     DataRecv ReadData();
@@ -33,14 +43,14 @@ private:
 
     void ReopenPort();
 
-    std::unique_ptr<IoContext> owned_ctx_;
 
-    uint32_t baud_rate;
+    // uint32_t baud_rate;
     std::string device_name_;
-    drivers::serial_driver::FlowControl flow_control;
-    drivers::serial_driver::Parity parity;
-    drivers::serial_driver::StopBits stop_bits;
+    // drivers::serial_driver::FlowControl flow_control;
+    // drivers::serial_driver::Parity parity;
+    // drivers::serial_driver::StopBits stop_bits;
 
+    std::unique_ptr<IoContext> owned_ctx_;
     std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_;
     std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;
 
