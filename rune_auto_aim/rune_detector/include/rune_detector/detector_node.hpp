@@ -32,6 +32,8 @@ public:
     explicit RuneDetectorNode(const rclcpp::NodeOptions& options);
 
 private:
+    // void Callback(const sensor_msgs::msg::Image::SharedPtr img_msg);
+
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
 
     /**
@@ -39,7 +41,7 @@ private:
      *
      * @return std::unique_ptr<Detector> 识别器指针
      */
-    std::unique_ptr<NeuralNetwork> InitDetector();
+    std::shared_ptr<NeuralNetwork> InitDetector();
 
     /**
      * @brief 识别神符
@@ -70,9 +72,9 @@ private:
     //     };
 
     // 神符识别器
-    std::unique_ptr<NeuralNetwork> detector_;
+    std::shared_ptr<NeuralNetwork> detector_;
     std::vector<rune::NeuralNetwork::RuneObject> objects_;
-    double confidence_threshold_;
+    double confidence_threshold_;//神经网络置信度阈值
 
     // 自定义的神符信息
     auto_aim_interfaces::msg::Rune runes_msg_;

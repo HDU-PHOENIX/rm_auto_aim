@@ -1,8 +1,10 @@
 // Copyright 2023 wangchi
 #include "rune_tracker/tracker_node.hpp"
+#include "rune_tracker/coordinate.h"
 
 // STD
 #include <memory>
+#include <opencv2/core/types.hpp>
 #include <vector>
 
 namespace rune
@@ -11,7 +13,7 @@ namespace rune
     RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions & option)
     : Node("rune_tracker", option)
     {
-
+        coordinate = std::make_shared<Coordinate>();
         options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY;  //选择最小二乘的拟合模式
         // options.linear_solver_type = ceres::ITERATIVE_SCHUR;
         finish_fitting = false;  //
@@ -129,11 +131,12 @@ namespace rune
                 return false;
             }
         }
+        return false;
     }
 
     bool RuneTrackerNode::FittingBig()
     {
-      if (motion_state != MotionState::Big) {
+        if (motion_state != MotionState::Big) {
             return false;
         }
 
@@ -332,7 +335,7 @@ namespace rune
                     // auto pu_ori = coordinate->RunePcToPu(coordinate->PnpGetPc(ArmorType::Rune, detector->vertices));
                     // tracker.armor = {pu_ori(0),pu_ori(1)};//tracker上一次的点
 
-                    count_cere = 0;//2023.7.19发现此处有逻辑bug 已做修改
+                    count_cere = 0;//将count_cere置为0，非连续5次拟合不良
                     finish_fitting = true;
                 } 
                 else {//误差大于0.15,则认为拟合不良
@@ -361,11 +364,11 @@ namespace rune
 
                     finish_fitting = false;//连续五次误差超过0.1，则认为需要重新拟合
                     count_cere = 0;
-                    Timestamp start_fitting = Timestamp::Now();  //记录拟合的起始时间
+                    // Timestamp start_fitting = Timestamp::Now();  //记录拟合的起始时间
                     //Log::Info("predict inaccuracy,restart fittting");
                     ceres::Problem problem;
-                    fitting_start = Timestamp::Timestamp::Now();
-                    for (int i = 0; i < cere_param_list.size(); i++) {  //将数据添加入问题
+                    // fitting_start = Timestamp::Timestamp::Now();
+                    for (unsigned long i = 0; i < cere_param_list.size(); i++) {  //将数据添加入问题
                         problem.AddResidualBlock(
                             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
                                 new CURVE_FITTING_COST(cere_param_list[i].time, cere_param_list[i].omega)),
@@ -375,7 +378,7 @@ namespace rune
 
                     problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78);  //设置参数上下限
                     problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
-                    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
+                    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);// 数据是官方的
                     problem.SetParameterUpperBound(a_omega_phi_b, 1, 2);
                     // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5);
                     // problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
@@ -480,46 +483,70 @@ namespace rune
     // runeCallback函数实现 接收rune_detector发布的rune消息
     void RuneTrackerNode::runesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr)
     {
-      data = rune_ptr;
-      auto&& theory_delay = rune_ptr->pose_c.position.z / 27;//TODO这里的速度应该要从下位机传上来 还没写
-      delay = theory_delay + 0.1;//TODO 这里的0.1是追踪延迟，需要根据实际情况调整要做trackbar
-      // RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
 
-      if (data->motion == 0) {
-          SetState(MotionState::Static);
-      } else if (data->motion == 1) {
-          SetState(MotionState::Small);
-      } else if (data->motion == 2) {
-          SetState(MotionState::Big);
-      }//从下位机来的数据，判断是静止还是小符还是大符
 
-      cv::Point2f tmp_dir(rune_ptr->leaf_dir.x , rune_ptr->leaf_dir.y);
+        data = rune_ptr;
+        if(rune_ptr->find)//如果detector识别到了符装甲板
+        {
+            auto&& theory_delay = rune_ptr->pose_c.position.z / 27;//TODO这里的速度应该要从下位机传上来 还没写
+            delay = theory_delay + 0.1;//TODO 这里的0.1是追踪延迟，需要根据实际情况调整要做trackbar
+            // RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
 
-      this->leaf_dir = tmp_dir; //现在这一帧符叶向量
+            // if (data->motion == 0) {
+            //     SetState(MotionState::Static);
+            // } else if (data->motion == 1) {
+            //     SetState(MotionState::Small);
+            // } else if (data->motion == 2) {
+            //     SetState(MotionState::Big);
+            // }//从下位机来的数据，判断是静止还是小符还是大符
 
-      leaf_angle = Angle(leaf_dir);
-      if (angles.Any()) {
-            
-            leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg);//修正范围
-            //Log::Debug("leaf_angle_diff is {}", leaf_angle_diff);
-            auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
-            // std::cout<<"leaf_angle_diff_abs = "<<leaf_angle_diff_abs<<std::endl;
-            angles.PushForcibly(angles[-1] + leaf_angle_diff_abs);
-            //下面求解角速度
-            speed.Push(leaf_angle_diff_abs / (data->header.stamp.sec - data_last->header.stamp.sec));
-            speeds.PushForcibly(speed.Value());
-        } else {
-            angles.PushForcibly(leaf_angle);
+            SetState(MotionState::Big); //缺省设置为大符
+
+            cv::Point2f tmp_dir(rune_ptr->leaf_dir.x , rune_ptr->leaf_dir.y);
+
+            this->leaf_dir = tmp_dir; //现在这一帧符叶向量
+
+            leaf_angle = Angle(leaf_dir);
+            if (angles.Any()) {
+
+                  leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg);//修正范围
+                  //Log::Debug("leaf_angle_diff is {}", leaf_angle_diff);
+                  auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
+                  // std::cout<<"leaf_angle_diff_abs = "<<leaf_angle_diff_abs<<std::endl;
+                  angles.PushForcibly(angles[-1] + leaf_angle_diff_abs);
+                  //下面求解角速度
+                  speed.Push(leaf_angle_diff_abs / (data->header.stamp.sec - data_last->header.stamp.sec));
+                  speeds.PushForcibly(speed.Value());
+              } else {
+                  angles.PushForcibly(leaf_angle);
+              }
+              // last = data;
+              radius.Push(cv::norm(leaf_dir));//计算半径
         }
-        // last = data;
-        radius.Push(cv::norm(leaf_dir));//计算半径
-
         Judge();//判断顺时针还是逆时针
         FittingBig();//拟合大符
         Fitting();//拟合小符
-        
+
         data_last = data;//记录上一帧的数据
         leaf_angle_last = leaf_angle;//记录上一帧的角度
+        if(data->find){
+            std::vector<cv::Point2d> tmp_armors;
+            cv::Point2d symbol(data->symbol.x , data->symbol.y);//R标
+            for(int i = 0;i < 4 ;i++)
+            {
+                tmp_armors.emplace_back(cv::Point2d(data->rune_points[i].x , data->rune_points[i].y)); 
+            }
+            for (auto&& vertex : tmp_armors) {  //将关键点以圆心旋转rotate_angle
+                vertex = Rotate(vertex, symbol, rotate_angle);
+            }
+            // auto&& vertice_point = (tmp_armors[0] + 
+            //     tmp_armors[1] + tmp_armors[2] + tmp_armors[3]) / 4; //靶心(注：这样计算靶心会有一点点偏差)
+            
+            auto &&pc = coordinate->PnpGetPc(ArmorType::Rune, tmp_armors);//相机坐标系下的装甲板坐标
+            auto && pw = coordinate->RunePcToPw(pc);//将相机坐标系下装甲板坐标转换成世界坐标系下的装甲板坐标
+
+        }
+        
 
     }
 

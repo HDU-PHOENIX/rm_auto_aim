@@ -9,7 +9,7 @@
 #include <tf2_ros/create_timer_ros.h>
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
-
+// #include <eigen_conversions/eigen_msg.h>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -22,9 +22,9 @@
 #include <math.h>
 
 #include "rune_tracker/tracker.hpp"
-#include "auto_aim_interfaces/msg/armors.hpp"
-#include "auto_aim_interfaces/msg/target.hpp"
-#include "auto_aim_interfaces/msg/tracker_info.hpp"
+// #include "auto_aim_interfaces/msg/armors.hpp"
+// #include "auto_aim_interfaces/msg/target.hpp"
+// #include "auto_aim_interfaces/msg/tracker_info.hpp"
 
 #include <opencv2/core/types.hpp> //提供Point Point2d/2f
 
@@ -38,6 +38,8 @@
 #include "sizes.hpp"
 //  Ceres-solver
 #include <ceres/ceres.h>
+// Coordinate
+#include "coordinate.h"
 
 
 namespace rune
@@ -162,7 +164,7 @@ private:
   double delay;//理论延迟和追踪延迟之和
   // rclcpp::Time delay;//理论延迟和追踪延迟之和
   double leaf_angle, leaf_angle_last, leaf_angle_diff;//符叶角度 上一帧符叶角度 符叶角度差
-  double rotate_angle;
+  double rotate_angle;//预测符叶旋转角度
   cv::Point2f leaf_dir;//这一帧符叶向量 
 
   double cere_rotated_angle;
@@ -173,6 +175,8 @@ private:
   Statistic<double> radius;//符叶半径
   Statistic<double> speed;//符叶角速度
 
+  std::shared_ptr<Coordinate> coordinate;
+  std::unique_ptr<Tracker> tracker_;
 
   bool finish_fitting;             //完成拟合的标志
 
@@ -195,47 +199,46 @@ private:
   std::ofstream error_file;
   std::ofstream error_time;//用于记录拟合的误差
 
-
+//   rclcpp::Publisher<const auto_aim_interfaces::msg::RuneTarget::SharedPtr target_pub;//向shooter节点发送数据
 
 //-----------------------------------------------------------------------------以下是装甲板部分的变量 与符无关
   // 发布标记点函数
-  void publishMarkers(const auto_aim_interfaces::msg::Target & target_msg);
+//   void publishMarkers(const auto_aim_interfaces::msg::Target & target_msg);
 
   // XOY平面中允许的最大装甲距离
-  double max_armor_distance_;
+//   double max_armor_distance_;
 
-  // 上次接收消息的时间
-  rclcpp::Time last_time_;
-  double dt_;
+//   // 上次接收消息的时间
+//   rclcpp::Time last_time_;
+//   double dt_;
 
-  // 装甲追踪器
-  double s2qxyz_, s2qyaw_, s2qr_;
-  double r_xyz_factor, r_yaw;
-  double lost_time_thres_;
-  std::unique_ptr<Tracker> tracker_;
+//   // 装甲追踪器
+//   double s2qxyz_, s2qyaw_, s2qr_;
+//   double r_xyz_factor, r_yaw;
+//   double lost_time_thres_;
 
-  // 重置追踪器服务
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_tracker_srv_;
+//   // 重置追踪器服务
+//   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_tracker_srv_;
 
-  // 使用tf2消息过滤器的订阅器
-  std::string target_frame_;
-  std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
-  std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
-  message_filters::Subscriber<auto_aim_interfaces::msg::Rune> armors_sub_;
-  std::shared_ptr<tf2_filter> tf2_filter_;
+//   // 使用tf2消息过滤器的订阅器
+//   std::string target_frame_;
+//   std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
+//   std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
+//   message_filters::Subscriber<auto_aim_interfaces::msg::Rune> armors_sub_;
+//   std::shared_ptr<tf2_filter> tf2_filter_;
 
-  // 追踪器信息发布器
-  rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
+//   // 追踪器信息发布器
+//   rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
 
-  // 发布器
-  rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_;
+//   // 发布器
+//   rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_;
 
-  // 可视化标记发布器
-  visualization_msgs::msg::Marker position_marker_;
-  visualization_msgs::msg::Marker linear_v_marker_;
-  visualization_msgs::msg::Marker angular_v_marker_;
-  visualization_msgs::msg::Marker armor_marker_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+//   // 可视化标记发布器
+//   visualization_msgs::msg::Marker position_marker_;
+//   visualization_msgs::msg::Marker linear_v_marker_;
+//   visualization_msgs::msg::Marker angular_v_marker_;
+//   visualization_msgs::msg::Marker armor_marker_;
+//   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 };
 
 }  // namespace rune
