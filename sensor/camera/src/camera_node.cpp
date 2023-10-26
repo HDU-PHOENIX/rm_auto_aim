@@ -1,5 +1,7 @@
 #include "camera/camera_node.hpp"
 
+namespace sensor {
+
 CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     Node("camera_node", options),
     canceled_(false) {
@@ -16,8 +18,10 @@ CameraNode::~CameraNode() {
     // 等待线程结束
     canceled_.store(true);
     if (thread_for_publish_.joinable()) {
-        thread_for_publish_.detach();
+        thread_for_publish_.join();
     }
+
+    RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
 }
 
 void CameraNode::LoopForPublish() {
@@ -32,7 +36,7 @@ void CameraNode::LoopForPublish() {
         // 创建 Image 消息的 UniquePtr msg
         // 向 msg 中填充图像数据
         sensor_msgs::msg::Image::UniquePtr msg(new sensor_msgs::msg::Image());
-        msg->header.stamp = rclcpp::Clock().now();
+        msg->header.stamp = this->now();
         msg->header.frame_id = "camera_frame";
         msg->height = frame_->rows;
         msg->width = frame_->cols;
@@ -45,3 +49,12 @@ void CameraNode::LoopForPublish() {
         this->publisher_->publish(std::move(msg));
     }
 }
+
+} // namespace sensor
+
+#include "rclcpp_components/register_node_macro.hpp"
+
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable
+// when its library is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(sensor::CameraNode)

@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <ctime>
 
+namespace sensor {
+
 MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
     // 相机 SDK 初始化
     CameraSdkInit(1);
@@ -33,7 +35,6 @@ MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
         t_capability.sResolutionRange.iHeightMax * t_capability.sResolutionRange.iWidthMax * 3
     );
 
-    
     // 让SDK进入工作模式，开始接收来自相机发送的图像数据。如果当前相机是触发模式，则需要接收到触发帧以后才会更新图像。
 
     CameraPlay(h_camera);
@@ -101,3 +102,5 @@ MindVision::~MindVision() {
     //注意，现反初始化后再free
     free(g_p_rgb_buffer);
 }
+
+} // namespace sensor

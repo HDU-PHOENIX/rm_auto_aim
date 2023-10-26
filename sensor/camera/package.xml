@@ -13,8 +13,6 @@
     <depend>rclcpp_components</depend>
     <depend>sensor_msgs</depend>
     <depend>cv_bridge</depend>
-    <depend>MVSDK</depend>
-
 
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_lint_common</test_depend>

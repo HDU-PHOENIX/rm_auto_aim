@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+namespace sensor {
+
 class MindVision {
 public:
     MindVision();
@@ -42,5 +44,7 @@ private:
     BYTE* pby_buffer;
     unsigned char* g_p_rgb_buffer; //处理后数据缓存区
 };
+
+} // namespace sensor
 
 #endif // MINDVISION_HPP

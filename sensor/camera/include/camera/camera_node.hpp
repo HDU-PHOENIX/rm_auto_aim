@@ -7,6 +7,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
+namespace sensor {
+
 class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
@@ -29,5 +31,7 @@ private:
     // 原始图像发布者
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
 };
+
+} // namespace sensor
 
 #endif // CAMERA_NODE_HPP
