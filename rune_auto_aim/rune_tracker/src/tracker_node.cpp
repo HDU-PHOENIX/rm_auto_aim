@@ -483,8 +483,6 @@ namespace rune
     // runeCallback函数实现 接收rune_detector发布的rune消息
     void RuneTrackerNode::runesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr)
     {
-
-
         data = rune_ptr;
         if(rune_ptr->find)//如果detector识别到了符装甲板
         {
@@ -544,10 +542,7 @@ namespace rune
             
             auto &&pc = coordinate->PnpGetPc(ArmorType::Rune, tmp_armors);//相机坐标系下的装甲板坐标
             auto && pw = coordinate->RunePcToPw(pc);//将相机坐标系下装甲板坐标转换成世界坐标系下的装甲板坐标
-
         }
-        
-
     }
 
 

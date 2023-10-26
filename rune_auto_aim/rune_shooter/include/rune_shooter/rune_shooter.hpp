@@ -10,6 +10,6 @@ namespace rune_shooter
         explicit RuneShooterNode(const rclcpp::NodeOptions& options);
 
     private:
-
+        
     };
 };
