@@ -1,8 +1,9 @@
 #pragma once
 #include <Eigen/Eigen>
-#include <phoenix/utilities/logger.hpp>
-
-namespace phoenix {
+#include "bullet.hpp"//添加子弹类型枚举类
+#include <opencv2/core/cvdef.h>
+#include "colors.hpp"
+namespace rune {
     /**
      * @brief 用于将提前量(此处提前量的含义包含提前量原意和抬枪补偿)解算为云台转动角度的类
      * @author Exia
@@ -50,10 +51,10 @@ namespace phoenix {
              * @param velocity 子弹发射的速度
              * @param mode 子弹类型，有 Bullet::Small,Bullet::Larget,Bullet::Light
             */
-        Eigen::Vector2d DynamicCalcCompensate(Eigen::Vector3d& xyz, const float& velocity, const Bullet& mode, Coordinate& coordinate) {
+        Eigen::Vector2d DynamicCalcCompensate(Eigen::Vector3d& xyz, const float& velocity, const Bullet& mode) {
             max_iter = 100;
             if (velocity == 0) {
-                Log::Error("the velocity is 0,place verify your velocity");
+                // Log::Error("the velocity is 0,place verify your velocity");
             }
             switch (mode) {
                 case Bullet::Small:
@@ -66,7 +67,8 @@ namespace phoenix {
                     k = koflight;
                     break;
                 default:
-                    Log::Error("place select your bullet type first");
+                    std::cout<<"place select your bullet type first"<<std::endl;
+                    // Log::Error("place select your bullet type first");
             }
             //TODO:根据陀螺仪安装位置调整距离求解方式
             //降维，坐标系Y轴以垂直向上为正方向
@@ -134,9 +136,9 @@ namespace phoenix {
             //yaw = yaw;
             shoot_pw = {xyz[0], xyz[1] - px / 10, vertical_tmp - py / 10};
 
-            shoot_pc = coordinate.RunePwToPc(shoot_pw);
+            // shoot_pc = coordinate.RunePwToPc(shoot_pw);
 
-            shoot_pu = coordinate.RunePcToPu(shoot_pc);
+            // shoot_pu = coordinate.RunePcToPu(shoot_pc);
             //Log::Debug("orin_pw:{}", orin_pw);
             //Log::Debug("shoot_pw:{}", shoot_pw);
             return Eigen::Vector2d(yaw, pitch_new * -1);  //pitch向上为负
@@ -152,46 +154,46 @@ namespace phoenix {
              * @return 返回值为Eigen::Vector4d（dx，dy，d_dx,d_dy) ------ dx,dy为预测后解算为yaw，pitch的值，d_dx,d_dy为没有预测解算的yaw,pitch值
              * @attention coordinate 对象里面的值可能被修改
             */
-        Eigen::Vector4d CalOffSet(const Eigen::Vector3d& pw, const Eigen::Vector3d& d_pw, Coordinate& coordinate, const float& v) {
-            orin_pw = pw;
-            velocity = v;
-            auto pred_pw = pw;
-            auto d_pred_pw = d_pw;
-            double pred_pitch = atan2(pred_pw(2, 0), pred_pw.topRows<2>().norm());
-            double d_pred_pitch = atan2(d_pred_pw(2, 0), d_pred_pw.topRows<2>().norm());
-            double distance = pred_pw.norm();
-            double d_distance = d_pred_pw.norm();
-            double a = gravity * gravity * 0.25;
-            double d_a = gravity * gravity * 0.25;
-            double b = -(double)velocity * velocity - distance * gravity * cos(M_PI_2 + pred_pitch);
-            double d_b = -(double)velocity * velocity - d_distance * gravity * cos(M_PI_2 + d_pred_pitch);
-            double c = distance * distance;
-            double d_c = d_distance * d_distance;
-            if ((b * b - 4 * a * c) < 0 || (d_b * d_b - 4 * d_a * d_c) < 0) {
-                //Log::Error("the speed incorrect !");
-            }
-            double t_2 = (-sqrt(b * b - 4 * a * c) - b) / (2 * a);
-            double d_t_2 = (-sqrt(d_b * d_b - 4 * d_a * d_c) - d_b) / (2 * d_a);
-            double height = 0.5 * gravity * t_2;
-            double d_height = 0.5 * gravity * d_t_2;
+        // Eigen::Vector4d CalOffSet(const Eigen::Vector3d& pw, const Eigen::Vector3d& d_pw, Coordinate& coordinate, const float& v) {
+        //     orin_pw = pw;
+        //     velocity = v;
+        //     auto pred_pw = pw;
+        //     auto d_pred_pw = d_pw;
+        //     double pred_pitch = atan2(pred_pw(2, 0), pred_pw.topRows<2>().norm());
+        //     double d_pred_pitch = atan2(d_pred_pw(2, 0), d_pred_pw.topRows<2>().norm());
+        //     double distance = pred_pw.norm();
+        //     double d_distance = d_pred_pw.norm();
+        //     double a = gravity * gravity * 0.25;
+        //     double d_a = gravity * gravity * 0.25;
+        //     double b = -(double)velocity * velocity - distance * gravity * cos(M_PI_2 + pred_pitch);
+        //     double d_b = -(double)velocity * velocity - d_distance * gravity * cos(M_PI_2 + d_pred_pitch);
+        //     double c = distance * distance;
+        //     double d_c = d_distance * d_distance;
+        //     if ((b * b - 4 * a * c) < 0 || (d_b * d_b - 4 * d_a * d_c) < 0) {
+        //         //Log::Error("the speed incorrect !");
+        //     }
+        //     double t_2 = (-sqrt(b * b - 4 * a * c) - b) / (2 * a);
+        //     double d_t_2 = (-sqrt(d_b * d_b - 4 * d_a * d_c) - d_b) / (2 * d_a);
+        //     double height = 0.5 * gravity * t_2;
+        //     double d_height = 0.5 * gravity * d_t_2;
 
-            shoot_pw = {pw(0, 0), pw(1, 0), pw(2, 0) - height};
-            Eigen::Vector3d d_s_pw{d_pw(0, 0), d_pw(1, 0), d_pw(2, 0) - d_height};
+        //     shoot_pw = {pw(0, 0), pw(1, 0), pw(2, 0) - height};
+        //     Eigen::Vector3d d_s_pw{d_pw(0, 0), d_pw(1, 0), d_pw(2, 0) - d_height};
 
-            Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);
-            Eigen::Vector3d d_shoot_pc = coordinate.PwToPc(d_shoot_pw);
+        //     Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);
+        //     Eigen::Vector3d d_shoot_pc = coordinate.PwToPc(d_shoot_pw);
 
-            double yaw = atan(shoot_pc(0, 0) / shoot_pc(2, 0)) / M_PI * 180.;
-            double d_yaw = atan(d_shoot_pc(0, 0) / d_shoot_pc(2, 0)) / M_PI * 180.;
-            double pitch = atan(shoot_pc(1, 0) / shoot_pc(2, 0)) / M_PI * 180.;
-            double d_pitch = atan(d_shoot_pc(1, 0) / d_shoot_pc(2, 0)) / M_PI * 180.;
+        //     double yaw = atan(shoot_pc(0, 0) / shoot_pc(2, 0)) / M_PI * 180.;
+        //     double d_yaw = atan(d_shoot_pc(0, 0) / d_shoot_pc(2, 0)) / M_PI * 180.;
+        //     double pitch = atan(shoot_pc(1, 0) / shoot_pc(2, 0)) / M_PI * 180.;
+        //     double d_pitch = atan(d_shoot_pc(1, 0) / d_shoot_pc(2, 0)) / M_PI * 180.;
 
-            auto&& dx = (yaw) / 5. + px;
-            auto&& dy = (pitch) / 10. + py;
-            auto&& d_dx = (d_yaw - yaw) / 0.001 / 180. * M_PI * 2;
-            auto&& d_dy = (d_pitch - pitch) / 0.001 / 180. * M_PI * 2;
-            return Eigen::Vector4d(dx, dy, d_dx, d_dy);
-        }
+        //     auto&& dx = (yaw) / 5. + px;
+        //     auto&& dy = (pitch) / 10. + py;
+        //     auto&& d_dx = (d_yaw - yaw) / 0.001 / 180. * M_PI * 2;
+        //     auto&& d_dy = (d_pitch - pitch) / 0.001 / 180. * M_PI * 2;
+        //     return Eigen::Vector4d(dx, dy, d_dx, d_dy);
+        // }
 
         /**
              * @brief 项目里原本的能量机关解算方法
@@ -200,46 +202,46 @@ namespace phoenix {
              * @param v 弹丸速度
              * @return Eigen::Vector2d(dx,dy) -----dx为解算后的yaw，dy为解算后的pitch
             */
-        Eigen::Vector2d CalOffSet(const Eigen::Vector3d& pw, Coordinate& coordinate, const float& v) {
-            orin_pw = pw;
-            velocity = v;
-            double pred_pitch = atan2(pw(2, 0), pw.topRows<2>().norm());
-            double distance = pw.norm();
-            double a = gravity * gravity * 0.25;
-            double b = -(double)velocity * velocity - distance * gravity * cos(M_PI_2 + pred_pitch);
-            double c = distance * distance;
-            if ((b * b - 4 * a * c) < 0) {
-                Log::Error("the speed incorrect !");
-            }
-            double t_2 = (-sqrt(b * b - 4 * a * c) - b) / (2 * a);
-            // double fly_time = sqrt(t_2);
-            double height = 0.5 * gravity * t_2;
-            shoot_pw = {pw(0, 0), pw(1, 0), pw(2, 0) - height};      // 抬枪之后的世界坐标
-            Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);  // 抬枪之后的相机坐标系下坐标
-            double yaw = atan(shoot_pc(0, 0) / shoot_pc(2, 0)) / M_PI * 180.;
-            double pitch = atan(shoot_pc(1, 0) / shoot_pc(2, 0)) / M_PI * 180.;
+        // Eigen::Vector2d CalOffSet(const Eigen::Vector3d& pw, Coordinate& coordinate, const float& v) {
+        //     orin_pw = pw;
+        //     velocity = v;
+        //     double pred_pitch = atan2(pw(2, 0), pw.topRows<2>().norm());
+        //     double distance = pw.norm();
+        //     double a = gravity * gravity * 0.25;
+        //     double b = -(double)velocity * velocity - distance * gravity * cos(M_PI_2 + pred_pitch);
+        //     double c = distance * distance;
+        //     if ((b * b - 4 * a * c) < 0) {
+        //         // Log::Error("the speed incorrect !");
+        //     }
+        //     double t_2 = (-sqrt(b * b - 4 * a * c) - b) / (2 * a);
+        //     // double fly_time = sqrt(t_2);
+        //     double height = 0.5 * gravity * t_2;
+        //     shoot_pw = {pw(0, 0), pw(1, 0), pw(2, 0) - height};      // 抬枪之后的世界坐标
+        //     Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);  // 抬枪之后的相机坐标系下坐标
+        //     double yaw = atan(shoot_pc(0, 0) / shoot_pc(2, 0)) / M_PI * 180.;
+        //     double pitch = atan(shoot_pc(1, 0) / shoot_pc(2, 0)) / M_PI * 180.;
 
-            auto&& dx = (yaw);
-            auto&& dy = (pitch);
+        //     auto&& dx = (yaw);
+        //     auto&& dy = (pitch);
 
-            return Eigen::Vector2d(dx, dy);
-        }
+        //     return Eigen::Vector2d(dx, dy);
+        // }
 
         /**
              * @brief 绘制出完成提前量解算后需要瞄准的点
             */
-        void Draw(cv::Mat& img, Coordinate& coordinate) {
-            // Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);
-            // auto&& shoot_pu = coordinate.PcToPu(shoot_pc);
+        // void Draw(cv::Mat& img, Coordinate& coordinate) {
+        //     // Eigen::Vector3d shoot_pc = coordinate.PwToPc(shoot_pw);
+        //     // auto&& shoot_pu = coordinate.PcToPu(shoot_pc);
 
-            orin_pc = coordinate.PwToPc(orin_pw);
-            orin_pu = coordinate.PcToPu(orin_pc);
+        //     orin_pc = coordinate.PwToPc(orin_pw);
+        //     orin_pu = coordinate.PcToPu(orin_pc);
 
-            //Log::Info("shoot_pu = {}", shoot_pu);
-            cv::circle(img, {int(shoot_pu(0, 0)), int(shoot_pu(1, 0))}, 5, Colors::Yellow, 3);  //抬枪之后的点
-            // cv::circle(img, {int(orin_pu(0, 0)), int(orin_pu(1, 0))}, 5, Colors::Red, 3);       // 不抬枪的点
-            cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3);  // 图像中心点
-        }
+        //     //Log::Info("shoot_pu = {}", shoot_pu);
+        //     cv::circle(img, {int(shoot_pu(0, 0)), int(shoot_pu(1, 0))}, 5, Colors::Yellow, 3);  //抬枪之后的点
+        //     // cv::circle(img, {int(orin_pu(0, 0)), int(orin_pu(1, 0))}, 5, Colors::Red, 3);       // 不抬枪的点
+        //     cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3);  // 图像中心点
+        // }
 
         /**
              *@brief 设置手动补偿量,px,py的物理含义为相机到摩擦轮出射处的偏移量

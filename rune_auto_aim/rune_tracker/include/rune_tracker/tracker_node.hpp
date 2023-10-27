@@ -3,6 +3,7 @@
 #define ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
 
 // ROS
+#include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
 #include <message_filters/subscriber.h>
 #include <rclcpp/time.hpp>
 #include <tf2_ros/buffer.h>
@@ -23,7 +24,7 @@
 
 #include "rune_tracker/tracker.hpp"
 // #include "auto_aim_interfaces/msg/armors.hpp"
-// #include "auto_aim_interfaces/msg/target.hpp"
+#include "auto_aim_interfaces/msg/rune_target.hpp"
 // #include "auto_aim_interfaces/msg/tracker_info.hpp"
 
 #include <opencv2/core/types.hpp> //提供Point Point2d/2f
@@ -162,6 +163,8 @@ private:
     }
 
   double delay;//理论延迟和追踪延迟之和
+  double chasedelay;//追踪延迟
+  
   // rclcpp::Time delay;//理论延迟和追踪延迟之和
   double leaf_angle, leaf_angle_last, leaf_angle_diff;//符叶角度 上一帧符叶角度 符叶角度差
   double rotate_angle;//预测符叶旋转角度
@@ -199,7 +202,8 @@ private:
   std::ofstream error_file;
   std::ofstream error_time;//用于记录拟合的误差
 
-//   rclcpp::Publisher<const auto_aim_interfaces::msg::RuneTarget::SharedPtr target_pub;//向shooter节点发送数据
+  rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr target_pub;//向shooter节点发送数据
+  auto_aim_interfaces::msg::RuneTarget runes_msg_;//自定义的神符信息
 
 //-----------------------------------------------------------------------------以下是装甲板部分的变量 与符无关
   // 发布标记点函数

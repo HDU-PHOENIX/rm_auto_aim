@@ -41,15 +41,18 @@ namespace rune
       // Tracker参数设置
       double max_match_distance = this->declare_parameter("tracker.max_match_distance", 0.15);
       double max_match_yaw_diff = this->declare_parameter("tracker.max_match_yaw_diff", 1.0);
+      this->declare_parameter("chasedelay", 0);//设置chasedelay的默认值
       tracker_ = std::make_unique<Tracker>(max_match_distance, max_match_yaw_diff);//tracker中的ukf滤波器初始化
       // tracker_->tracking_thres = this->declare_parameter("tracker.tracking_thres", 5);
       // lost_time_thres_ = this->declare_parameter("tracker.lost_time_thres", 0.3);
-
+    //   runes_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
 
       // 重置追踪器服务
       using std::placeholders::_1;
       using std::placeholders::_2;
       using std::placeholders::_3;
+      target_pub = this->create_publisher<auto_aim_interfaces::msg::RuneTarget>("RuneTracker2Shooter",
+                 rclcpp::SensorDataQoS());
       // reset_tracker_srv_ = this->create_service<std_srvs::srv::Trigger>(
       //   "/tracker/reset", [this](
       //                       const std_srvs::srv::Trigger::Request::SharedPtr,
@@ -69,7 +72,7 @@ namespace rune
     //   tf2_buffer_->setCreateTimerInterface(timer_interface);
     //   tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
     //   // 订阅器和过滤器
-    //   armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
+      
     //   target_frame_ = this->declare_parameter("target_frame", "odom");
     //   tf2_filter_ = std::make_shared<tf2_filter>(
     //     armors_sub_, *tf2_buffer_, target_frame_, 10, this->get_node_logging_interface(),
@@ -484,11 +487,14 @@ namespace rune
     void RuneTrackerNode::runesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr)
     {
         data = rune_ptr;
+        this->get_parameter("chasedelay", this->chasedelay);//参数更新
         if(rune_ptr->find)//如果detector识别到了符装甲板
         {
             auto&& theory_delay = rune_ptr->pose_c.position.z / 27;//TODO这里的速度应该要从下位机传上来 还没写
-            delay = theory_delay + 0.1;//TODO 这里的0.1是追踪延迟，需要根据实际情况调整要做trackbar
-            // RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
+            delay = theory_delay + chasedelay;
+            runes_msg_.delay = delay;
+            runes_msg_.header = rune_ptr->header;//时间戳赋值
+            RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
 
             // if (data->motion == 0) {
             //     SetState(MotionState::Static);
@@ -542,6 +548,10 @@ namespace rune
             
             auto &&pc = coordinate->PnpGetPc(ArmorType::Rune, tmp_armors);//相机坐标系下的装甲板坐标
             auto && pw = coordinate->RunePcToPw(pc);//将相机坐标系下装甲板坐标转换成世界坐标系下的装甲板坐标
+            runes_msg_.pw.position.x = pw[0];
+            runes_msg_.pw.position.y = pw[1];
+            runes_msg_.pw.position.z = pw[2];
+            target_pub->publish(runes_msg_);
         }
     }
 
