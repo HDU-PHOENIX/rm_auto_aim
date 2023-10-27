@@ -10,6 +10,8 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include "message_filters/subscriber.h"
+#include "message_filters/time_synchronizer.h"
 
 // STD
 #include <memory>
@@ -17,6 +19,7 @@
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
+#include "auto_aim_interfaces/msg/serial_info.hpp"
 // #include "auto_aim_interfaces/msg/armor.hpp"
 
 #include "pnp_solver.hpp"
@@ -35,6 +38,8 @@ private:
     // void Callback(const sensor_msgs::msg::Image::SharedPtr img_msg);
 
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
+    void topic_callback(const sensor_msgs::msg::Image::ConstSharedPtr& img_msg, 
+            const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr& serial_msg);
 
     /**
      * @brief 初始化神符识别器，设置识别器参数
@@ -99,13 +104,15 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
-
+    message_filters::Subscriber<sensor_msgs::msg::Image> image_sub;
+    message_filters::Subscriber<auto_aim_interfaces::msg::SerialInfo> serial_sub;
+    std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::msg::Image, auto_aim_interfaces::msg::SerialInfo>> sync_;
     // Debug information
-    bool debug_;
-    std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
-    std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
-    image_transport::Publisher binary_img_pub_;
-    image_transport::Publisher result_img_pub_;
+    // bool debug_;
+    // std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
+    // std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
+    // image_transport::Publisher binary_img_pub_;
+    // image_transport::Publisher result_img_pub_;
 };
 
 } // namespace rune

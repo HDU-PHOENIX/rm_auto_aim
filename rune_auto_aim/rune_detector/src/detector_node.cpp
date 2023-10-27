@@ -24,12 +24,19 @@
 
 #include "rune_detector/rune_type.hpp"
 
-namespace rune 
-{
+using std::placeholders::_1;
+using std::placeholders::_2;
+namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
-    rclcpp::Node("rune_detector", options) 
-    {
+    rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
+    image_sub.subscribe(this, "/image_raw");
+    serial_sub.subscribe(this, "/serial_info");
+    sync_ = std::make_shared<message_filters::TimeSynchronizer<
+        sensor_msgs::msg::Image,
+        auto_aim_interfaces::msg::SerialInfo>>(image_sub, serial_sub, 1);
+
+    sync_->registerCallback(std::bind(&RuneDetectorNode::topic_callback, this, _1, _2));
     // 初始化神符识别器
     confidence_threshold_ = 0.7;
     detector_ = InitDetector();
@@ -46,7 +53,6 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
 
-
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         "/camera_info",
@@ -58,7 +64,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
             cam_info_sub_.reset();
         }
     );
-    
+
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "/image_raw",
         rclcpp::SensorDataQoS(),
@@ -194,38 +200,36 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     {
         //data->find = true;
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
-    }
-    else {
+    } else {
         //data->find = false;
         RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
         return false;
     }
 
     cv::Mat rvec, tvec;
-    bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec);//输出旋转向量和平移向量
-    if(!success) {
+    bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); //输出旋转向量和平移向量
+    if (!success) {
         RCLCPP_WARN(this->get_logger(), "PnP failed!");
-        runes_msg_.find = false;//没找到符叶
-        runes_msg_.header = img_msg->header;//包含时间戳
+        runes_msg_.find = false; //没找到符叶
+        runes_msg_.header = img_msg->header; //包含时间戳
         // runes_msg_.motion = ;//判断大小符
         return false;
     } else {
         RCLCPP_WARN(this->get_logger(), "PnP success!");
-        
+
         runes_msg_.pose_c.position.x = tvec.at<double>(0);
         runes_msg_.pose_c.position.y = tvec.at<double>(1);
-        runes_msg_.pose_c.position.z = tvec.at<double>(2);//未激活符叶相机坐标系下的位置
+        runes_msg_.pose_c.position.z = tvec.at<double>(2); //未激活符叶相机坐标系下的位置
         runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
-        runes_msg_.leaf_dir.y = (rune_armor - symbol).y;//符叶向量
-        for(int i = 0; i < 4;i++)
-        {
+        runes_msg_.leaf_dir.y = (rune_armor - symbol).y; //符叶向量
+        for (int i = 0; i < 4; i++) {
             runes_msg_.rune_points[i].x = rune_points_[i].x;
             runes_msg_.rune_points[i].y = rune_points_[i].y;
         }
-        runes_msg_.symbol.x = symbol.x;//R标位置 图像左上角为原点
-        runes_msg_.symbol.y = symbol.y;//R标位置 图像左上角为原点
-        runes_msg_.header = img_msg->header;//包含时间戳
-        runes_msg_.find = true;//找到符叶
+        runes_msg_.symbol.x = symbol.x; //R标位置 图像左上角为原点
+        runes_msg_.symbol.y = symbol.y; //R标位置 图像左上角为原点
+        runes_msg_.header = img_msg->header; //包含时间戳
+        runes_msg_.find = true; //找到符叶
         // runes_msg_.motion = ;//判断大小符
         return true;
     }
@@ -239,13 +243,21 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         static_cast<void*>(const_cast<sensor_msgs::msg::Image*>(img_msg.get()))
     );
 
-    DetectRunes(img_msg);//将图片检测
+    DetectRunes(img_msg); //将图片检测
 
     runes_pub_->publish(runes_msg_);
 }
 
+void RuneDetectorNode::topic_callback(
+    const sensor_msgs::msg::Image::ConstSharedPtr& img_msg,
+    const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr& serial_msg
+) {
+    RCLCPP_INFO(this->get_logger(), "receive!");
+    RCLCPP_INFO_STREAM(this->get_logger(), "receive!again");
+}
+
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
-    auto &&detector = std::make_shared<NeuralNetwork>();
+    auto&& detector = std::make_shared<NeuralNetwork>();
     auto pkg_path = ament_index_cpp::get_package_share_directory("rune_detector");
     auto model_path = pkg_path + "/model/Rune/model_15/yolox_fp16.onnx";
     detector->Init(model_path);
