@@ -30,11 +30,15 @@ def generate_launch_description():
                 ComposableNode(
                     package='armor_detector',
                     plugin='armor::ArmorDetectorNode',
-                    name='armor_detector_node'),
+                    name='armor_detector_node',
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                ),
                 ComposableNode(
                     package='camera',
                     plugin='sensor::CameraNode',
-                    name='camera_node')
+                    name='camera_node',
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                )
             ],
             output='screen',
     )
