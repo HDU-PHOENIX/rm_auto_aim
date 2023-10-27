@@ -42,10 +42,10 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     detector_ = InitDetector();
 
     // 创建标记发布者
-    debug_ = this->declare_parameter("debug", false);
-    if (debug_) {
-        CreateDebugPublishers();
-    }
+    // debug_ = this->declare_parameter("debug", false);
+    // if (debug_) {
+    //     CreateDebugPublishers();
+    // }
 
     // 创建神符信息发布者
     runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Rune>(

@@ -54,7 +54,7 @@ struct DataRecv {
 
 inline DataRecv FromVector(const std::vector<uint8_t>& data) {
     DataRecv packet;
-    std::copy(data.begin(), data.end(), reinterpret_cast<uint8_t*>(&packet) + 1);
+    std::copy(data.begin(), data.end(), reinterpret_cast<uint8_t*>(&packet));
     return packet;
 }
 

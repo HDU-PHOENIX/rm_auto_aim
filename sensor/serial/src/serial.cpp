@@ -81,20 +81,19 @@ void Serial::SendRequest() {
 
 DataRecv Serial::ReadData() {
     try {
-        std::vector<uint8_t> header(1);
+        std::vector<uint8_t> header(32);
         serial_driver_->port()->receive(header);
-
-        if (header[0] == 0x5A) {
-            std::vector<uint8_t> data(sizeof(DataRecv) - 1);
-            serial_driver_->port()->receive(data);
-            DataRecv packet = FromVector(data);
-            if (packet.Legal()) {
-                return packet;
-            } else {
-                RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
-            }
+        DataRecv packet = FromVector(header);
+        if (packet.Legal()) {
+            return packet;
         } else {
-            RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Invalid header: %02X", header[0]);
+            RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
+            // RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Invalid header: %02X", header[0]);
+            for (int i = 0; i < header.size(); i++) {
+                std::cout << (int)(header[i]) << " ";
+            }
+            std::cout << std::endl;
+            exit(-1);
         }
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
