@@ -38,6 +38,28 @@ def generate_launch_description():
                     plugin='sensor::CameraNode',
                     name='camera_node',
                     extra_arguments=[{"use_intra_process_comms": True}]
+                ),
+                ComposableNode(
+                    package='camerainfo',
+                    plugin='camerainfo::CameraInfoNode',
+                    name='camera_info_node',
+                    # extra_arguments=[{"use_intra_process_comms": True}]
+                    parameters=[
+                        {'camera_matrix': [1436.5522013177274,
+                                           0,
+                                            631.7426656086038,
+                                            0,
+                                            1436.7519670955378,
+                                            479.37777230242415,
+                                            0,
+                                            0,
+                                            1]},
+                        {'distortion': [-0.12097647520170836,
+                                        0.14048371243276836,
+                                        0.0001667597668430485,
+                                        -0.0028646864621099328,
+                                        -0.05038697039343976]},
+                    ],  
                 )
             ],
             output='screen',

@@ -104,6 +104,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
     // std::cout << armors.size() << std::endl;
     // PnP 求解
     if (pnp_solver_ != nullptr) {
+        // std::cout << "pnp_solver has ptr" << std::endl;
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
         armors_msg_.armors.clear();
         marker_array_.markers.clear();
