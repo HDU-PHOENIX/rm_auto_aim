@@ -97,8 +97,11 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
     // 识别装甲板
+    // auto start = this->now();
+
     auto armors = DetectArmors(img_msg);
 
+    // std::cout << armors.size() << std::endl;
     // PnP 求解
     if (pnp_solver_ != nullptr) {
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
@@ -167,7 +170,11 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
 
         // Publishing marker
         PublishMarkers();
+    } else {
+        std::cout << "pnp_solver null_ptr" << std::endl;
     }
+    // auto end = this->now();
+    // std::cout << "Detect Armors" << (end - start).seconds() * 1000 << "ms" << std::endl;
 }
 
 std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {

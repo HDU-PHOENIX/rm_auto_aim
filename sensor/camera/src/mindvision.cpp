@@ -1,6 +1,7 @@
 #include "camera/mindvision.hpp"
 #include <cstdio>
 #include <ctime>
+#define MAX_CAMERA_COUNT 4
 
 namespace sensor {
 
@@ -39,12 +40,17 @@ MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
 
     CameraPlay(h_camera);
 
+    // TODO：老项目中还有设置预览的分辨率 ,之后如果出问题了再去看看
+
     /*
         其他的相机参数设置
         例如 CameraSetExposureTime   CameraGetExposureTime  设置/读取曝光时间
             CameraSetImageResolution  CameraGetImageResolution 设置/读取分辨率
             CameraSetGamma、CameraSetConrast、CameraSetGain等设置图像伽马、对比度、RGB数字增益等等。
     */
+    CameraSetAeState(h_camera, false);
+    CameraSetExposureTime(h_camera, 5000);
+    CameraSetContrast(h_camera, 100);
 
     if (t_capability.sIspCapacity.bMonoSensor != 0) {
         // channel=1;
@@ -57,18 +63,21 @@ MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
 
 bool MindVision::GetFrame(cv::Mat& frame) {
     // 获取缓存区图像
+
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
         return false;
     }
+
     // 图像处理
     CameraImageProcess(h_camera, pby_buffer, g_p_rgb_buffer, &s_frame_info);
 
     // 构造
-    frame = cv::Mat(
+    cv::Mat(
         cvSize(s_frame_info.iWidth, s_frame_info.iHeight),
         s_frame_info.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
         g_p_rgb_buffer
-    );
+    )
+        .copyTo(frame);
 
     //在成功调用CameraGetImageBuffer后，必须调用CameraReleaseImageBuffer来释放获得的buffer。
     //否则再次调用CameraGetImageBuffer时，程序将被挂起一直阻塞，直到其他线程中调用CameraReleaseImageBuffer来释放了buffer
@@ -77,13 +86,24 @@ bool MindVision::GetFrame(cv::Mat& frame) {
 }
 
 bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
+    // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     // 获取缓存区图像
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
         return false;
     }
+    // std::chrono::system_clock::time_point end1 = std::chrono::system_clock::now();
+    // std::cout << "获取图片毫秒:"
+    //           << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start).count()
+    //           << std::endl;
     // 图像处理
     CameraImageProcess(h_camera, pby_buffer, g_p_rgb_buffer, &s_frame_info);
 
+    // std::cout << "图片处理毫秒:"
+    //           << std::chrono::duration_cast<std::chrono::milliseconds>(
+    //                  std::chrono::system_clock::now() - end1
+    //              )
+    //                  .count()
+    //           << std::endl;
     // 构造
     frame = std::make_shared<cv::Mat>(
         cvSize(s_frame_info.iWidth, s_frame_info.iHeight),
