@@ -16,22 +16,17 @@
 
 namespace sensor {
 
-Serial::Serial(
-    uint32_t baud_rate,
-    std::string device_name,
-    FlowControl flow_control,
-    Parity parity,
-    StopBits stop_bits
-):
+Serial::Serial(std::string node_name, uint32_t baud_rate, std::string device_name):
+    node_name_(node_name),
     device_name_(device_name),
     owned_ctx_ { new IoContext(2) },
     serial_driver_ { new drivers::serial_driver::SerialDriver(*owned_ctx_) } {
     // 构造设备配置
     this->device_config_ = std::make_unique<drivers::serial_driver::SerialPortConfig>(
         baud_rate,
-        flow_control,
-        parity,
-        stop_bits
+        drivers::serial_driver::FlowControl::NONE,
+        drivers::serial_driver::Parity::NONE,
+        drivers::serial_driver::StopBits::ONE
     );
 
     // 尝试初始化
@@ -42,7 +37,7 @@ Serial::Serial(
         }
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
+            rclcpp::get_logger(this->node_name_),
             "Error creating serial port: %s - %s",
             device_name_.c_str(),
             ex.what()
@@ -59,79 +54,53 @@ Serial::~Serial() {
     }
 }
 
-void Serial::SendRequest() {
-    DataSend packet;
-    // packet.is_request = true;
-    // crc16::appendCRC16CheckSum(reinterpret_cast<uint8_t*>(&packet), sizeof(packet));
-
-    auto data = ToVector(packet);
-
+void Serial::ReadData(DataRecv& data_recv) {
     try {
-        serial_driver_->port()->send(data);
-    } catch (const std::exception& ex) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
-            "Error sending data: %s - %s",
-            device_name_.c_str(),
-            ex.what()
-        );
-        ReopenPort();
-    }
-}
-
-DataRecv Serial::ReadData() {
-    try {
-        std::vector<uint8_t> header(32);
-        serial_driver_->port()->receive(header);
-        DataRecv packet = FromVector(header);
-        if (packet.Legal()) {
-            return packet;
-        } else {
-            RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
-            // RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Invalid header: %02X", header[0]);
-            for (int i = 0; i < header.size(); i++) {
-                std::cout << (int)(header[i]) << " ";
-            }
-            std::cout << std::endl;
-            exit(-1);
+        std::vector<uint8_t> data(32);
+        serial_driver_->port()->receive(data);
+        data_recv = FromVector(data);
+        if (!this->Legal(data_recv)) {
+            RCLCPP_ERROR(rclcpp::get_logger(this->node_name_), "Read invalid data!");
         }
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
+            rclcpp::get_logger(this->node_name_),
             "Error while receiving data: %s",
             ex.what()
         );
         ReopenPort();
     }
-
-    return DataRecv();
 }
 
-void Serial::WriteCommand() {
+void Serial::SendData(DataSend& data_send) {
     try {
-        DataSend packet;
-
-        // TODO: set packet
-
-        std::vector<uint8_t> data = ToVector(packet);
-        serial_driver_->port()->send(data);
+        std::vector<uint8_t> data = ToVector(data_send);
+        if (this->Legal(data_send)) {
+            serial_driver_->port()->send(data);
+        } else {
+            RCLCPP_ERROR(rclcpp::get_logger(this->node_name_), "Not allowed to send invalid data!");
+        }
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Error while writing data: %s", ex.what());
+        RCLCPP_ERROR(
+            rclcpp::get_logger(this->node_name_),
+            "Error while writing data: %s",
+            ex.what()
+        );
         ReopenPort();
     }
 }
 
 void Serial::ReopenPort() {
-    RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Attempting to reopen port");
+    RCLCPP_WARN(rclcpp::get_logger(this->node_name_), "Attempting to reopen port");
     try {
         if (serial_driver_->port()->is_open()) {
             serial_driver_->port()->close();
         }
         serial_driver_->port()->open();
-        RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Successfully reopened port");
+        RCLCPP_INFO(rclcpp::get_logger(this->node_name_), "Successfully reopened port");
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
+            rclcpp::get_logger(this->node_name_),
             "Error while reopening port: %s",
             ex.what()
         );
