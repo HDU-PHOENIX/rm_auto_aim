@@ -23,56 +23,36 @@ using drivers::serial_driver::StopBits;
 
 class Serial {
 public:
-    /**
-     * @brief Serial 类构造函数
-     * 
-     * @param node_name 调用这个类的节点名
-     * @param baud_rate 波特率
-     * @param device_name 串口设备名
-     */
-    explicit Serial(std::string node_name, uint32_t baud_rate, std::string device_name);
+    explicit Serial(
+        uint32_t baud_rate,
+        std::string device_name,
+        FlowControl flow_control,
+        Parity parity,
+        StopBits stop_bits
+    );
 
     ~Serial();
 
-    /**
-     * @brief 从串口读取数据
-     * 
-     * @param data_recv 
-     */
-    void ReadData(DataRecv& data_recv);
-    /**
-     * @brief 向串口发送数据
-     * 
-     * @param data_send 
-     */
-    void SendData(DataSend& data_send);
+    void SendRequest();
+    DataRecv ReadData();
+
+    void WriteCommand();
 
 private:
-    /**
-     * @brief 重新打开串口
-     * 
-     */
+    void ResolveParams();
+
     void ReopenPort();
 
-    /**
-     * @brief 检查数据是否合法
-     * 
-     * @tparam DataT 数据类型
-     * @param data 需要检查的数据
-     *
-     * @return 数据是否合法
-     */
-    template<typename DataT>
-    bool Legal(DataT data) const {
-        return data.start == 's' && data.end == 'e';
-    }
 
-    std::string node_name_;   // 调用这个类的节点名
-    std::string device_name_; // 串口设备名
+    // uint32_t baud_rate;
+    std::string device_name_;
+    // drivers::serial_driver::FlowControl flow_control;
+    // drivers::serial_driver::Parity parity;
+    // drivers::serial_driver::StopBits stop_bits;
 
     std::unique_ptr<IoContext> owned_ctx_;
-    std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_; // 串口配置
-    std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;     // 串口驱动
+    std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_;
+    std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;
 
     rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
 };

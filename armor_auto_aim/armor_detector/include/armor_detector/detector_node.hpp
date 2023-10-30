@@ -20,7 +20,6 @@
 #include "armor_detector/number_classifier.hpp"
 #include "armor_detector/pnp_solver.hpp"
 #include "auto_aim_interfaces/msg/armors.hpp"
-#include "serial/serial.hpp"
 
 namespace armor {
 
@@ -85,8 +84,6 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
     // 相机中心
     cv::Point2f cam_center_;
-    // 串口通信
-    std::unique_ptr<sensor::Serial> serial_;
     // 相机信息
     std::shared_ptr<sensor_msgs::msg::CameraInfo> cam_info_;
     // PnP 解算器

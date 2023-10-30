@@ -81,10 +81,9 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS(),
         [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
             cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
-            serial_ = std::make_unique<sensor::Serial>(115200, "/dev/ttyUSB0");
             cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
             pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
-            cam_info_sub_.reset(); // 通过释放 SharedPtr 实现取消对 camera_info 的订阅
+            cam_info_sub_.reset();
         }
     );
 
@@ -105,6 +104,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
     // std::cout << armors.size() << std::endl;
     // PnP 求解
     if (pnp_solver_ != nullptr) {
+        // std::cout << "pnp_solver has ptr" << std::endl;
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
         armors_msg_.armors.clear();
         marker_array_.markers.clear();
