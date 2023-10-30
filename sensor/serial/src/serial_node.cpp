@@ -1,19 +1,38 @@
 #include "serial/serial_node.hpp"
-#include "serial/serial.hpp"
-#include <auto_aim_interfaces/msg/detail/target__struct.hpp>
-#include <memory>
-#include <rclcpp/qos.hpp>
 
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", options) {
     this->serial_ = InitSerial();
-    this->serial_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", 2);
-    this->target_sub_ = create_subscription<auto_aim_interfaces::msg::Target>(
-        "/tracker/target",
-        rclcpp::QoS(2),
-        [this](const auto_aim_interfaces::msg::Target::ConstSharedPtr& tmp) {
-            std::cout << "111" << std::endl;
-        } //接收tracker部分的回调函数 还没写好 目前在做测试
+    this->serial_info_pub_ =
+        create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", 2);
+    this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
+        "/target_info",
+        rclcpp::SensorDataQoS(),
+        [this](const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
+            sensor::DataSend packet;
+            packet.start = msg->start.data;
+            packet.end = msg->end.data;
+            packet.mode = msg->mode.data;
+            packet.is_find = msg->is_find.data;
+            packet.can_shoot = msg->can_shoot.data;
+            packet.yaw = msg->euler[0];
+            packet.pitch = msg->euler[2];
+            packet.origin_yaw = msg->origin_euler[0];
+            packet.origin_pitch = msg->origin_euler[2];
+            packet.distance = msg->distance;
+
+            auto data = ToVector(packet);
+            try {
+                serial_->SendData(packet);
+            } catch (const std::exception& ex) {
+                RCLCPP_ERROR(
+                    rclcpp::get_logger("serial_node"),
+                    "Error creating serial port: %s - %s",
+                    device_name_.c_str(),
+                    ex.what()
+                );
+            };
+        }
     );
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
 }
@@ -33,21 +52,12 @@ void SerialNode::LoopForPublish() {
         serial_info_.euler[2] = package.euler[2];
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
-        serial_pub_->publish(serial_info_);
+        serial_info_pub_->publish(serial_info_);
     }
 }
 
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
-    // uint32_t baud_rate_;
-    // std::string device_name_;
-    // drivers::serial_driver::FlowControl flow_control_;
-    // drivers::serial_driver::Parity parity_;
-    // drivers::serial_driver::StopBits stop_bits_;
-    // this->get_parameter<uint32_t>("baud_rate", this->baud_rate_);
-    // this->get_parameter<std::string>("device_name", this->device_name_);
-    // this->get_parameter<drivers::serial_driver::FlowControl>("flow_control", this->flow_control_);
-    // this->get_parameter<drivers::serial_driver::Parity>("parity", this->parity_);
-    // this->get_parameter<drivers::serial_driver::StopBits>("stop_bits", this->stop_bits_);
+    // TODO: 从参数服务器中获取串口参数
 
     auto serial = std::make_unique<sensor::Serial>(
         baud_rate_,
@@ -56,7 +66,6 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
         parity_,
         stop_bits_
     );
-
     return serial;
 }
 

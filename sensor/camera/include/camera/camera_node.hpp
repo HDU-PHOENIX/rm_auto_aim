@@ -3,9 +3,11 @@
 
 #include <cstdio>
 
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+
+#include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/image.hpp>
 
 namespace sensor {
 
@@ -13,7 +15,7 @@ class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
     ~CameraNode() override;
-    void LoopForPublish();
+    void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
 private:
     // 保存从摄像头获取的图像
@@ -29,7 +31,10 @@ private:
     rclcpp::Time last_publish_time;
 
     // 原始图像发布者
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_armor_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_rune_;
+    // 串口数据接收者
+    rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_subscriber_;
 };
 
 } // namespace sensor

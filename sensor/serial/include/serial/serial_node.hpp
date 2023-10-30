@@ -4,11 +4,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "serial/serial.hpp"
 
+#include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
 
-#include "auto_aim_interfaces/msg/serial_info.hpp" //自定义ros2消息类型
-
-#include <auto_aim_interfaces/msg/detail/target__struct.hpp>
 namespace sensor {
 
 class SerialNode: public rclcpp::Node {
@@ -37,8 +35,8 @@ private:
     std::unique_ptr<sensor::Serial> serial_;
     auto_aim_interfaces::msg::SerialInfo serial_info_;
 
-    rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_pub_;
+    rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_sub_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
 };
 
 } // namespace sensor

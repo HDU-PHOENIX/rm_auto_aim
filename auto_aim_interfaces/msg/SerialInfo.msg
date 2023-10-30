@@ -8,3 +8,7 @@ std_msgs/Char rune_flag
 std_msgs/Char[10] unused
 std_msgs/Char end
 
+std_msgs/Char is_find
+std_msgs/Char can_shoot
+float32[3] origin_euler
+float32 distance

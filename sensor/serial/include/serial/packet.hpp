@@ -7,19 +7,18 @@
 
 namespace sensor {
 struct DataSend {
-    char start = 's'; // 开始位(s)         0
-    char is_find; // 是否找到目标       1
-    char can_shoot; // 是否可以射击       2
-
-    float yaw_value; // yaw 偏移量        3 ~ 6
-    float pitch_value; // pitch 偏移量      7 ~ 10
-    float enemy_yaw_speed; // yaw 平移速度      11 ~ 14
-    float enemy_pitch_speed; // pitch 平移速度    15 ~ 18
-    float target_distance; // 目标距离          19 ~ 22
-    char mode; // 模式             23
-    int id = -1; // ???             24 - 27
-    char unused[3] = {}; // ???             28 - 30
-    char end; // 结束位           27
+    char start = 's';    // 0         开始位(s)
+    char is_find;        // 1         是否找到目标
+    char can_shoot;      // 2         是否可以射击
+    float yaw;           // 3 ~ 6     yaw 偏移量
+    float pitch;         // 7 ~ 10    pitch 偏移量
+    float origin_yaw;    // 11 ~ 14   接收到的 yaw
+    float origin_pitch;  // 15 ~ 18   接收到的 pitch
+    float distance;      // 19 ~ 22   目标距离
+    char mode;           // 23        模式 装甲板：a  符：r
+    int id = -1;         // 24-27     ？
+    char unused[3] = {}; // 28-30     预留位
+    char end = 'e';      // 31        结束位
 
     /**
      * @brief 检查数据是否合法
@@ -32,15 +31,15 @@ struct DataSend {
 } __attribute__((packed));
 
 struct DataRecv {
-    char start = 's';
-    char color;
-    char mode;
-    float speed = 20;
-    float euler[3] = {}; //(0,1,2) = (yaw,roll,pitch)
-    char shoot_bool = 0;
-    char rune_flag = 0; //0为不可激活，1为小符，2为大符
-    char unused[10] = {};
-    char end = 'e';
+    char start = 's';     // 0       开始位
+    char color;           // 1       颜色
+    char mode;            // 2       模式 装甲板：a  符：r
+    float speed = 20;     // 3 - 6   速度
+    float euler[3] = {};  // 7-24    欧拉角 (0,1,2) = (yaw,roll,pitch)
+    char shoot_bool = 0;  // 25
+    char rune_flag = 0;   // 26      0为不可激活，1为小符，2为大符
+    char unused[10] = {}; // 27-30
+    char end = 'e';       // 31
 
     /**
      * @brief 检查数据是否合法

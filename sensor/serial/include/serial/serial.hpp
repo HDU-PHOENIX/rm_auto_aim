@@ -33,16 +33,13 @@ public:
 
     ~Serial();
 
-    void SendRequest();
+    void SendData(DataSend packet);
     DataRecv ReadData();
-
-    void WriteCommand();
 
 private:
     void ResolveParams();
 
     void ReopenPort();
-
 
     // uint32_t baud_rate;
     std::string device_name_;

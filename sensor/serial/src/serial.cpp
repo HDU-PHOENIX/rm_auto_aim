@@ -59,15 +59,9 @@ Serial::~Serial() {
     }
 }
 
-void Serial::SendRequest() {
-    DataSend packet;
-    // packet.is_request = true;
-    // crc16::appendCRC16CheckSum(reinterpret_cast<uint8_t*>(&packet), sizeof(packet));
-
-    auto data = ToVector(packet);
-
+void Serial::SendData(DataSend packet) {
     try {
-        serial_driver_->port()->send(data);
+        serial_driver_->port()->send(ToVector(packet));
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
             rclcpp::get_logger("serial_node"),
@@ -88,12 +82,6 @@ DataRecv Serial::ReadData() {
             return packet;
         } else {
             RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
-            // RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Invalid header: %02X", header[0]);
-            for (int i = 0; i < header.size(); i++) {
-                std::cout << (int)(header[i]) << " ";
-            }
-            std::cout << std::endl;
-            exit(-1);
         }
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
@@ -105,20 +93,6 @@ DataRecv Serial::ReadData() {
     }
 
     return DataRecv();
-}
-
-void Serial::WriteCommand() {
-    try {
-        DataSend packet;
-
-        // TODO: set packet
-
-        std::vector<uint8_t> data = ToVector(packet);
-        serial_driver_->port()->send(data);
-    } catch (const std::exception& ex) {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Error while writing data: %s", ex.what());
-        ReopenPort();
-    }
 }
 
 void Serial::ReopenPort() {
