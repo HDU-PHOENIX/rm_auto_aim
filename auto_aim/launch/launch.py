@@ -27,10 +27,29 @@ def generate_launch_description():
             package='rclcpp_components',
             executable='component_container',
             composable_node_descriptions=[
+                # ComposableNode(
+                #     package='armor_detector',
+                #     plugin='armor::ArmorDetectorNode',
+                #     name='armor_detector_node',
+                #     extra_arguments=[{"use_intra_process_comms": True}]
+                # ),
                 ComposableNode(
-                    package='armor_detector',
-                    plugin='armor::ArmorDetectorNode',
-                    name='armor_detector_node',
+                    package="serial",
+                    plugin='sensor::SerialNode',
+                    name="serial_node",
+                    parameters=[
+                        {"baud_rate":115200},
+                        {"device_name" : "/dev/ttyACM0"},
+                        # {"flow_control":FlowControl::NONE},
+                        # {"parity":Parity::NONE},
+                        # {"stop_bits":StopBits::ONE}
+                    ],
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                ),
+                ComposableNode(
+                    package='rune_detector',
+                    plugin='rune::RuneDetectorNode',
+                    name='rune_detector_node',
                     extra_arguments=[{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(

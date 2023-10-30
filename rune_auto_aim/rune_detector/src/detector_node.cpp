@@ -34,12 +34,12 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     serial_sub.subscribe(this, "/serial_info");
     sync_ = std::make_shared<message_filters::TimeSynchronizer<
         sensor_msgs::msg::Image,
-        auto_aim_interfaces::msg::SerialInfo>>(image_sub, serial_sub, 1);
+        auto_aim_interfaces::msg::SerialInfo>>(image_sub, serial_sub, 1); //同步两个话题
 
     sync_->registerCallback(std::bind(&RuneDetectorNode::topic_callback, this, _1, _2));
     // 初始化神符识别器
-    confidence_threshold_ = 0.7;
-    detector_ = InitDetector();
+    confidence_threshold_ = 0.7; //置信度阈值
+    detector_ = InitDetector(); //初始化神符识别器
 
     // 创建标记发布者
     // debug_ = this->declare_parameter("debug", false);
@@ -201,7 +201,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         //data->find = true;
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
     } else {
-        //data->find = false;
+        // data->find = false;
         RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
         return false;
     }
@@ -215,7 +215,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         // runes_msg_.motion = ;//判断大小符
         return false;
     } else {
-        RCLCPP_WARN(this->get_logger(), "PnP success!");
+        RCLCPP_WARN(this->get_logger(), "PnP success!"); //识别成功
 
         runes_msg_.pose_c.position.x = tvec.at<double>(0);
         runes_msg_.pose_c.position.y = tvec.at<double>(1);
@@ -240,12 +240,18 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         this->get_logger(),
         "timestamp: %d image address in detector %p",
         img_msg->header.stamp.nanosec,
-        static_cast<void*>(const_cast<sensor_msgs::msg::Image*>(img_msg.get()))
+        &(img_msg->data)
     );
+    auto now = this->now();
+    std::cout << "get image per" << (now - img_msg->header.stamp).seconds() * 1000 << "ms"
+              << std::endl;
+    if (pnp_solver_ == nullptr) {
+        RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
+    } else {
+        DetectRunes(img_msg); //将图片检测
 
-    DetectRunes(img_msg); //将图片检测
-
-    runes_pub_->publish(runes_msg_);
+        runes_pub_->publish(runes_msg_); //发布神符信息
+    }
 }
 
 void RuneDetectorNode::topic_callback(

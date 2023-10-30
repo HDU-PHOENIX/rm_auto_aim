@@ -13,7 +13,7 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", 
         rclcpp::QoS(2),
         [this](const auto_aim_interfaces::msg::Target::ConstSharedPtr& tmp) {
             std::cout << "111" << std::endl;
-        }
+        } //接收tracker部分的回调函数 还没写好 目前在做测试
     );
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
 }
