@@ -4,10 +4,6 @@
 #include <mindvision/CameraApi.h>
 
 #include "opencv2/core/core.hpp"
-#include <opencv2/core/types_c.h>
-#include <rclcpp/node.hpp>
-#include <stdio.h>
-#include <stdlib.h>
 
 namespace sensor {
 

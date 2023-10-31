@@ -1,8 +1,6 @@
 #ifndef CAMERA_NODE_HPP
 #define CAMERA_NODE_HPP
 
-#include <cstdio>
-
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
@@ -20,10 +18,6 @@ public:
 private:
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
-
-    // 线程相关
-    std::thread thread_for_publish_;
-    std::atomic<bool> canceled_;
 
     // debug 时间数据
     rclcpp::Time start_time;

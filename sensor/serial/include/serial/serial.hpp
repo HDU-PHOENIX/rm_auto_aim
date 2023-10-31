@@ -33,25 +33,39 @@ public:
 
     ~Serial();
 
+    /**
+     * @brief 发送数据
+     *
+     * @param packet 数据包
+     */
     void SendData(DataSend packet);
+    /**
+     * @brief 读取数据
+     *
+     * @return DataRecv 数据包
+     */
     DataRecv ReadData();
 
 private:
-    void ResolveParams();
-
+    /**
+     * @brief 重新打开串口
+     */
     void ReopenPort();
 
-    // uint32_t baud_rate;
-    std::string device_name_;
-    // drivers::serial_driver::FlowControl flow_control;
-    // drivers::serial_driver::Parity parity;
-    // drivers::serial_driver::StopBits stop_bits;
+    /**
+     * @brief 检查数据是否合法
+     * @tparam DataT 数据类型
+     * @param data 数据
+     * @return 数据是否合法
+     */
+    template<typename DataT>
+    bool Legal(DataT data);
 
+    // 串口相关
+    std::string device_name_; // 串口设备名
     std::unique_ptr<IoContext> owned_ctx_;
     std::unique_ptr<drivers::serial_driver::SerialPortConfig> device_config_;
     std::unique_ptr<drivers::serial_driver::SerialDriver> serial_driver_;
-
-    rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
 };
 } // namespace sensor
 

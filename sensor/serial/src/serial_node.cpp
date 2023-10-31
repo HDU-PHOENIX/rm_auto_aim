@@ -3,38 +3,41 @@
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", options) {
     this->serial_ = InitSerial();
+
     this->serial_info_pub_ =
         create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", 2);
     this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
         "/target_info",
         rclcpp::SensorDataQoS(),
-        [this](const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
-            sensor::DataSend packet;
-            packet.start = msg->start.data;
-            packet.end = msg->end.data;
-            packet.mode = msg->mode.data;
-            packet.is_find = msg->is_find.data;
-            packet.can_shoot = msg->can_shoot.data;
-            packet.yaw = msg->euler[0];
-            packet.pitch = msg->euler[2];
-            packet.origin_yaw = msg->origin_euler[0];
-            packet.origin_pitch = msg->origin_euler[2];
-            packet.distance = msg->distance;
-
-            auto data = ToVector(packet);
-            try {
-                serial_->SendData(packet);
-            } catch (const std::exception& ex) {
-                RCLCPP_ERROR(
-                    rclcpp::get_logger("serial_node"),
-                    "Error creating serial port: %s - %s",
-                    device_name_.c_str(),
-                    ex.what()
-                );
-            };
-        }
+        std::bind(&SerialNode::SerialInfoCallback, this, std::placeholders::_1)
     );
+
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
+}
+
+void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
+    sensor::DataSend packet;
+    packet.start = msg->start.data;
+    packet.end = msg->end.data;
+    packet.mode = msg->mode.data;
+    packet.is_find = msg->is_find.data;
+    packet.can_shoot = msg->can_shoot.data;
+    packet.yaw = msg->euler[0];
+    packet.pitch = msg->euler[2];
+    packet.origin_yaw = msg->origin_euler[0];
+    packet.origin_pitch = msg->origin_euler[2];
+    packet.distance = msg->distance;
+
+    try {
+        serial_->SendData(packet);
+    } catch (const std::exception& ex) {
+        RCLCPP_ERROR(
+            rclcpp::get_logger("serial_node"),
+            "Error creating serial port: %s - %s",
+            device_name_.c_str(),
+            ex.what()
+        );
+    };
 }
 
 void SerialNode::LoopForPublish() {
@@ -52,6 +55,7 @@ void SerialNode::LoopForPublish() {
         serial_info_.euler[2] = package.euler[2];
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
+
         serial_info_pub_->publish(serial_info_);
     }
 }

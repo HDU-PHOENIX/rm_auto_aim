@@ -19,15 +19,6 @@ struct DataSend {
     int id = -1;         // 24-27     ？
     char unused[3] = {}; // 28-30     预留位
     char end = 'e';      // 31        结束位
-
-    /**
-     * @brief 检查数据是否合法
-     *
-     * @return 数据是否合法
-     */
-    bool Legal() {
-        return start == 's' && end == 'e';
-    }
 } __attribute__((packed));
 
 struct DataRecv {
@@ -40,15 +31,6 @@ struct DataRecv {
     char rune_flag = 0;   // 26      0为不可激活，1为小符，2为大符
     char unused[10] = {}; // 27-30
     char end = 'e';       // 31
-
-    /**
-     * @brief 检查数据是否合法
-     *
-     * @return 数据是否合法
-     */
-    bool Legal() const {
-        return start == 's' && end == 'e';
-    }
 } __attribute__((packed));
 
 inline DataRecv FromVector(const std::vector<uint8_t>& data) {

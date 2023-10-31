@@ -60,16 +60,20 @@ Serial::~Serial() {
 }
 
 void Serial::SendData(DataSend packet) {
-    try {
-        serial_driver_->port()->send(ToVector(packet));
-    } catch (const std::exception& ex) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
-            "Error sending data: %s - %s",
-            device_name_.c_str(),
-            ex.what()
-        );
-        ReopenPort();
+    if (Legal(packet)) {
+        try {
+            serial_driver_->port()->send(ToVector(packet));
+        } catch (const std::exception& ex) {
+            RCLCPP_ERROR(
+                rclcpp::get_logger("serial_node"),
+                "Error sending data: %s - %s",
+                device_name_.c_str(),
+                ex.what()
+            );
+            ReopenPort();
+        }
+    } else {
+        RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
     }
 }
 
@@ -78,7 +82,7 @@ DataRecv Serial::ReadData() {
         std::vector<uint8_t> header(32);
         serial_driver_->port()->receive(header);
         DataRecv packet = FromVector(header);
-        if (packet.Legal()) {
+        if (Legal(packet)) {
             return packet;
         } else {
             RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
@@ -114,6 +118,11 @@ void Serial::ReopenPort() {
             ReopenPort();
         }
     }
+}
+
+template<typename DataT>
+bool Legal(DataT data) {
+    return data.start == 's' && data.end == 'e';
 }
 
 } // namespace sensor

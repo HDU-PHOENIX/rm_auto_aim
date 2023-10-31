@@ -96,12 +96,8 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    // 识别装甲板
-    // auto start = this->now();
-
     auto armors = DetectArmors(img_msg);
 
-    // std::cout << armors.size() << std::endl;
     // PnP 求解
     if (pnp_solver_ != nullptr) {
         // std::cout << "pnp_solver has ptr" << std::endl;

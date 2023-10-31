@@ -1,6 +1,7 @@
 #include "camera/mindvision.hpp"
-#include <cstdio>
-#include <ctime>
+
+#include <opencv2/core/types_c.h>
+
 #define MAX_CAMERA_COUNT 4
 
 namespace sensor {
@@ -48,7 +49,7 @@ MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
             CameraSetImageResolution  CameraGetImageResolution 设置/读取分辨率
             CameraSetGamma、CameraSetConrast、CameraSetGain等设置图像伽马、对比度、RGB数字增益等等。
     */
-    CameraSetAeState(h_camera, false);
+    CameraSetAeState(h_camera, 0);
     CameraSetExposureTime(h_camera, 5000);
     CameraSetContrast(h_camera, 100);
 
@@ -86,24 +87,14 @@ bool MindVision::GetFrame(cv::Mat& frame) {
 }
 
 bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
-    // std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     // 获取缓存区图像
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
         return false;
     }
-    // std::chrono::system_clock::time_point end1 = std::chrono::system_clock::now();
-    // std::cout << "获取图片毫秒:"
-    //           << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start).count()
-    //           << std::endl;
+
     // 图像处理
     CameraImageProcess(h_camera, pby_buffer, g_p_rgb_buffer, &s_frame_info);
 
-    // std::cout << "图片处理毫秒:"
-    //           << std::chrono::duration_cast<std::chrono::milliseconds>(
-    //                  std::chrono::system_clock::now() - end1
-    //              )
-    //                  .count()
-    //           << std::endl;
     // 构造
     frame = std::make_shared<cv::Mat>(
         cvSize(s_frame_info.iWidth, s_frame_info.iHeight),

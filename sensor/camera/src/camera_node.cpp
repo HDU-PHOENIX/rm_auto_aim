@@ -1,13 +1,8 @@
 #include "camera/camera_node.hpp"
-#include <functional>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/highgui.hpp>
-#include <rclcpp/logging.hpp>
+
 namespace sensor {
 
-CameraNode::CameraNode(const rclcpp::NodeOptions& options):
-    Node("camera_node", options),
-    canceled_(false) {
+CameraNode::CameraNode(const rclcpp::NodeOptions& options): Node("camera_node", options) {
     RCLCPP_INFO(this->get_logger(), "camera_node start");
 
     // 创建发布者
