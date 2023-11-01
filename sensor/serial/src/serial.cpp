@@ -62,7 +62,7 @@ Serial::Serial(
             rclcpp::get_logger("serial_node"),
             "Failed to reopen port, Set default data recv"
         );
-        SetDefaultDataRecv();
+        // SetDefaultDataRecv();
     }
 }
 
@@ -95,7 +95,7 @@ void Serial::SendData(DataSend packet) {
 DataRecv Serial::ReadData() {
     // 没连下位机时发送默认数据
     if (this->send_default_data_flag_) {
-        RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Sending default data");
+        // RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Sending default data");
         return this->default_data_recv_;
     }
 
@@ -149,7 +149,7 @@ bool Serial::ReopenPort() {
 void Serial::SetDefaultDataRecv() {
     this->default_data_recv_.start = 's';
     this->default_data_recv_.color = 'r';
-    this->default_data_recv_.mode = 'a';
+    this->default_data_recv_.mode = 'r';
     this->default_data_recv_.speed = 20;
     this->default_data_recv_.euler[0] = 0;
     this->default_data_recv_.euler[1] = 0;
@@ -157,6 +157,28 @@ void Serial::SetDefaultDataRecv() {
     this->default_data_recv_.shoot_bool = 0;
     this->default_data_recv_.rune_flag = 0;
     this->default_data_recv_.end = 'e';
+}
+
+void Serial::SetDefaultDataRecv(
+    char& start,
+    char& color,
+    char& mode,
+    double& speed,
+    std::vector<double>& euler,
+    int& shootbool,
+    int& runeflag,
+    char& end
+) {
+    this->default_data_recv_.start = start;
+    this->default_data_recv_.color = color;
+    this->default_data_recv_.mode = mode;
+    this->default_data_recv_.speed = speed;
+    this->default_data_recv_.euler[0] = euler[0];
+    this->default_data_recv_.euler[1] = euler[1];
+    this->default_data_recv_.euler[2] = euler[2];
+    this->default_data_recv_.shoot_bool = shootbool;
+    this->default_data_recv_.rune_flag = runeflag;
+    this->default_data_recv_.end = end;
 }
 
 template<typename DataT>

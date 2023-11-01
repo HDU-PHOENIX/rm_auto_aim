@@ -1,8 +1,10 @@
 #include "serial/serial_node.hpp"
 #include <rclcpp/executors.hpp>
+#include <rclcpp/parameter_value.hpp>
 
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", options) {
+    this->InitParameter();
     this->serial_ = InitSerial();
 
     this->serial_info_pub_ =
@@ -14,6 +16,32 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", 
     );
 
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
+}
+
+void SerialNode::InitParameter() {
+    this->declare_parameter("default_data_recv_start", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("default_data_recv_color", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("default_data_recv_mode", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("default_data_recv_speed", rclcpp::PARAMETER_DOUBLE);
+    this->declare_parameter("default_data_recv_euler", rclcpp::PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter("default_data_recv_shootbool", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("default_data_recv_runeflag", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("default_data_recv_end", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("baud_rate", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("device_name", rclcpp::PARAMETER_STRING);
+    this->declare_parameter("flow_control", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("parity", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("stop_bits", rclcpp::PARAMETER_INTEGER);
+    this->get_parameter("baud_rate", baud_rate_);
+    this->get_parameter("device_name", device_name_);
+    this->get_parameter("default_data_recv_start", default_data_recv_start_);
+    this->get_parameter("default_data_recv_color", default_data_recv_color_);
+    this->get_parameter("default_data_recv_mode", default_data_recv_mode_);
+    this->get_parameter("default_data_recv_speed", default_data_recv_speed_);
+    this->get_parameter("default_data_recv_euler", default_data_recv_euler_);
+    this->get_parameter("default_data_recv_shootbool", default_data_recv_shootbool_);
+    this->get_parameter("default_data_recv_runeflag", default_data_recv_runeflag_);
+    this->get_parameter("default_data_recv_end", default_data_recv_end_);
 }
 
 void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
@@ -74,6 +102,17 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
         parity_,
         stop_bits_
     );
+    serial->SetDefaultDataRecv(
+        default_data_recv_start_,
+        default_data_recv_color_,
+        default_data_recv_mode_,
+        default_data_recv_speed_,
+        default_data_recv_euler_,
+        default_data_recv_shootbool_,
+        default_data_recv_runeflag_,
+        default_data_recv_end_
+    );
+
     return serial;
 }
 

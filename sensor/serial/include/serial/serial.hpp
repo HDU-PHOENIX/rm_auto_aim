@@ -46,6 +46,20 @@ public:
      */
     DataRecv ReadData();
 
+    /**
+     * @brief 设置默认的数据包 数据从参数服务器中读取
+     */
+    void SetDefaultDataRecv(
+        char& start,
+        char& color,
+        char& mode,
+        double& speed,
+        std::vector<double>& euler,
+        int& shootbool,
+        int& runeflag,
+        char& end
+    );
+
 private:
     /**
      * @brief 重新打开串口
@@ -68,9 +82,9 @@ private:
     template<typename DataT>
     bool Legal(DataT data);
 
-    int reopen_count_;            // 重新打开串口的次数
+    int reopen_count_; // 重新打开串口的次数
     bool send_default_data_flag_; // 是否发送默认数据
-    DataRecv default_data_recv_;  // 默认的数据包
+    DataRecv default_data_recv_; // 默认的数据包
 
     // 串口相关
     std::string device_name_; // 串口设备名

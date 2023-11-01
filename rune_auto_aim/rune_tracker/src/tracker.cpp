@@ -15,20 +15,17 @@
 #include <memory>
 #include <string>
 
-namespace rune
-{
-Tracker::Tracker(double max_match_distance, double max_match_yaw_diff)
-{
-  ukf = new UKF_PLUS(0, true, false, 3.5, 6);//ukf滤波器初始化 原1.5  1.2
+namespace rune {
+Tracker::Tracker() {
+    ukf = new UKF_PLUS(0, true, false, 3.5, 6); //ukf滤波器初始化 原1.5  1.2
 }
 
 // void Tracker::update(const Rune::SharedPtr & rune_msg)
 // {
 //   // UKF 预测
-  
+
 //   RCLCPP_DEBUG(rclcpp::get_logger("armor_tracker"),"UKF predict");
 
-  
 // }
 
 // void Tracker::initEKF(const Armor & a)
@@ -115,4 +112,4 @@ Tracker::Tracker(double max_match_distance, double max_match_yaw_diff)
 //   return Eigen::Vector3d(xa, ya, za);
 // }
 
-}  // namespace rm_auto_aim
+} // namespace rune
