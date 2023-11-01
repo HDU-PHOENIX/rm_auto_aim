@@ -45,8 +45,10 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
 
     // 根据 msg->mode.data 的值，选择发布到哪个话题
     if (msg->mode.data == 'a') {
+        RCLCPP_INFO(this->get_logger(), "publish image for armor");
         image_publisher_for_armor_->publish(std::move(image_msg));
     } else if (msg->mode.data == 'r') {
+        RCLCPP_INFO(this->get_logger(), "publish image for rune");
         image_publisher_for_rune_->publish(std::move(image_msg));
     } else {
         RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);

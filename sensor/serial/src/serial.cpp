@@ -1,4 +1,5 @@
 
+#include <cstdio>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 #include <serial_driver/serial_driver.hpp>
@@ -23,6 +24,8 @@ Serial::Serial(
     Parity parity,
     StopBits stop_bits
 ):
+    reopen_count_(0),
+    send_default_data_flag_(false),
     device_name_(device_name),
     owned_ctx_ { new IoContext(2) },
     serial_driver_ { new drivers::serial_driver::SerialDriver(*owned_ctx_) } {
@@ -47,7 +50,19 @@ Serial::Serial(
             device_name_.c_str(),
             ex.what()
         );
-        ReopenPort();
+        if (ReopenPort() == false) {
+            send_default_data_flag_ = true;
+        }
+        RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "in catch");
+    }
+
+    // reopen failed
+    if (send_default_data_flag_) {
+        RCLCPP_ERROR(
+            rclcpp::get_logger("serial_node"),
+            "Failed to reopen port, Set default data recv"
+        );
+        SetDefaultDataRecv();
     }
 }
 
@@ -78,10 +93,16 @@ void Serial::SendData(DataSend packet) {
 }
 
 DataRecv Serial::ReadData() {
+    // 没连下位机时发送默认数据
+    if (this->send_default_data_flag_) {
+        RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Sending default data");
+        return this->default_data_recv_;
+    }
+
     try {
-        std::vector<uint8_t> header(32);
-        serial_driver_->port()->receive(header);
-        DataRecv packet = FromVector(header);
+        std::vector<uint8_t> data(32);
+        serial_driver_->port()->receive(data);
+        DataRecv&& packet = FromVector(data);
         if (Legal(packet)) {
             return packet;
         } else {
@@ -99,7 +120,11 @@ DataRecv Serial::ReadData() {
     return DataRecv();
 }
 
-void Serial::ReopenPort() {
+bool Serial::ReopenPort() {
+    reopen_count_++;
+    if (reopen_count_ > 5) {
+        return false;
+    }
     RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Attempting to reopen port");
     try {
         if (serial_driver_->port()->is_open()) {
@@ -115,9 +140,23 @@ void Serial::ReopenPort() {
         );
         if (rclcpp::ok()) {
             rclcpp::sleep_for(std::chrono::seconds(1));
-            ReopenPort();
+            return ReopenPort();
         }
     }
+    return true;
+}
+
+void Serial::SetDefaultDataRecv() {
+    this->default_data_recv_.start = 's';
+    this->default_data_recv_.color = 'r';
+    this->default_data_recv_.mode = 'a';
+    this->default_data_recv_.speed = 20;
+    this->default_data_recv_.euler[0] = 0;
+    this->default_data_recv_.euler[1] = 0;
+    this->default_data_recv_.euler[2] = 0;
+    this->default_data_recv_.shoot_bool = 0;
+    this->default_data_recv_.rune_flag = 0;
+    this->default_data_recv_.end = 'e';
 }
 
 template<typename DataT>

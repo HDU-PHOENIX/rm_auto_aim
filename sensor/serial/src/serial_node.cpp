@@ -1,4 +1,5 @@
 #include "serial/serial_node.hpp"
+#include <rclcpp/executors.hpp>
 
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", options) {
@@ -43,6 +44,9 @@ void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
 void SerialNode::LoopForPublish() {
     while (rclcpp::ok() && !canceled_.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        // 保证节点的回调函数被调用
+        // rclcpp::spin_some(this->get_node_base_interface());
 
         auto&& package = serial_->ReadData();
         serial_info_.start.data = package.start;

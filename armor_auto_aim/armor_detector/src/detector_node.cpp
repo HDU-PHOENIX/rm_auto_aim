@@ -67,7 +67,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         CreateDebugPublishers();
     }
 
-    // Debug param change moniter
+    // 监视 Debug 参数变化
     debug_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
     debug_cb_handle_ =
         debug_param_sub_->add_parameter_callback("debug", [this](const rclcpp::Parameter& p) {
@@ -89,7 +89,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     // 创建图像订阅者
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/image_raw",
+        "/image_for_armor",
         rclcpp::SensorDataQoS(),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );
@@ -111,7 +111,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
         auto_aim_interfaces::msg::Armor armor_msg;
         // 遍历装甲板进行 PnP 求解
         for (const auto& armor: armors) {
-            // 旋转矩阵和平移向量
+            // 旋转、平移向量
             cv::Mat rvec, tvec;
             bool success = pnp_solver_->SolvePnP(armor, rvec, tvec);
             if (success) {
@@ -123,10 +123,10 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 armor_msg.pose.position.x = tvec.at<double>(0);
                 armor_msg.pose.position.y = tvec.at<double>(1);
                 armor_msg.pose.position.z = tvec.at<double>(2);
-                // rvec to 3x3 旋转矩阵
+                // 旋转向量 to 旋转矩阵
                 cv::Mat rotation_matrix;
                 cv::Rodrigues(rvec, rotation_matrix);
-                // 旋转矩阵 to 四元数
+                // tf2 旋转矩阵
                 tf2::Matrix3x3 tf2_rotation_matrix(
                     rotation_matrix.at<double>(0, 0),
                     rotation_matrix.at<double>(0, 1),
@@ -138,6 +138,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                     rotation_matrix.at<double>(2, 1),
                     rotation_matrix.at<double>(2, 2)
                 );
+                // 旋转矩阵 to 四元数
                 tf2::Quaternion tf2_q;
                 tf2_rotation_matrix.getRotation(tf2_q);
                 armor_msg.pose.orientation = tf2::toMsg(tf2_q);
