@@ -1,9 +1,13 @@
 #include "serial/serial_node.hpp"
 #include <rclcpp/executors.hpp>
 #include <rclcpp/parameter_value.hpp>
+#include <rclcpp/qos.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace sensor {
-SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", options) {
+SerialNode::SerialNode(const rclcpp::NodeOptions& options):
+    Node("serial_node", options),
+    broadcaster(this, rclcpp::SensorDataQoS()) {
     this->InitParameter();
     this->serial_ = InitSerial();
 
@@ -88,6 +92,16 @@ void SerialNode::LoopForPublish() {
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
 
+        // 发布 相机 到 云台中心 的坐标系转换
+        SendTransform(
+            "camera",
+            "ginble", // ginble: 云台中心
+            tf2::Quaternion(0.500, 0.500, -0.500, 0.500),
+            tf2::Vector3(0.2, 0, 0)
+        );
+        // 补偿 yaw pitch 轴的旋转角度
+        Compensate(serial_info_.euler[0], serial_info_.euler[2]);
+
         serial_info_pub_->publish(serial_info_);
     }
 }
@@ -114,6 +128,34 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     );
 
     return serial;
+}
+
+void SerialNode::SendTransform(
+    const std::string& frame_id,
+    const std::string& child_frame_id,
+    const tf2::Quaternion& q,
+    const tf2::Vector3& v
+) {
+    tfs.header.stamp = this->now();
+    tfs.header.frame_id = frame_id;
+    tfs.child_frame_id = child_frame_id;
+    tfs.transform.rotation.x = q.getX();
+    tfs.transform.rotation.y = q.getY();
+    tfs.transform.rotation.z = q.getZ();
+    tfs.transform.rotation.w = q.getW();
+    tfs.transform.translation.x = v.getX();
+    tfs.transform.translation.y = v.getY();
+    tfs.transform.translation.z = v.getZ();
+
+    this->broadcaster.sendTransform(tfs);
+}
+
+void SerialNode::Compensate(float& yaw, float& pitch) {
+    tf2::Quaternion q;
+    tf2::Vector3 v(0, 0, 0);
+    q.setRPY(0, pitch, yaw);
+
+    SendTransform("odom", "ginble", q, tf2::Vector3(0, 0, 0));
 }
 
 } // namespace sensor

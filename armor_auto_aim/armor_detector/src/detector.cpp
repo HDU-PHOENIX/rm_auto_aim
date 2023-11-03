@@ -27,9 +27,9 @@ Detector::Detector(
     armor_params(armor_params) {}
 
 std::vector<Armor> Detector::Detect(const cv::Mat& input) {
-    binary_img = PreprocessImage(input); // 二值化图像
+    binary_img = PreprocessImage(input);     // 二值化图像
     lights_ = FindLights(input, binary_img); // 检测灯条
-    armors_ = MatchLights(lights_); // 匹配灯条
+    armors_ = MatchLights(lights_);          // 匹配灯条
 
     // 若图像含有装甲板，进行数字提取和分类
     if (!armors_.empty()) {
@@ -210,7 +210,8 @@ ArmorType Detector::IsArmor(const Light& light_1, const Light& light_2) {
     // 判断装甲板类型
     ArmorType type;
     if (is_armor) {
-        type = center_distance > armor_params.min_large_center_distance ? ArmorType::LARGE : ArmorType::SMALL;
+        type = center_distance > armor_params.min_large_center_distance ? ArmorType::LARGE
+                                                                        : ArmorType::SMALL;
     } else {
         type = ArmorType::INVALID;
     }

@@ -32,10 +32,8 @@ public:
         // 左右灯条比例最小值
         double min_light_ratio;
         // 大小装甲板两灯条之间距离 / 灯条平均长度 的阈值
-        double min_small_center_distance,
-               max_small_center_distance,
-               min_large_center_distance,
-               max_large_center_distance;
+        double min_small_center_distance, max_small_center_distance, min_large_center_distance,
+            max_large_center_distance;
         // 装甲板水平角度
         double max_angle;
     };
@@ -55,7 +53,7 @@ public:
      * @param input 需要检测的图片
      * @return std::vector<Armor> 检测到的装甲板
      */
-    std::vector<Armor> Detect(const cv::Mat &input);
+    std::vector<Armor> Detect(const cv::Mat& input);
 
     /**
      * @brief 对图像进行预处理
@@ -63,7 +61,7 @@ public:
      * @param input    需要预处理的图像
      * @return cv::Mat 预处理之后的二值化图像
      */
-    cv::Mat PreprocessImage(const cv::Mat &input);
+    cv::Mat PreprocessImage(const cv::Mat& input);
 
     /**
      * @brief 寻找灯条
@@ -95,8 +93,8 @@ public:
      */
     void DrawResults(cv::Mat& img);
 
-    int binary_thres; // 二值化阈值
-    int detect_color; // 识别到的颜色
+    int binary_thres;         // 二值化阈值
+    int detect_color;         // 识别到的颜色
     LightParams light_params; // 灯条参数
     ArmorParams armor_params; // 装甲板参数
 

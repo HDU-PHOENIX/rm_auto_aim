@@ -23,6 +23,7 @@ Tracker::Tracker(double max_match_distance, double max_match_yaw_diff):
     max_match_yaw_diff_(max_match_yaw_diff) {}
 
 void Tracker::Init(const Armors::SharedPtr& armors_msg) {
+    // TODO: tracker_node 中过滤距离过远的装甲板如果可以去掉，这个判断也可以移除了
     if (armors_msg->armors.empty()) {
         return;
     }
@@ -190,11 +191,11 @@ void Tracker::HandleArmorJump(const Armor& current_armor) {
     if ((current_p - infer_p).norm() > max_match_distance_) {
         double r = target_state(8);
         target_state(0) = p.x + r * cos(yaw); // xc
-        target_state(1) = 0; // vxc
+        target_state(1) = 0;                  // vxc
         target_state(2) = p.y + r * sin(yaw); // yc
-        target_state(3) = 0; // vyc
-        target_state(4) = p.z; // za
-        target_state(5) = 0; // vza
+        target_state(3) = 0;                  // vyc
+        target_state(4) = p.z;                // za
+        target_state(5) = 0;                  // vza
         RCLCPP_ERROR(rclcpp::get_logger("armor_tracker"), "Reset State!");
     }
 

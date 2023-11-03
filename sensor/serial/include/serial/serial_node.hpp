@@ -7,34 +7,57 @@
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
 
+#include "tf2_ros/transform_broadcaster.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
+
 namespace sensor {
 
 class SerialNode: public rclcpp::Node {
 public:
     explicit SerialNode(const rclcpp::NodeOptions& options);
     /**
-   * @brief 串口信息的发布循环
-   *
-   */
-
+     * @brief 串口信息的发布循环
+     *
+     */
     void LoopForPublish();
     /**
-   * @brief 接受到串口信息的回调函数
-   */
+     * @brief 接受到串口信息的回调函数
+     */
     void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
     /**
-    * @brief 初始化参数服务器,参数服务器用于存储下位机的默认数据和串口信息
+     * @brief 初始化参数服务器,参数服务器用于存储下位机的默认数据和串口信息
      */
     void InitParameter();
 
 private:
     /**
-   * @brief 初始化下位机串口
-   *
-   * @return std::unique_ptr<sensor::Serial> Serial 指针
-   */
+     * @brief 初始化下位机串口
+     *
+     * @return std::unique_ptr<sensor::Serial> Serial 指针
+     */
     std::unique_ptr<sensor::Serial> InitSerial();
+
+    /**
+     * @brief 发布坐标系转换
+     * 
+     * @param frame_id 当前坐标系
+     * @param child_frame_id 子坐标系
+     * @param q 四元数
+     * @param v 平移向量
+     */
+    void SendTransform(
+        const std::string& frame_id,
+        const std::string& child_frame_id,
+        const tf2::Quaternion& q,
+        const tf2::Vector3& v
+    );
+    /**
+     * @brief 补偿 yaw pitch 轴的旋转角度
+     * 
+     */
+    void Compensate(float& yaw, float& pitch);
 
     // 串口相关
     // uint32_t baud_rate_ = 115200; // 波特率
@@ -68,6 +91,13 @@ private:
     rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_sub_;
     // 串口信息发布（向相机节点发送下位机的信息）
     rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
+
+    // 用于发布坐标系转换的广播器
+    tf2_ros::TransformBroadcaster broadcaster;
+    // 从相机坐标系到云台中心的转换
+    geometry_msgs::msg::TransformStamped tfs;
+    // 从云台中心到 odom 坐标系的转换（补偿 yaw pitch 轴的转动以保证 odom 系静止）
+    geometry_msgs::msg::TransformStamped tfs_center2odom;
 };
 
 } // namespace sensor

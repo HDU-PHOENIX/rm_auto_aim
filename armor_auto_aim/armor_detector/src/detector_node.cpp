@@ -2,6 +2,7 @@
 #include <rclcpp/logging.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Vector3.h>
 #include <tf2/convert.h>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -142,6 +143,13 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 tf2::Quaternion tf2_q;
                 tf2_rotation_matrix.getRotation(tf2_q);
                 armor_msg.pose.orientation = tf2::toMsg(tf2_q);
+
+                // 获取欧拉角 TODO: getRPY() 获取问题，从哪
+                tf2::Vector3 euler;
+                tf2::Matrix3x3(tf2_q).getRPY(euler[0], euler[1], euler[2]);
+                armor_msg.euler[0] = euler[0];
+                armor_msg.euler[1] = euler[1];
+                armor_msg.euler[2] = euler[2];
 
                 // 计算装甲板中心到图像中心的距离
                 armor_msg.distance_to_image_center =

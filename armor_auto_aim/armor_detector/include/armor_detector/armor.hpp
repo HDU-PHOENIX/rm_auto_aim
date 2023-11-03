@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <string>
 
-#define RED 0
+#define RED  0
 #define BLUE 1
 
 namespace armor {
@@ -59,12 +59,12 @@ struct Armor {
     }
 
     Light left_light, right_light; // 左右灯条
-    cv::Point2f center; // 装甲板中心
-    ArmorType type; // 装甲板类型
+    cv::Point2f center;            // 装甲板中心
+    ArmorType type;                // 装甲板类型
 
-    cv::Mat number_img; // 装甲板数字图像
-    std::string number; // 装甲板数字
-    float confidence; // 装甲板数字分类置信度
+    cv::Mat number_img;               // 装甲板数字图像
+    std::string number;               // 装甲板数字
+    float confidence;                 // 装甲板数字分类置信度
     std::string classfication_result; // 装甲板数字分类结果
 };
 

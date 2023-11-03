@@ -65,11 +65,11 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         Eigen::MatrixXd h(4, 9);
         double yaw = x(6), r = x(8);
         // clang-format off
-        //    xc   v_xc yc   v_yc za   v_za yaw         v_yaw r
-        h <<  1,   0,   0,   0,   0,   0,   r*sin(yaw), 0,   -cos(yaw),
-              0,   0,   1,   0,   0,   0,   -r*cos(yaw),0,   -sin(yaw),
-              0,   0,   0,   0,   1,   0,   0,          0,   0,
-              0,   0,   0,   0,   0,   0,   1,          0,   0;
+        //    xc   v_xc yc   v_yc za   v_za yaw            v_yaw r
+        h <<  1,   0,   0,   0,   0,   0,   r*sin(yaw),  0,   -cos(yaw),
+              0,   0,   1,   0,   0,   0,   -r*cos(yaw), 0,   -sin(yaw),
+              0,   0,   0,   0,   1,   0,   0,              0,   0,
+              0,   0,   0,   0,   0,   0,   1,              0,   0;
         // clang-format on
         return h;
     };
@@ -128,42 +128,42 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         }
     );
 
-    // tf2相关订阅器和过滤器
     // tf2相关
+
+    // tf2 buffer & listener 相关
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    // 在调用waitForTransform之前创建计时器接口，以避免tf2_ros::CreateTimerInterfaceException异常
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
         this->get_node_base_interface(),
         this->get_node_timers_interface()
     );
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
+
     // 订阅器和过滤器
     armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
     target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
-        armors_sub_,
-        *tf2_buffer_,
-        target_frame_,
-        10,
-        this->get_node_logging_interface(),
-        this->get_node_clock_interface(),
-        std::chrono::duration<int>(1)
+        armors_sub_, // message_filters subscriber
+        *tf2_buffer_, // tf2 buffer
+        target_frame_, // frame this filter should attempt to transform to
+        10, // size of the tf2 cache
+        this->get_node_logging_interface(), // node logging interface
+        this->get_node_clock_interface(), // node clock interface
+        std::chrono::duration<int>(1) // timeout
     );
-    // 向tf2_ros::MessageFilter注册回调函数，在可用时调用变换
+    // 注册回调函数
     tf2_filter_->registerCallback(&ArmorTrackerNode::ArmorsCallback, this);
 
-    // 测量发布器（用于调试）
+    // 跟踪信息发布器 for debug
     info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
 
-    // 发布器
+    // 跟踪目标消息发布器
     target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
         rclcpp::SensorDataQoS()
     );
 
-    // 可视化标记发布器
-    // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
+    // 可视化标记相关
     position_marker_.ns = "position";
     position_marker_.type = visualization_msgs::msg::Marker::SPHERE;
     position_marker_.scale.x = position_marker_.scale.y = position_marker_.scale.z = 0.1;
@@ -193,10 +193,9 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
 }
 
-// armorsCallback函数实现
 void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg
 ) {
-    // 将装甲板位置从图像坐标系转换到世界坐标系
+    // 将装甲板位置从相机坐标系转换到 odom（目标坐标系）
     for (auto& armor: armors_msg->armors) {
         geometry_msgs::msg::PoseStamped ps;
         ps.header = armors_msg->header;
@@ -209,15 +208,15 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         }
     }
 
-    // 过滤异常的装甲板
+    // 过滤距离过远的装甲板 TODO: 是否可以放到 detector 中
     armors_msg->armors.erase(
         std::remove_if(
             armors_msg->armors.begin(),
             armors_msg->armors.end(),
             [this](const auto_aim_interfaces::msg::Armor& armor) {
-                return abs(armor.pose.position.z) > 1.2
+                return abs(armor.pose.position.z) > 1.2 // 装甲板水平距离过远
                     || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm()
-                    > max_armor_distance_;
+                    > max_armor_distance_; // TODO: 为什么判断 XOY 平面中允许的最大装甲距离
             }
         ),
         armors_msg->armors.end()
@@ -230,13 +229,18 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     target_msg.header.stamp = time;
     target_msg.header.frame_id = target_frame_;
 
-    // 更新追踪器
+    // 如果追踪器状态为 LOST，则初始化追踪器
     if (tracker_->tracker_state == Tracker::LOST) {
         tracker_->Init(armors_msg);
         target_msg.tracking = false;
     } else {
+        // 追踪器状态不为 LOST
+
+        // 计算时间间隔
         dt_ = (time - last_time_).seconds();
         tracker_->lost_thres = static_cast<int>(lost_time_thres_ / dt_);
+
+        // 更新追踪器
         tracker_->Update(armors_msg);
 
         // 发布信息

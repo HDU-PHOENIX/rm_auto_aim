@@ -24,7 +24,7 @@
 #include "auto_aim_interfaces/msg/tracker_info.hpp"
 
 namespace rm_auto_aim {
-// 使用tf2_ros::MessageFilter对自动瞄准接口的Armors消息进行过滤
+
 using tf2_filter = tf2_ros::MessageFilter<auto_aim_interfaces::msg::Armors>;
 
 class ArmorTrackerNode: public rclcpp::Node {
@@ -32,10 +32,14 @@ public:
     explicit ArmorTrackerNode(const rclcpp::NodeOptions& options);
 
 private:
-    // 处理 Armors 消息的回调函数
+    /**
+     * @brief 处理 Armors 消息的回调函数
+     */
     void ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr);
 
-    // 发布标记点函数
+    /**
+     * @brief 发布 Marker debug 信息
+     */
     void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
     // XOY 平面中允许的最大装甲距离
@@ -55,9 +59,9 @@ private:
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_tracker_srv_;
 
     // 使用 tf 2消息过滤器的订阅器
-    std::string target_frame_;
-    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
-    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
+    std::string target_frame_;                                 // TODO: ???
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;              // tf2 缓冲区
+    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
     message_filters::Subscriber<auto_aim_interfaces::msg::Armors> armors_sub_;
     std::shared_ptr<tf2_filter> tf2_filter_;
 

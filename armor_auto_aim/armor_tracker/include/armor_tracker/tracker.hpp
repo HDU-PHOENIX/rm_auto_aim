@@ -40,22 +40,22 @@ public:
     ExtendedKalmanFilter ekf; // 扩展卡尔曼滤波器
 
     int tracking_thres; // 追踪阈值
-    int lost_thres; // 丢失阈值
+    int lost_thres;     // 丢失阈值
 
     // 追踪器状态枚举
     enum State {
-        LOST, // 丢失状态
+        LOST,      // 丢失状态
         DETECTING, // 检测状态
-        TRACKING, // 追踪状态
+        TRACKING,  // 追踪状态
         TEMP_LOST, // 暂时丢失状态
     } tracker_state;
 
-    std::string tracked_id; // 追踪的ID
-    Armor tracked_armor; // 追踪的装甲
+    std::string tracked_id;       // 追踪的ID
+    Armor tracked_armor;          // 追踪的装甲
     ArmorsNum tracked_armors_num; // 追踪的装甲数量
 
     double info_position_diff; // 位置差
-    double info_yaw_diff; // 偏航角差
+    double info_yaw_diff;      // 偏航角差
 
     Eigen::VectorXd measurement; // 测量值
 
@@ -84,7 +84,7 @@ private:
     double max_match_yaw_diff_; // 最大匹配偏航角差
 
     int detect_count_; // 检测计数
-    int lost_count_; // 丢失计数
+    int lost_count_;   // 丢失计数
 
     double last_yaw_; // 上一次的偏航角
 };
