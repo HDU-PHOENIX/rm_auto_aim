@@ -13,7 +13,10 @@ class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
     ~CameraNode() override;
-    void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
+    // void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
+    void LoopForPublish();
+
+    void start();
 
 private:
     // 保存从摄像头获取的图像
@@ -24,9 +27,12 @@ private:
     rclcpp::Time end_time;
     rclcpp::Time last_publish_time;
 
+    // 线程相关
+    std::thread thread_for_publish_;
+    std::atomic<bool> canceled_;
+
     // 原始图像发布者
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_armor_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_rune_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher;
     // 串口数据接收者
     rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_subscriber_;
 };
