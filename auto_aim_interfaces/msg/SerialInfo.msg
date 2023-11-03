@@ -7,8 +7,6 @@ std_msgs/Char shoot_bool
 std_msgs/Char rune_flag
 std_msgs/Char[10] unused
 std_msgs/Char end
-std_msgs/Header header
-sensor_msgs/Image image
 
 std_msgs/Char is_find
 std_msgs/Char can_shoot

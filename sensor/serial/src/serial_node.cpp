@@ -1,5 +1,4 @@
 #include "serial/serial_node.hpp"
-#include <memory>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/parameter_value.hpp>
 
@@ -8,18 +7,8 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", 
     this->InitParameter();
     this->serial_ = InitSerial();
 
-    // this->serial_info_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-    //     "/serial_info",
-    //     rclcpp::SensorDataQoS()
-    // );
-    this->serial_pub_rune = create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-        "/serial2rune",
-        rclcpp::SensorDataQoS()
-    );
-    this->serial_pub_armor = create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-        "/serial2armor",
-        rclcpp::SensorDataQoS()
-    );
+    this->serial_info_pub_ =
+        create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", 2);
     this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
         "/target_info",
         rclcpp::SensorDataQoS(),
@@ -27,10 +16,6 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options): Node("serial_node", 
     );
 
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
-}
-
-SerialNode::~SerialNode() {
-    RCLCPP_INFO(this->get_logger(), "Serial node destroyed!");
 }
 
 void SerialNode::InitParameter() {
@@ -85,9 +70,8 @@ void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
 }
 
 void SerialNode::LoopForPublish() {
-    // RCLCPP_INFO(this->get_logger(), "Serial node LoopForPublish start");
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    while (rclcpp::ok() && !canceled_.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         // 保证节点的回调函数被调用
         // rclcpp::spin_some(this->get_node_base_interface());
@@ -103,17 +87,11 @@ void SerialNode::LoopForPublish() {
         serial_info_.euler[2] = package.euler[2];
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
-        serial_info_.header.stamp = this->now();
-        // serial_info_.image.data.assign(frame_->datastart, frame_->dataend);
 
-        // serial_info_pub_->publish(serial_info_);
-        if (package.mode == 'r') {
-            serial_pub_rune->publish(serial_info_);
-        } else if (package.mode == 'a') {
-            serial_pub_armor->publish(serial_info_);
-        }
+        serial_info_pub_->publish(serial_info_);
     }
 }
+
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     // TODO: 从参数服务器中获取串口参数
 
@@ -137,6 +115,7 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
 
     return serial;
 }
+
 } // namespace sensor
 
 #include "rclcpp_components/register_node_macro.hpp"

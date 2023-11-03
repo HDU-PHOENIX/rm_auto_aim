@@ -89,7 +89,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     // 创建图像订阅者
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/image_for_detector",
+        "/image_for_armor",
         rclcpp::SensorDataQoS(),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );

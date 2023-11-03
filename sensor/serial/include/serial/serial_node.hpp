@@ -16,9 +16,8 @@ public:
    * @brief 串口信息的发布循环
    *
    */
-    void LoopForPublish();
 
-    ~SerialNode();
+    void LoopForPublish();
     /**
    * @brief 接受到串口信息的回调函数
    */
@@ -68,11 +67,7 @@ private:
     // 串口信息订阅（从自瞄获取向下位机发送的信息）
     rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_sub_;
     // 串口信息发布（向相机节点发送下位机的信息）
-    // rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
-    // 向符detector_node发送下位机的信息
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_pub_rune;
-    // 向armor detector_node发送下位机的信息
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_pub_armor;
+    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
 };
 
 } // namespace sensor

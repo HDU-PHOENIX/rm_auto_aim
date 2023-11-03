@@ -2,25 +2,25 @@
 #define RUNE_DETECTOR__DETECTOR_NODE_HPP_
 
 // ROS
-#include "message_filters/subscriber.h"
-#include "message_filters/time_synchronizer.h"
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
 #include <image_transport/subscriber_filter.hpp>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+// #include "message_filters/subscriber.h"
+// #include "message_filters/time_synchronizer.h"
 
 // STD
 #include <memory>
-// #include <string>
+#include <string>
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
+// #include "auto_aim_interfaces/msg/armor.hpp"
 
 #include "pnp_solver.hpp"
 
@@ -28,14 +28,8 @@
 // yolo神经网络
 #include "nn.h"
 
-// #include <boost>
-
 namespace rune {
 
-typedef message_filters::sync_policies::
-    ApproximateTime<sensor_msgs::msg::Image, auto_aim_interfaces::msg::SerialInfo>
-        approximate_policy;
-typedef message_filters::Synchronizer<approximate_policy> approximate_synchronizer;
 class RuneDetectorNode: public rclcpp::Node {
 public:
     explicit RuneDetectorNode(const rclcpp::NodeOptions& options);
@@ -43,15 +37,10 @@ public:
 private:
     // void Callback(const sensor_msgs::msg::Image::SharedPtr img_msg);
 
-    rclcpp::Time last_time_callback;
-    //image_for_rune话题的回调函数
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
-
-    //同步话题的回调函数
-    void topic_callback(
-        const sensor_msgs::msg::Image::SharedPtr& img_msg,
-        const auto_aim_interfaces::msg::SerialInfo::SharedPtr& serial_msg
-    );
+    // void topic_callback(
+    //     const sensor_msgs::msg::Image::ConstSharedPtr &img_msg,
+    //     const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr &serial_msg);
 
     /**
    * @brief 初始化神符识别器，设置识别器参数
@@ -116,12 +105,11 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
-
-    message_filters::Subscriber<sensor_msgs::msg::Image> image_sub;
-    message_filters::Subscriber<auto_aim_interfaces::msg::SerialInfo> serial_sub;
-
-    std::shared_ptr<approximate_synchronizer> sync_;
-    // Debug information bool
+    // message_filters::Subscriber<sensor_msgs::msg::Image> image_sub;
+    // message_filters::Subscriber<auto_aim_interfaces::msg::SerialInfo>
+    // serial_sub;
+    // std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::msg::Image,
+    // auto_aim_interfaces::msg::SerialInfo>> sync_; Debug information bool
     // debug_; std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     // std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
     // image_transport::Publisher binary_img_pub_;

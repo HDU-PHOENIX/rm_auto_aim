@@ -1,5 +1,4 @@
 #include <cv_bridge/cv_bridge.h>
-#include <functional>
 #include <opencv2/core/types.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -20,6 +19,7 @@
 #include <string>
 #include <vector>
 
+// #include "armor_detector/armor.hpp"
 #include "rune_detector/detector_node.hpp"
 
 #include "rune_detector/rune_type.hpp"
@@ -30,22 +30,16 @@ namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
-    last_time_callback = this->now();
+    // image_sub.subscribe(this, "/image_raw");
+    // serial_sub.subscribe(this, "/serial_info");
+    // sync_ = std::make_shared<message_filters::TimeSynchronizer<
+    //     sensor_msgs::msg::Image,
+    //     auto_aim_interfaces::msg::SerialInfo>>(image_sub, serial_sub, 1);
+    //     //同步两个话题
 
-    // auto callback_group = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-
-    image_sub.subscribe(this, "/image_for_detector", rmw_qos_profile_sensor_data);
-    serial_sub.subscribe(this, "/serial2rune", rmw_qos_profile_sensor_data);
-    //同步两个话题 注意此处第三个参数 检查订阅者和发布者之间的服务质量 (QoS) 是否兼容 通过传递rmw_qos_profile_*来指定 QoS。
-
-    sync_ =
-        std::make_shared<approximate_synchronizer>(approximate_policy(5), image_sub, serial_sub);
-
-    sync_->setMaxIntervalDuration(rclcpp::Duration(0, 10000));
-    sync_->registerCallback(&RuneDetectorNode::topic_callback, this);
-
+    // sync_->registerCallback(std::bind(&RuneDetectorNode::topic_callback, this,
+    // _1, _2)); 初始化神符识别器
     confidence_threshold_ = 0.7; // 置信度阈值
-
     detector_ = InitDetector(); // 初始化神符识别器
 
     // 创建标记发布者
@@ -70,13 +64,13 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
             pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
             cam_info_sub_.reset();
         }
-    ); //接收相机内参和畸变矩阵 用来设置pnp解算器
+    );
 
-    // img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-    //     "/image_for_rune",
-    //     rclcpp::SensorDataQoS(),
-    //     std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1)
-    // );
+    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        "/image_for_rune",
+        rclcpp::SensorDataQoS(),
+        std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1)
+    );
 }
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
@@ -250,47 +244,31 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     }
 }
 
-// void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-//     // RCLCPP_INFO(
-//     //     this->get_logger(),
-//     //     "timestamp: %d image address in detector %p",
-//     //     img_msg->header.stamp.nanosec,
-//     //     &(img_msg->data)
-//     // );//打印时间戳和图像地址
-//     auto now = this->now();
-//     RCLCPP_INFO(this->get_logger(), "%f ms", (now - img_msg->header.stamp).seconds() * 1000);
-//     if (pnp_solver_ == nullptr) {
-//         RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
-//     } else {
-//         DetectRunes(img_msg); // 将图片检测 结果放到runes_msg_里面
-
-//         runes_pub_->publish(runes_msg_); // 发布神符信息
-//     }
-// }
-
-void RuneDetectorNode::topic_callback(
-    const sensor_msgs::msg::Image::SharedPtr& img_msg,
-    const auto_aim_interfaces::msg::SerialInfo::SharedPtr& serial_msg
-) {
+void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
+    // RCLCPP_INFO(
+    //     this->get_logger(),
+    //     "timestamp: %d image address in detector %p",
+    //     img_msg->header.stamp.nanosec,
+    //     &(img_msg->data)
+    // );//打印时间戳和图像地址
     auto now = this->now();
-    RCLCPP_INFO(
-        this->get_logger(),
-        "callback interval %f ms",
-        (now - last_time_callback).seconds() * 1000
-    );
     RCLCPP_INFO(this->get_logger(), "%f ms", (now - img_msg->header.stamp).seconds() * 1000);
-    RCLCPP_INFO(this->get_logger(), "%f ms", (now - serial_msg->header.stamp).seconds() * 1000);
-
     if (pnp_solver_ == nullptr) {
         RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
     } else {
-        DetectRunes(img_msg); // 将图片检测 结果放到runes_msg_里面
+        DetectRunes(img_msg); // 将图片检测
 
         runes_pub_->publish(runes_msg_); // 发布神符信息
     }
-
-    last_time_callback = this->now();
 }
+
+// void RuneDetectorNode::topic_callback(
+//     const sensor_msgs::msg::Image::ConstSharedPtr& img_msg,
+//     const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr& serial_msg
+// ) {
+//     RCLCPP_INFO(this->get_logger(), "receive!");
+//     RCLCPP_INFO_STREAM(this->get_logger(), "receive!again");
+// }
 
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();
