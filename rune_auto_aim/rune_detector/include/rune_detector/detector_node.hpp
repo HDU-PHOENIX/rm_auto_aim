@@ -10,17 +10,13 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
-// #include "message_filters/subscriber.h"
-// #include "message_filters/time_synchronizer.h"
 
 // STD
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
-// #include "auto_aim_interfaces/msg/armor.hpp"
 
 #include "pnp_solver.hpp"
 
@@ -67,16 +63,6 @@ private:
    */
     void PublishMarkers();
 
-    // struct RuneObject {
-    //         cv::Point2f vertices[5];//符叶的五个顶点
-    //         cv::Rect_<float> rect;
-    //         int cls;
-    //         int color;
-    //         float prob;
-    //         std::vector<cv::Point2f> pts;
-    //         //cv::Point2f symbol;
-    //     };
-
     // 神符识别器
     std::shared_ptr<NeuralNetwork> detector_;
     std::vector<rune::NeuralNetwork::RuneObject> objects_;
@@ -105,15 +91,7 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
-    // message_filters::Subscriber<sensor_msgs::msg::Image> image_sub;
-    // message_filters::Subscriber<auto_aim_interfaces::msg::SerialInfo>
-    // serial_sub;
-    // std::shared_ptr<message_filters::TimeSynchronizer<sensor_msgs::msg::Image,
-    // auto_aim_interfaces::msg::SerialInfo>> sync_; Debug information bool
-    // debug_; std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     // std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
-    // image_transport::Publisher binary_img_pub_;
-    // image_transport::Publisher result_img_pub_;
 };
 
 } // namespace rune

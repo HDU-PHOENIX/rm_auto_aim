@@ -49,6 +49,14 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
         image_publisher_for_armor_->publish(std::move(image_msg));
     } else if (msg->mode.data == 'r') {
         RCLCPP_INFO(this->get_logger(), "publish image for rune");
+        //0为不可激活，1为小符，2为大符
+        if (msg->rune_flag.data == 0) {
+            image_msg->header.frame_id = "0";
+        } else if (msg->rune_flag.data == 1) {
+            image_msg->header.frame_id = "1";
+        } else if (msg->rune_flag.data == 2) {
+            image_msg->header.frame_id = "2";
+        }
         image_publisher_for_rune_->publish(std::move(image_msg));
     } else {
         RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);

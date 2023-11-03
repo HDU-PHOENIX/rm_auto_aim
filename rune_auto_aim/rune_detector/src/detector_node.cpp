@@ -13,13 +13,12 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 // STD
-#include <algorithm>
-#include <map>
+// #include <algorithm>
+// #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-// #include "armor_detector/armor.hpp"
 #include "rune_detector/detector_node.hpp"
 
 #include "rune_detector/rune_type.hpp"
@@ -30,15 +29,6 @@ namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
-    // image_sub.subscribe(this, "/image_raw");
-    // serial_sub.subscribe(this, "/serial_info");
-    // sync_ = std::make_shared<message_filters::TimeSynchronizer<
-    //     sensor_msgs::msg::Image,
-    //     auto_aim_interfaces::msg::SerialInfo>>(image_sub, serial_sub, 1);
-    //     //同步两个话题
-
-    // sync_->registerCallback(std::bind(&RuneDetectorNode::topic_callback, this,
-    // _1, _2)); 初始化神符识别器
     confidence_threshold_ = 0.7; // 置信度阈值
     detector_ = InitDetector(); // 初始化神符识别器
 
@@ -233,26 +223,25 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             runes_msg_.rune_points[i].x = rune_points_[i].x;
             runes_msg_.rune_points[i].y = rune_points_[i].y;
         }
-        RCLCPP_WARN(this->get_logger(), "Debug1");
         runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
         runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
         runes_msg_.header = img_msg->header; // 包含时间戳
         runes_msg_.find = true; // 找到符叶
-        // runes_msg_.motion = ;//判断大小符
-        RCLCPP_WARN(this->get_logger(), "Debug2");
+        //判断大小符 //0为不可激活，1为小符，2为大符
+        if (img_msg->header.frame_id == "0") {
+            runes_msg_.motion = 0;
+        } else if (img_msg->header.frame_id == "1") {
+            runes_msg_.motion = 1;
+        } else if (img_msg->header.frame_id == "2") {
+            runes_msg_.motion = 2;
+        }
         return true;
     }
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    // RCLCPP_INFO(
-    //     this->get_logger(),
-    //     "timestamp: %d image address in detector %p",
-    //     img_msg->header.stamp.nanosec,
-    //     &(img_msg->data)
-    // );//打印时间戳和图像地址
-    auto now = this->now();
-    RCLCPP_INFO(this->get_logger(), "%f ms", (now - img_msg->header.stamp).seconds() * 1000);
+    // auto now = this->now();
+    // RCLCPP_INFO(this->get_logger(), "%f ms", (now - img_msg->header.stamp).seconds() * 1000);
     if (pnp_solver_ == nullptr) {
         RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
     } else {
