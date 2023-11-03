@@ -185,9 +185,11 @@ bool RuneTrackerNode::FittingBig() {
 
     // double theta = Angle(leaf_dir);
     //Log::Info("cere_param_list size is {}", cere_param_list.size());
-    if (abs(leaf_angle - leaf_angle_last) > 0.4 && abs(leaf_angle - leaf_angle_last) < 0.5 * M_PI)
+    if (abs(leaf_angle - leaf_angle_last) > 0.4)
     { //上一帧与这一帧的角度差值超过0.4，则判断为可激活的符叶已转换
-        cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle;
+        cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle;  // 变换符叶初始角度
+        if (cere_rotated_angle > M_PI) cere_rotated_angle -= 2 * M_PI;
+        else if (cere_rotated_angle < -M_PI) cere_rotated_angle += 2 * M_PI;
         // Log::Debug("may be nanorinf{}", cere_rotated_angle);
         // Log::Info("rune_leaf change!");
         // last_leaf_dir = leaf_dir;
@@ -277,56 +279,64 @@ bool RuneTrackerNode::FittingBig() {
             //double bigger_angle = Angle(leaf_dir)>(tracker.pred_angle + tracker.angle) ? Angle(leaf_dir):(tracker.pred_angle + tracker.angle);
             //double smaller_angle = Angle(leaf_dir)<(tracker.pred_angle + tracker.angle) ? Angle(leaf_dir):(tracker.pred_angle + tracker.angle);
 
-            double delta_angle = 0; //弧度制
-            if (this->rotation_direction == RotationDirection::Clockwise) //顺时针
-            {
-                if ((tracker.angle - tracker.pred_angle) < -M_PI) {
-                    if (Angle(leaf_dir) > 0) {
-                        delta_angle =
-                            (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle + 2 * M_PI));
-                    } else {
-                        delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
-                    }
-                } else {
-                    delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
-                    if (fabs(delta_angle) > M_PI) {
-                        delta_angle = 2 * M_PI - fabs(delta_angle);
-                    }
-                    // if(Angle(leaf_dir)>0)
-                    // {
-                    //     delta_angle = abs(Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
-                    // }
-                    // else
-                    // {
-                    //     delta_angle = abs(Angle(leaf_dir) - (tracker.angle - tracker.pred_angle - 2 * M_PI));
-                    // }
-                }
-            } else if (this->rotation_direction == RotationDirection::Anticlockwise) //逆时针
-            {
-                if ((tracker.angle + tracker.pred_angle) > M_PI) {
-                    if (Angle(leaf_dir) > 0) {
-                        delta_angle = (Angle(leaf_dir) - (tracker.angle + tracker.pred_angle));
-                    } else {
-                        delta_angle =
-                            (Angle(leaf_dir) - (tracker.angle + tracker.pred_angle - 2 * M_PI));
-                    }
-                } else {
-                    delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
-                    if (fabs(delta_angle) > M_PI) {
-                        delta_angle = 2 * M_PI - fabs(delta_angle);
-                    }
-                }
-            }
+            // double delta_angle = 0; //弧度制
+            // if (this->rotation_direction == RotationDirection::Clockwise) //顺时针
+            // {
+            //     if ((tracker.angle - tracker.pred_angle) < -M_PI) {
+            //         if (Angle(leaf_dir) > 0) {
+            //             delta_angle =
+            //                 (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle + 2 * M_PI));
+            //         } else {
+            //             delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
+            //         }
+            //     } else {
+            //         delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
+            //         if (fabs(delta_angle) > M_PI) {
+            //             delta_angle = 2 * M_PI - fabs(delta_angle);
+            //         }
+            //         // if(Angle(leaf_dir)>0)
+            //         // {
+            //         //     delta_angle = abs(Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
+            //         // }
+            //         // else
+            //         // {
+            //         //     delta_angle = abs(Angle(leaf_dir) - (tracker.angle - tracker.pred_angle - 2 * M_PI));
+            //         // }
+            //     }
+            // } else if (this->rotation_direction == RotationDirection::Anticlockwise) //逆时针
+            // {
+            //     if ((tracker.angle + tracker.pred_angle) > M_PI) {
+            //         if (Angle(leaf_dir) > 0) {
+            //             delta_angle = (Angle(leaf_dir) - (tracker.angle + tracker.pred_angle));
+            //         } else {
+            //             delta_angle =
+            //                 (Angle(leaf_dir) - (tracker.angle + tracker.pred_angle - 2 * M_PI));
+            //         }
+            //     } else {
+            //         delta_angle = (Angle(leaf_dir) - (tracker.angle - tracker.pred_angle));
+            //         if (fabs(delta_angle) > M_PI) {
+            //             delta_angle = 2 * M_PI - fabs(delta_angle);
+            //         }
+            //     }
+            // }
 
-            if (delta_angle > M_PI) {
-                delta_angle =
-                    2 * M_PI - delta_angle; //防止角度计算错误 ，因为Angel函数计算角度与象限有关
-            }
+            // if (delta_angle > M_PI) {
+            //     delta_angle =
+            //         2 * M_PI - delta_angle; //防止角度计算错误 ，因为Angel函数计算角度与象限有关
+            // }
+
+            // 计算误差
+            double delta_angle = 0; 
+            if (this->rotation_direction == RotationDirection::Anticlockwise && tracker.pred_angle > 0)
+                tracker.pred_angle *= -1;
+            delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
+            if (delta_angle > M_PI) delta_angle = fabs(2 * M_PI - delta_angle);
             std::cout << "delta_angle is " << delta_angle << std::endl;
             // std::cout<<"and leafangle and trackerangle "<<Angle(leaf_dir)<<"  "<<tracker.pred_angle + tracker.angle<<std::endl;
             // error_file << delta_angle << std::endl;
             // error_time << (data->sensor->timestamp - t_zero).GetSeconds() << std::endl;
-            if (fabs(delta_angle) < 0.15) { //误差小于0.1,则认为拟合良好
+
+            if (delta_angle < 0.15) { //误差小于0.1,则认为拟合良好
                 //Log::Info("predict correct");
                 // pred_angle = integral(a_omega_phi_b[1], std::vector<double>{a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3]}, (data->sensor->timestamp.Now() - t_zero).GetSeconds(), (data->sensor->timestamp.Now() - data->sensor->timestamp).GetSeconds() + delay);
                 pred_angle = integral(
@@ -406,15 +416,17 @@ bool RuneTrackerNode::FittingBig() {
                 problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
                 problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884); // 数据是官方的
                 problem.SetParameterUpperBound(a_omega_phi_b, 1, 2);
-                // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5);
+                // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
                 // problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
                 // problem.SetParameterLowerBound(a_omega_phi_b, 1,1.6);
                 // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
 
                 problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
                 problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
-                problem.SetParameterLowerBound(a_omega_phi_b, 3, 0);
+                problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
                 problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
+                // problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.59);
+                // problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.19);
 
                 ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
                 //Log::Info("fitting time is {}", (Timestamp::Now() - start_fitting).GetSeconds());
@@ -547,11 +559,11 @@ void RuneTrackerNode::runesCallback(const auto_aim_interfaces::msg::Rune::Shared
 
         SetState(MotionState::Big); //缺省设置为大符
 
-        cv::Point2f tmp_dir(rune_ptr->leaf_dir.x, rune_ptr->leaf_dir.y);
+        cv::Point2f tmp_dir(rune_ptr->leaf_dir.x, rune_ptr->leaf_dir.y); //符四个点中心到R标
 
         this->leaf_dir = tmp_dir; //现在这一帧符叶向量
 
-        leaf_angle = Angle(leaf_dir);
+        leaf_angle = Angle(leaf_dir); //返回弧度制的角度
         if (angles.Any()) {
             leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
             //Log::Debug("leaf_angle_diff is {}", leaf_angle_diff);
@@ -568,6 +580,7 @@ void RuneTrackerNode::runesCallback(const auto_aim_interfaces::msg::Rune::Shared
         }
         // last = data;
         radius.Push(cv::norm(leaf_dir)); //计算半径
+        //Log::Debug("speed is {}", speeds.Mean());
     }
     Judge(); //判断顺时针还是逆时针
     FittingBig(); //拟合大符
