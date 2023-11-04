@@ -28,6 +28,24 @@ def generate_launch_description():
             executable='component_container',
             composable_node_descriptions=[
                 ComposableNode(
+                    package='serial',
+                    plugin='sensor::SerialNode',
+                    name="serial_node",
+                    parameters=[
+                        {'baud_rate':115200},
+                        {'device_name' : "/dev/ttyACM0"},
+                        {'default_data_recv_start':115},#此处要用ascii码 用字符会报错
+                        {'default_data_recv_color':114},
+                        {'default_data_recv_mode':114},
+                        {'default_data_recv_speed':20.0},
+                        {'default_data_recv_euler':[0.0,0.0,0.0]},
+                        {'default_data_recv_shootbool':0},
+                        {'default_data_recv_runeflag':0},
+                        {'default_data_recv_end':101},
+                    ],
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                ),
+                ComposableNode(
                     package='armor_detector',
                     plugin='armor::ArmorDetectorNode',
                     name='armor_detector_node',
@@ -66,25 +84,7 @@ def generate_launch_description():
                     plugin='sensor::CameraNode',
                     name='camera_node',
                     extra_arguments=[{"use_intra_process_comms": True}]
-                ),
-                ComposableNode(
-                    package='serial',
-                    plugin='sensor::SerialNode',
-                    name="serial_node",
-                    parameters=[
-                        {'baud_rate':115200},
-                        {'device_name' : "/dev/ttyACM0"},
-                        {'default_data_recv_start':115},#此处要用ascii码 用字符会报错
-                        {'default_data_recv_color':114},
-                        {'default_data_recv_mode':114},
-                        {'default_data_recv_speed':20.0},
-                        {'default_data_recv_euler':[0.0,0.0,0.0]},
-                        {'default_data_recv_shootbool':0},
-                        {'default_data_recv_runeflag':0},
-                        {'default_data_recv_end':101},
-                    ],
-                    extra_arguments=[{"use_intra_process_comms": True}]
-                ),
+                )
             ],
             output='screen',
     )

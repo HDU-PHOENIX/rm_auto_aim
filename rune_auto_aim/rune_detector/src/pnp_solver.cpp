@@ -28,19 +28,17 @@ PnPSolver::PnPSolver(
     // large_armor_points_.emplace_back(cv::Point3f(0, large_half_y, large_half_z));
     // large_armor_points_.emplace_back(cv::Point3f(0, -large_half_y, large_half_z));
     // large_armor_points_.emplace_back(cv::Point3f(0, -large_half_y, -large_half_z));
-
 }
 
-
-std::vector<cv::Point3d> PnPSolver::GeneratePw(double outerwidth, double insidewidth, double height) {
-        return {
-            { -1 * outerwidth / 2,      height / 2, 0},
-            {-1 * insidewidth / 2, -1 * height / 2, 0},
-            {     insidewidth / 2, -1 * height / 2, 0},
-            {      outerwidth / 2,      height / 2, 0},
-        };
-    }
-
+std::vector<cv::Point3d>
+PnPSolver::GeneratePw(double outerwidth, double insidewidth, double height) {
+    return {
+        { -1 * outerwidth / 2, height / 2, 0 },
+        { -1 * insidewidth / 2, -1 * height / 2, 0 },
+        { insidewidth / 2, -1 * height / 2, 0 },
+        { outerwidth / 2, height / 2, 0 },
+    };
+}
 
 /**
          * @brief 使用PnP根据像素坐标获取平移向量并转换成Eigen::Vector3d
@@ -48,7 +46,7 @@ std::vector<cv::Point3d> PnPSolver::GeneratePw(double outerwidth, double insidew
          * @param rune 符叶像素坐标
          * @return tvec 平移向量，相机坐标系下的坐标
          */
-bool PnPSolver::SolvePnP(std::vector<cv::Point2d> &rune, cv::Mat& rvec, cv::Mat& tvec) {
+bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec) {
     // std::vector<cv::Point2f> image_rune_points;
 
     // Fill in image points
@@ -56,7 +54,7 @@ bool PnPSolver::SolvePnP(std::vector<cv::Point2d> &rune, cv::Mat& rvec, cv::Mat&
     // image_armor_points.emplace_back(armor.left_light.top);
     // image_armor_points.emplace_back(armor.right_light.top);
     // image_armor_points.emplace_back(armor.right_light.bottom);
-    
+
     // Solve pnp
     //auto object_points = armor.type == ArmorType::SMALL ? small_armor_points_ : large_armor_points_;
     return cv::solvePnP(
@@ -77,4 +75,4 @@ float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& image_point) {
     return cv::norm(image_point - cv::Point2f(cx, cy));
 }
 
-} // namespace armor
+} // namespace rune

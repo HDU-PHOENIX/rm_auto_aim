@@ -160,8 +160,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             if (!flag1) {
                 // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
                 // armor, 3.5542, 0)) / 2;
-                symbol =
-                    (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 4.0542, 0)) / 2;
+                symbol = (get_symbol(tmp1, armor, 5.295454, true)
+                          + get_symbol(tmp2, armor, 4.0542, false))
+                    / 2;
             } // 如果yolo没有检测到R标
 
             // data->armor = armor;
@@ -195,45 +196,45 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     if (flag1 && flag2) // 有R标数据和符叶数据，则认为识别完成
     {
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
+        cv::Mat rvec, tvec;
+        bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); // 输出旋转向量和平移向量
+        if (!success) {
+            RCLCPP_WARN(this->get_logger(), "PnP failed!");
+            runes_msg_.find = false; // 没找到符叶
+            runes_msg_.header = img_msg->header; // 包含时间戳
+            runes_msg_.header.frame_id = "camera_frame";
+            return false;
+        } else {
+            RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
+            //判断大小符 //0为不可激活，1为小符，2为大符
+            if (img_msg->header.frame_id == "0") {
+                runes_msg_.motion = 0;
+            } else if (img_msg->header.frame_id == "1") {
+                runes_msg_.motion = 1;
+            } else if (img_msg->header.frame_id == "2") {
+                runes_msg_.motion = 2;
+            }
+            runes_msg_.pose_c.position.x = tvec.at<double>(0);
+            runes_msg_.pose_c.position.y = tvec.at<double>(1);
+            runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
+            runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
+            runes_msg_.leaf_dir.y = (rune_armor - symbol).y; // 符叶向量
+
+            for (int i = 0; i < 4; i++) {
+                runes_msg_.rune_points[i].x = rune_points_[i].x;
+                runes_msg_.rune_points[i].y = rune_points_[i].y;
+            }
+            runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
+            runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
+            runes_msg_.header = img_msg->header; // 包含时间戳
+            runes_msg_.header.frame_id = "camera_frame";
+            runes_msg_.find = true; // 找到符叶
+            return true;
+        }
+
     } else {
         RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
-        // return false;
-    }
-
-    cv::Mat rvec, tvec;
-    bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); // 输出旋转向量和平移向量
-    if (!success) {
-        RCLCPP_WARN(this->get_logger(), "PnP failed!");
-        runes_msg_.find = false; // 没找到符叶
-        runes_msg_.header = img_msg->header; // 包含时间戳
-        runes_msg_.header.frame_id = "camera_frame";
         return false;
-    } else {
-        RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
-        //判断大小符 //0为不可激活，1为小符，2为大符
-        if (img_msg->header.frame_id == "0") {
-            runes_msg_.motion = 0;
-        } else if (img_msg->header.frame_id == "1") {
-            runes_msg_.motion = 1;
-        } else if (img_msg->header.frame_id == "2") {
-            runes_msg_.motion = 2;
-        }
-        runes_msg_.pose_c.position.x = tvec.at<double>(0);
-        runes_msg_.pose_c.position.y = tvec.at<double>(1);
-        runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
-        runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
-        runes_msg_.leaf_dir.y = (rune_armor - symbol).y; // 符叶向量
-
-        for (int i = 0; i < 4; i++) {
-            runes_msg_.rune_points[i].x = rune_points_[i].x;
-            runes_msg_.rune_points[i].y = rune_points_[i].y;
-        }
-        runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
-        runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
-        runes_msg_.header = img_msg->header; // 包含时间戳
-        runes_msg_.header.frame_id = "camera_frame";
-        runes_msg_.find = true; // 找到符叶
-        return true;
     }
 }
 
