@@ -194,12 +194,10 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     }
     if (flag1 && flag2) // 有R标数据和符叶数据，则认为识别完成
     {
-        // data->find = true;
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
     } else {
-        // data->find = false;
         RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
-        return false;
+        // return false;
     }
 
     cv::Mat rvec, tvec;
@@ -208,14 +206,21 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         RCLCPP_WARN(this->get_logger(), "PnP failed!");
         runes_msg_.find = false; // 没找到符叶
         runes_msg_.header = img_msg->header; // 包含时间戳
-        // runes_msg_.motion = ;//判断大小符
+        runes_msg_.header.frame_id = "camera_frame";
         return false;
     } else {
         RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
-
+        //判断大小符 //0为不可激活，1为小符，2为大符
+        if (img_msg->header.frame_id == "0") {
+            runes_msg_.motion = 0;
+        } else if (img_msg->header.frame_id == "1") {
+            runes_msg_.motion = 1;
+        } else if (img_msg->header.frame_id == "2") {
+            runes_msg_.motion = 2;
+        }
         runes_msg_.pose_c.position.x = tvec.at<double>(0);
         runes_msg_.pose_c.position.y = tvec.at<double>(1);
-        runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶相机坐标系下的位置
+        runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
         runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
         runes_msg_.leaf_dir.y = (rune_armor - symbol).y; // 符叶向量
 
@@ -226,15 +231,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
         runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
         runes_msg_.header = img_msg->header; // 包含时间戳
+        runes_msg_.header.frame_id = "camera_frame";
         runes_msg_.find = true; // 找到符叶
-        //判断大小符 //0为不可激活，1为小符，2为大符
-        if (img_msg->header.frame_id == "0") {
-            runes_msg_.motion = 0;
-        } else if (img_msg->header.frame_id == "1") {
-            runes_msg_.motion = 1;
-        } else if (img_msg->header.frame_id == "2") {
-            runes_msg_.motion = 2;
-        }
         return true;
     }
 }
@@ -250,14 +248,6 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         runes_pub_->publish(runes_msg_); // 发布神符信息
     }
 }
-
-// void RuneDetectorNode::topic_callback(
-//     const sensor_msgs::msg::Image::ConstSharedPtr& img_msg,
-//     const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr& serial_msg
-// ) {
-//     RCLCPP_INFO(this->get_logger(), "receive!");
-//     RCLCPP_INFO_STREAM(this->get_logger(), "receive!again");
-// }
 
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();

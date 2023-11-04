@@ -88,7 +88,7 @@ void SerialNode::LoopForPublish() {
         serial_info_.speed = package.speed;
         serial_info_.euler[0] = package.euler[0];
         serial_info_.euler[1] = package.euler[1];
-        serial_info_.euler[2] = package.euler[2];
+        serial_info_.euler[2] = package.euler[2]; //(0,1,2) = (yaw,roll,pitch)
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
 

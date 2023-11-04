@@ -52,7 +52,7 @@ public:
 
 private:
     // 处理Rune消息的回调函数
-    void runesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr);
+    void RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr);
 
     enum class MotionState {
         Unknown,
@@ -86,7 +86,6 @@ private:
 
     struct rune_tracker { //记录符叶的状态，主要用于计算当前参数的拟合误差
         double angle;
-        // Timestamp timestamp;
         rclcpp::Time timestamp;
         double angle_speed;
         cv::Point2f symbol;
@@ -153,7 +152,7 @@ private:
     }
 
     double delay; //理论延迟和追踪延迟之和
-    double chasedelay; //追踪延迟
+    double chasedelay; //追踪延迟 从launch参数给定
 
     // rclcpp::Time delay;//理论延迟和追踪延迟之和
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差
@@ -191,6 +190,12 @@ private:
     std::ofstream origin_omega_time;
     std::ofstream error_file;
     std::ofstream error_time; //用于记录拟合的误差
+
+    message_filters::Subscriber<auto_aim_interfaces::msg::Rune> runes_sub_;
+    std::string target_frame_; // TODO: ???
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_; // tf2 缓冲区
+    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
+    std::shared_ptr<tf2_filter> tf2_filter_;
 
     rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr
         target_pub; //向shooter节点发送数据

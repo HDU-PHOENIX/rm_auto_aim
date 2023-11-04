@@ -49,7 +49,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
         image_publisher_for_armor_->publish(std::move(image_msg));
     } else if (msg->mode.data == 'r') {
         RCLCPP_INFO(this->get_logger(), "publish image for rune");
-        //0为不可激活，1为小符，2为大符
+        //0为不可激活，1为小符，2为大符 将图片的frame_id临时设置为大小符模式，接收端要再改回来
         if (msg->rune_flag.data == 0) {
             image_msg->header.frame_id = "0";
         } else if (msg->rune_flag.data == 1) {
