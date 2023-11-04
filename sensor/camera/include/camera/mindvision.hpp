@@ -35,8 +35,8 @@ private:
     // 相机其他信息
     tSdkCameraDevInfo t_camera_enum_list;
     int h_camera;
-    tSdkCameraCapbility t_capability;
-    //   tSdkCameraCapability t_capability;
+    // tSdkCameraCapbility t_capability;
+    tSdkCameraCapability t_capability;
     tSdkFrameHead s_frame_info;
     BYTE* pby_buffer;
     unsigned char* g_p_rgb_buffer; // 处理后数据缓存区

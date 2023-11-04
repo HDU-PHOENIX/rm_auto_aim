@@ -66,6 +66,18 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option): Node("rune_
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS()
     );
+    omega_file.open("./record/test.txt"); //用于记录曲线
+    if (!omega_file.is_open()) {
+        while (true) {
+            std::cout << "cannot open the omega.txt" << std::endl;
+        }
+    }
+    omega_time.open("./record/testtime.txt");
+    if (!omega_time.is_open()) {
+        while (true) {
+            std::cout << "cannot open the omega.txt" << std::endl;
+        }
+    }
 
     //   // 测量发布器（用于调试）
     //   info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
@@ -135,23 +147,23 @@ bool RuneTrackerNode::FittingBig() {
         // before_omega_file<< fabs(leaf_angle_diff) / (data->sensor->timestamp -last->sensor->timestamp)<<std::endl;
         // before_omega_time<< (data->sensor->timestamp - t_zero).GetSeconds()<<std::endl;
         //用旧数据预测
-        if (cere_param_list.size() < 150 && cere_param_list.size() != 0) {
-            auto temp_omega = cere_param_list.back();
-            cere_param_list.push_back(CereParam {
-                temp_omega.omega,
-                (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
-            // omega_file << temp_omega.omega << std::endl;
-            // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2<< std::endl;
+        // if (cere_param_list.size() < 150 && cere_param_list.size() != 0) {
+        //     auto temp_omega = cere_param_list.back();
+        //     cere_param_list.push_back(CereParam {
+        //         temp_omega.omega,
+        //         (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
+        //     // omega_file << temp_omega.omega << std::endl;
+        //     // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2<< std::endl;
 
-        } else if (cere_param_list.size() == 150) {
-            cere_param_list.pop_front();
-            auto temp_omega = cere_param_list.back();
-            cere_param_list.push_back(CereParam {
-                temp_omega.omega,
-                (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
-            // omega_file << temp_omega.omega << std::endl;
-            // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2<< std::endl;
-        }
+        // } else if (cere_param_list.size() == 150) {
+        //     cere_param_list.pop_front();
+        //     auto temp_omega = cere_param_list.back();
+        //     cere_param_list.push_back(CereParam {
+        //         temp_omega.omega,
+        //         (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
+        //     // omega_file << temp_omega.omega << std::endl;
+        //     // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2<< std::endl;
+        // }
         return false;
     }
 
@@ -170,8 +182,8 @@ bool RuneTrackerNode::FittingBig() {
         return false;
     }
 
-    if (abs(leaf_angle - leaf_angle_last) > 0.4)
-    { //上一帧与这一帧的角度差值超过0.4，则判断为可激活的符叶已转换
+    if (abs(leaf_angle - leaf_angle_last) > 0.4) {
+        //上一帧与这一帧的角度差值超过0.4，则判断为可激活的符叶已转换
         cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
         if (cere_rotated_angle > M_PI)
             cere_rotated_angle -= 2 * M_PI;
@@ -179,7 +191,7 @@ bool RuneTrackerNode::FittingBig() {
             cere_rotated_angle += 2 * M_PI;
         RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
 
-        return false;
+        // return false;
     }
     if (cere_param_list.size() < 100) { //数据队列设为100个，数据队列未满
         auto&& theta = leaf_angle; //观测到这一帧符叶的角度
@@ -195,7 +207,6 @@ bool RuneTrackerNode::FittingBig() {
         );
         //将传感器的坐标数据丢入UKF
         //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
-
         tracker_->ukf->ProcessMeasurement(package); //估计当前真实的状态
         double&& omega =
             1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
@@ -204,9 +215,9 @@ bool RuneTrackerNode::FittingBig() {
             .omega = omega,
             .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
 
-        // omega_file << omega << std::endl;
-        // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2 << std::endl;//-0.3是为了补偿相位差
-        // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()<< std::endl;
+        omega_file << omega << std::endl;
+        // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2 << std::endl;//-0.2是为了补偿相位差
+        omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
         runes_msg_.can_shoot = false;
 
         return false;
@@ -232,9 +243,9 @@ bool RuneTrackerNode::FittingBig() {
         cere_param_list.push_back(CereParam {
             .omega = omega,
             .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() - 0.2 });
-        // omega_file << omega << std::endl;
+        omega_file << omega << std::endl;
         // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()-0.2 << std::endl;//-0.3是为了补偿相位差
-        // omega_time << (data->sensor->timestamp - t_zero).GetSeconds()<< std::endl;
+        omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
 
         if (finish_fitting) {
             RCLCPP_INFO(this->get_logger(), "predict correct");
@@ -250,10 +261,13 @@ bool RuneTrackerNode::FittingBig() {
             double delta_angle = 0;
             if (this->rotation_direction == RotationDirection::Anticlockwise
                 && tracker.pred_angle > 0)
+            {
                 tracker.pred_angle *= -1;
+            }
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
-            if (delta_angle > M_PI)
+            if (delta_angle > M_PI) {
                 delta_angle = fabs(2 * M_PI - delta_angle);
+            }
             std::cout << "delta_angle is " << delta_angle << std::endl;
             // error_file << delta_angle << std::endl;
             // error_time << (data->sensor->timestamp - t_zero).GetSeconds() << std::endl;
