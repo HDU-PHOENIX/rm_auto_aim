@@ -96,7 +96,8 @@ void SerialNode::LoopForPublish() {
         SendTransform(
             "camera",
             "ginble", // ginble: 云台中心
-            tf2::Quaternion(0.500, 0.500, -0.500, 0.500),
+            // 四元数字和欧拉角转换 https://quaternions.online
+            tf2::Quaternion(-0.500, 0.500, -0.500, 0.500),
             tf2::Vector3(0.2, 0, 0)
         );
         // 补偿 yaw pitch 轴的旋转角度

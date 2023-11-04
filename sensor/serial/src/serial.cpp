@@ -58,11 +58,10 @@ Serial::Serial(
 
     // reopen failed
     if (send_default_data_flag_) {
-        RCLCPP_ERROR(
+        RCLCPP_WARN(
             rclcpp::get_logger("serial_node"),
             "Failed to reopen port, Set default data recv"
         );
-        // SetDefaultDataRecv();
     }
 }
 
@@ -133,11 +132,7 @@ bool Serial::ReopenPort() {
         serial_driver_->port()->open();
         RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Successfully reopened port");
     } catch (const std::exception& ex) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("serial_node"),
-            "Error while reopening port: %s",
-            ex.what()
-        );
+        RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Error while reopening port: %s", ex.what());
         if (rclcpp::ok()) {
             rclcpp::sleep_for(std::chrono::seconds(1));
             return ReopenPort();
