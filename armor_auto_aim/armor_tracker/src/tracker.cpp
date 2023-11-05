@@ -23,7 +23,6 @@ Tracker::Tracker(double max_match_distance, double max_match_yaw_diff):
     max_match_yaw_diff_(max_match_yaw_diff) {}
 
 void Tracker::Init(const Armors::SharedPtr& armors_msg) {
-    // TODO: tracker_node 中过滤距离过远的装甲板如果可以去掉，这个判断也可以移除了
     if (armors_msg->armors.empty()) {
         return;
     }
@@ -57,23 +56,24 @@ void Tracker::Update(const Armors::SharedPtr& armors_msg) {
     target_state = ekf_prediction;
 
     if (!armors_msg->armors.empty()) {
-        // 寻找具有相同数字的最近装甲
         Armor same_id_armor;
         int same_id_armors_count = 0;
         auto predicted_position = GetArmorPositionFromState(ekf_prediction);
         double min_position_diff = DBL_MAX;
         double yaw_diff = DBL_MAX;
+
+        // 寻找具有相同 id 的最近的装甲
         for (const auto& armor: armors_msg->armors) {
-            // 仅考虑具有相同数字的装甲
             if (armor.number == tracked_id) {
                 same_id_armor = armor;
                 same_id_armors_count++;
-                // 计算预测位置与当前装甲位置之间的差异
+
+                // 具有相同 id 的装甲板的位置
                 auto p = armor.pose.position;
                 Eigen::Vector3d position_vec(p.x, p.y, p.z);
                 double position_diff = (predicted_position - position_vec).norm();
+                // 找到最近的装甲
                 if (position_diff < min_position_diff) {
-                    // 找到最近的装甲
                     min_position_diff = position_diff;
                     yaw_diff = abs(OrientationToYaw(armor.pose.orientation) - ekf_prediction(6));
                     tracked_armor = armor;
@@ -85,7 +85,7 @@ void Tracker::Update(const Armors::SharedPtr& armors_msg) {
         info_position_diff = min_position_diff;
         info_yaw_diff = yaw_diff;
 
-        // 检查最近装甲的距离和偏航角差是否在阈值内
+        // 通过位置差和偏航角差判断装甲是否跳变
         if (min_position_diff < max_match_distance_ && yaw_diff < max_match_yaw_diff_) {
             // 找到匹配的装甲
             matched = true;
@@ -96,7 +96,7 @@ void Tracker::Update(const Armors::SharedPtr& armors_msg) {
             target_state = ekf.Update(measurement);
             RCLCPP_DEBUG(rclcpp::get_logger("armor_tracker"), "EKF update");
         } else if (same_id_armors_count == 1 && yaw_diff > max_match_yaw_diff_) {
-            // 未找到匹配的装甲，但是只有一个具有相同 ID 的装甲并且偏航角跳变，将此情况视为目标旋转并且装甲跳变
+            // 装甲板偏跳变
             HandleArmorJump(same_id_armor);
         } else {
             // 未找到匹配的装甲
@@ -163,7 +163,9 @@ void Tracker::InitEKF(const Armor& a) {
 }
 
 void Tracker::UpdateArmorsNum(const Armor& armor) {
-    if (armor.type == "large" && (tracked_id == "3" || tracked_id == "4" || tracked_id == "5")) {
+    if (armor.type == "large"
+        && (tracked_id == "3" || tracked_id == "4" || tracked_id == "5"))
+    {
         tracked_armors_num = ArmorsNum::BALANCE_2;
     } else if (tracked_id == "outpost") {
         tracked_armors_num = ArmorsNum::OUTPOST_3;

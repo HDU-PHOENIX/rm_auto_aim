@@ -26,10 +26,11 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 namespace rune {
-RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options): rclcpp::Node("rune_detector", options) {
+RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
+    rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = 0.7; // 置信度阈值
-    detector_ = InitDetector(); // 初始化神符识别器
+    detector_ = InitDetector();  // 初始化神符识别器
 
     //创建标记发布者
     debug_ = this->declare_parameter("debug", false);
@@ -66,8 +67,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     // RuneClass cls; // 符叶枚举类对象 用于标记符叶的种类
     bool flag1 = false, flag2 = false, flag3 = false;
-    cv::Point2f symbol; // 符叶R标的位置
-    cv::Point2f rune_armor; // 符叶未激活装甲板中心
+    cv::Point2f symbol;                    // 符叶R标的位置
+    cv::Point2f rune_armor;                // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points_; // 未激活符叶的五个点
     ///------------------------生成扇叶对象----------------------------------------------
     for (auto object: objects_) {
@@ -181,7 +182,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); // 输出旋转向量和平移向量
         if (!success) {
             // RCLCPP_WARN(this->get_logger(), "PnP failed!");
-            runes_msg_.find = false; // 没找到符叶
+            runes_msg_.find = false;             // 没找到符叶
             runes_msg_.header = img_msg->header; // 包含时间戳
             runes_msg_.header.frame_id = "camera_frame";
             return false;
@@ -205,8 +206,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 runes_msg_.rune_points[i].x = rune_points_[i].x;
                 runes_msg_.rune_points[i].y = rune_points_[i].y;
             }
-            runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
-            runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
+            runes_msg_.symbol.x = symbol.x;      // R标位置 图像左上角为原点
+            runes_msg_.symbol.y = symbol.y;      // R标位置 图像左上角为原点
             runes_msg_.header = img_msg->header; // 包含时间戳
             runes_msg_.header.frame_id = "camera";
             runes_msg_.find = true; // 找到符叶
@@ -215,10 +216,43 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     } else {
         RCLCPP_WARN(this->get_logger(), "cant find R and Rune_armor");
-        runes_msg_.find = false; // 没找到符叶
+        // return false;
+    }
+
+    cv::Mat rvec, tvec;
+    bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); // 输出旋转向量和平移向量
+    if (!success) {
+        RCLCPP_WARN(this->get_logger(), "PnP failed!");
+        runes_msg_.find = false;             // 没找到符叶
         runes_msg_.header = img_msg->header; // 包含时间戳
         runes_msg_.header.frame_id = "camera";
         return false;
+    } else {
+        RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
+        //判断大小符 //0为不可激活，1为小符，2为大符
+        if (img_msg->header.frame_id == "0") {
+            runes_msg_.motion = 0;
+        } else if (img_msg->header.frame_id == "1") {
+            runes_msg_.motion = 1;
+        } else if (img_msg->header.frame_id == "2") {
+            runes_msg_.motion = 2;
+        }
+        runes_msg_.pose_c.position.x = tvec.at<double>(0);
+        runes_msg_.pose_c.position.y = tvec.at<double>(1);
+        runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
+        runes_msg_.leaf_dir.x = (rune_armor - symbol).x;
+        runes_msg_.leaf_dir.y = (rune_armor - symbol).y; // 符叶向量
+
+        for (int i = 0; i < 4; i++) {
+            runes_msg_.rune_points[i].x = rune_points_[i].x;
+            runes_msg_.rune_points[i].y = rune_points_[i].y;
+        }
+        runes_msg_.symbol.x = symbol.x;      // R标位置 图像左上角为原点
+        runes_msg_.symbol.y = symbol.y;      // R标位置 图像左上角为原点
+        runes_msg_.header = img_msg->header; // 包含时间戳
+        runes_msg_.header.frame_id = "camera";
+        runes_msg_.find = true; // 找到符叶
+        return true;
     }
 }
 

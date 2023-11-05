@@ -34,15 +34,20 @@ public:
 private:
     /**
      * @brief 处理 Armors 消息的回调函数
+     *        该函数首先将装甲板坐标从相机坐标系转换到 odom 系，并移除不符合要求的装甲板
+     *        然后根据追踪器状态调用 Tracker::Init() or Tracker::Update()
+     *
      */
-    void ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr);
+    void
+    ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr
+    );
 
     /**
      * @brief 发布 Marker debug 信息
      */
     void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
-    // XOY 平面中允许的最大装甲距离
+    // 装甲板距离车中心（ odom 中心 ）最大距离
     double max_armor_distance_;
 
     // 上次接收消息的时间

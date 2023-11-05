@@ -6,11 +6,10 @@
 
 namespace rm_auto_aim {
 // ArmorTrackerNode类的构造函数
-ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("armor_tracker", options) {
-    // 打印信息，表示节点已启动
+ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
+    Node("armor_tracker", options) {
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
 
-    // XOY平面上允许的最大装甲板距离
     max_armor_distance_ = this->declare_parameter("max_armor_distance", 10.0);
 
     // Tracker参数设置
@@ -21,10 +20,9 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("ar
     lost_time_thres_ = this->declare_parameter("tracker.lost_time_thres", 0.3);
 
     // EKF参数设置
-    // xa = x_armor, xc = x_robot_center
-    // 状态: xc, v_xc, yc, v_yc, za, v_za, yaw, v_yaw, r
-    // 测量: xa, ya, za, yaw
-    // f - 过程函数
+    // 状态: robot_center_x, v_xc, yc, v_yc, armor_z, v_za, yaw, v_yaw, r
+    // 测量: armor_x, armor_y, armor_z, yaw
+    // f - 过程函数（运动关系）
     auto f = [this](const Eigen::VectorXd& x) {
         Eigen::VectorXd x_new = x;
         x_new(0) += x(1) * dt_;
@@ -49,14 +47,14 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("ar
         // clang-format on
         return f;
     };
-    // h - 观测函数
+    // h - 观测函数（从状态量到观测量）
     auto h = [](const Eigen::VectorXd& x) {
         Eigen::VectorXd z(4);
-        double xc = x(0), yc = x(2), yaw = x(6), r = x(8);
-        z(0) = xc - r * cos(yaw); // xa
-        z(1) = yc - r * sin(yaw); // ya
-        z(2) = x(4); // za
-        z(3) = x(6); // yaw
+        double robot_center_x = x(0), yc = x(2), yaw = x(6), r = x(8);
+        z(0) = robot_center_x - r * cos(yaw); // armor_x
+        z(1) = yc - r * sin(yaw);             // armor_y
+        z(2) = x(4);                          // armor_z
+        z(3) = x(6);                          // yaw
         return z;
     };
     // J_h - 观测函数的雅可比矩阵
@@ -64,7 +62,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("ar
         Eigen::MatrixXd h(4, 9);
         double yaw = x(6), r = x(8);
         // clang-format off
-        //    xc   v_xc yc   v_yc za   v_za yaw            v_yaw r
+        //    robot_center_x   v_xc yc   v_yc armor_z   v_za yaw            v_yaw r
         h <<  1,   0,   0,   0,   0,   0,   r*sin(yaw),  0,   -cos(yaw),
               0,   0,   1,   0,   0,   0,   -r*cos(yaw), 0,   -sin(yaw),
               0,   0,   0,   0,   1,   0,   0,              0,   0,
@@ -83,7 +81,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("ar
         double q_y_y = pow(t, 4) / 4 * y, q_y_vy = pow(t, 3) / 2 * x, q_vy_vy = pow(t, 2) * y;
         double q_r = pow(t, 4) / 4 * r;
         // clang-format off
-        //    xc      v_xc    yc      v_yc    za      v_za    yaw     v_yaw   r
+        //    robot_center_x      v_xc    yc      v_yc    armor_z      v_za    yaw     v_yaw   r
         q <<  q_x_x,  q_x_vx, 0,      0,      0,      0,      0,      0,      0,
               q_x_vx, q_vx_vx,0,      0,      0,      0,       0,      0,      0,
               0,      0,      q_x_x,  q_x_vx, 0,      0,      0,      0,      0,
@@ -133,13 +131,13 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("ar
     armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
     target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
-        armors_sub_, // message_filters subscriber
-        *tf2_buffer_, // tf2 buffer
-        target_frame_, // frame this filter should attempt to transform to
-        10, // size of the tf2 cache
+        armors_sub_,                        // message_filters subscriber
+        *tf2_buffer_,                       // tf2 buffer
+        target_frame_,                      // frame this filter should attempt to transform to
+        10,                                 // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
-        this->get_node_clock_interface(), // node clock interface
-        std::chrono::duration<int>(1) // timeout
+        this->get_node_clock_interface(),   // node clock interface
+        std::chrono::duration<int>(1)       // timeout
     );
     // 注册回调函数
     tf2_filter_->registerCallback(&ArmorTrackerNode::ArmorsCallback, this);
@@ -187,6 +185,8 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         ps.header = armors_msg->header;
         ps.pose = armor.pose;
         try {
+            // 将装甲板位置从 相机坐标系 转换到 odom（目标坐标系）
+            // 此后装甲板信息中的 armor.pose 为装甲板在 odom 系中的位置
             armor.pose = tf2_buffer_->transform(ps, target_frame_).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
@@ -194,14 +194,15 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         }
     }
 
-    // 过滤距离过远的装甲板 TODO: 是否可以放到 detector 中
+    // 去除不符合要求的装甲板
     armors_msg->armors.erase(
         std::remove_if(
             armors_msg->armors.begin(),
             armors_msg->armors.end(),
             [this](const auto_aim_interfaces::msg::Armor& armor) {
-                return abs(armor.pose.position.z) > 1.2 // 装甲板水平距离过远
-                    || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm() > max_armor_distance_; // TODO: 为什么判断 XOY 平面中允许的最大装甲距离
+                return abs(armor.pose.position.z) > 1.2 // odom 系下的装甲板高度高于车
+                    || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm()
+                    > max_armor_distance_; // 装甲板距离图像中心（相当于当前瞄准点吧）的最大距离
             }
         ),
         armors_msg->armors.end()
@@ -214,16 +215,16 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     target_msg.header.stamp = time;
     target_msg.header.frame_id = target_frame_;
 
-    // 如果追踪器状态为 LOST，则初始化追踪器
+    // 如果追踪器状态为 LOST，重新初始化追踪器
     if (tracker_->tracker_state == Tracker::LOST) {
         tracker_->Init(armors_msg);
         target_msg.tracking = false;
     } else {
         // 追踪器状态不为 LOST
 
-        // 计算时间间隔
+        // 计算和上帧之间的时间间隔
         dt_ = (time - last_time_).seconds();
-        tracker_->lost_thres = static_cast<int>(lost_time_thres_ / dt_);
+        tracker_->lost_thres = static_cast<int>(lost_time_thres_ / dt_); // TODO:
 
         // 更新追踪器
         tracker_->Update(armors_msg);
@@ -275,14 +276,14 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
     visualization_msgs::msg::MarkerArray marker_array;
     if (target_msg.tracking) {
         double yaw = target_msg.yaw, r1 = target_msg.radius_1, r2 = target_msg.radius_2;
-        double xc = target_msg.position.x, yc = target_msg.position.y, za = target_msg.position.z;
+        double robot_center_x = target_msg.position.x, yc = target_msg.position.y, armor_z = target_msg.position.z;
         double vx = target_msg.velocity.x, vy = target_msg.velocity.y, vz = target_msg.velocity.z;
         double dz = target_msg.dz;
 
         position_marker_.action = visualization_msgs::msg::Marker::ADD;
-        position_marker_.pose.position.x = xc;
+        position_marker_.pose.position.x = robot_center_x;
         position_marker_.pose.position.y = yc;
-        position_marker_.pose.position.z = za + dz / 2;
+        position_marker_.pose.position.z = armor_z + dz / 2;
 
         linear_v_marker_.action = visualization_msgs::msg::Marker::ADD;
         linear_v_marker_.points.clear();
@@ -311,13 +312,13 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
             // 只有4个装甲板有2个半径和高度
             if (a_n == 4) {
                 r = is_current_pair ? r1 : r2;
-                p_a.z = za + (is_current_pair ? 0 : dz);
+                p_a.z = armor_z + (is_current_pair ? 0 : dz);
                 is_current_pair = !is_current_pair;
             } else {
                 r = r1;
-                p_a.z = za;
+                p_a.z = armor_z;
             }
-            p_a.x = xc - r * cos(tmp_yaw);
+            p_a.x = robot_center_x - r * cos(tmp_yaw);
             p_a.y = yc - r * sin(tmp_yaw);
 
             armor_marker_.id = i;

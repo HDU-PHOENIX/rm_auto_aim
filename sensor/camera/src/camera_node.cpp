@@ -2,7 +2,8 @@
 
 namespace sensor {
 
-CameraNode::CameraNode(const rclcpp::NodeOptions& options): Node("camera_node", options) {
+CameraNode::CameraNode(const rclcpp::NodeOptions& options):
+    Node("camera_node", options) {
     RCLCPP_INFO(this->get_logger(), "camera_node start");
 
     // 创建发布者
@@ -35,7 +36,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
     // 向 msg 中填充图像数据
     sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
     image_msg->header.stamp = this->now();
-    image_msg->header.frame_id = "camera_frame";
+    image_msg->header.frame_id = "camera";
     image_msg->height = frame_->rows;
     image_msg->width = frame_->cols;
     image_msg->encoding = "bgr8";

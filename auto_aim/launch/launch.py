@@ -34,9 +34,9 @@ def generate_launch_description():
                     parameters=[
                         {'baud_rate':115200},
                         {'device_name' : "/dev/ttyACM0"},
-                        {'default_data_recv_start':115},#此处要用ascii码 用字符会报错
-                        {'default_data_recv_color':114},#98为b
-                        {'default_data_recv_mode':114},#114为r 97为a
+                        {'default_data_recv_start':115},
+                        {'default_data_recv_color':114},#98脦陋b
+                        {'default_data_recv_mode':114},#114脦陋r 97脦陋a
                         {'default_data_recv_speed':20.0},
                         {'default_data_recv_euler':[0.0,0.0,0.0]},
                         {'default_data_recv_shootbool':0},
@@ -68,22 +68,22 @@ def generate_launch_description():
                     plugin='camerainfo::CameraInfoNode',
                     name='camera_info_node',
                     extra_arguments=[{"use_intra_process_comms": True}],
-                    parameters=[#相机内参
-                        {'camera_matrix': [1436.5522013177274,
+                    parameters=[
+                        {'camera_matrix': [2045.7299044722633,
                                            0,
-                                           631.7426656086038,
+                                           639.91373901944,
                                            0,
-                                           1436.7519670955378,
-                                           479.37777230242415,
+                                           2041.4000138988533,
+                                           505.5792498148916,
                                            0,
                                            0,
                                            1]},
-                        {'distortion': [-0.12097647520170836,
-                                        0.14048371243276836,
-                                        0.0001667597668430485,
-                                        -0.0028646864621099328,
-                                        -0.05038697039343976]},
-                    ]#相机畸变矩阵
+                        {'distortion': [-0.04513949433516694,
+                                        -0.9392361285963754,
+                                        -0.0017701462462787585,
+                                        -0.0016870244604070346,
+                                        8.479602455636757]},
+                    ]
                 ),
                 ComposableNode(
                     package='camera',

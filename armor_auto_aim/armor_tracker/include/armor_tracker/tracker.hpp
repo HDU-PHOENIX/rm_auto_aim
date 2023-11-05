@@ -39,8 +39,8 @@ public:
 
     ExtendedKalmanFilter ekf; // 扩展卡尔曼滤波器
 
-    int tracking_thres; // 追踪阈值
-    int lost_thres;     // 丢失阈值
+    int tracking_thres; // 追踪帧数阈值
+    int lost_thres;     // 丢失帧数的阈值
 
     // 追踪器状态枚举
     enum State {
@@ -68,7 +68,11 @@ private:
     // 初始化扩展卡尔曼滤波器
     void InitEKF(const Armor& a);
 
-    // 更新装甲数量
+    /**
+     * @brief 更新装甲数字
+     * 
+     * @param a 装甲
+     */
     void UpdateArmorsNum(const Armor& a);
 
     // 处理装甲跳变
