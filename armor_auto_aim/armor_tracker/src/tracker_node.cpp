@@ -6,8 +6,7 @@
 
 namespace rm_auto_aim {
 // ArmorTrackerNode类的构造函数
-ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
-    Node("armor_tracker", options) {
+ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options): Node("armor_tracker", options) {
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
 
@@ -115,27 +114,18 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     using std::placeholders::_1;
     using std::placeholders::_2;
     using std::placeholders::_3;
-    reset_tracker_srv_ = this->create_service<std_srvs::srv::Trigger>(
-        "/tracker/reset",
-        [this](
-            const std_srvs::srv::Trigger::Request::SharedPtr,
-            std_srvs::srv::Trigger::Response::SharedPtr response
-        ) {
-            tracker_->tracker_state = Tracker::LOST;
-            response->success = true;
-            RCLCPP_INFO(this->get_logger(), "Tracker reset!");
-            return;
-        }
-    );
+    reset_tracker_srv_ = this->create_service<std_srvs::srv::Trigger>("/tracker/reset", [this](const std_srvs::srv::Trigger::Request::SharedPtr, std_srvs::srv::Trigger::Response::SharedPtr response) {
+        tracker_->tracker_state = Tracker::LOST;
+        response->success = true;
+        RCLCPP_INFO(this->get_logger(), "Tracker reset!");
+        return;
+    });
 
     // tf2相关
 
     // tf2 buffer & listener 相关
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
-        this->get_node_base_interface(),
-        this->get_node_timers_interface()
-    );
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(this->get_node_base_interface(), this->get_node_timers_interface());
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
@@ -158,10 +148,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
 
     // 跟踪目标消息发布器
-    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>(
-        "/tracker/target",
-        rclcpp::SensorDataQoS()
-    );
+    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>("/tracker/target", rclcpp::SensorDataQoS());
 
     // 可视化标记相关
     position_marker_.ns = "position";
@@ -189,12 +176,11 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     armor_marker_.scale.z = 0.125;
     armor_marker_.color.a = 1.0;
     armor_marker_.color.r = 1.0;
-    marker_pub_ =
-        this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
 }
 
-void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg
-) {
+void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg) {
+    RCLCPP_INFO(this->get_logger(), "ArmorsTrackerCallback");
     // 将装甲板位置从相机坐标系转换到 odom（目标坐标系）
     for (auto& armor: armors_msg->armors) {
         geometry_msgs::msg::PoseStamped ps;
@@ -215,8 +201,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             armors_msg->armors.end(),
             [this](const auto_aim_interfaces::msg::Armor& armor) {
                 return abs(armor.pose.position.z) > 1.2 // 装甲板水平距离过远
-                    || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm()
-                    > max_armor_distance_; // TODO: 为什么判断 XOY 平面中允许的最大装甲距离
+                    || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm() > max_armor_distance_; // TODO: 为什么判断 XOY 平面中允许的最大装甲距离
             }
         ),
         armors_msg->armors.end()
@@ -254,8 +239,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
         if (tracker_->tracker_state == Tracker::DETECTING) {
             target_msg.tracking = false;
-        } else if (tracker_->tracker_state == Tracker::TRACKING || tracker_->tracker_state == Tracker::TEMP_LOST)
-        {
+        } else if (tracker_->tracker_state == Tracker::TRACKING || tracker_->tracker_state == Tracker::TEMP_LOST) {
             target_msg.tracking = true;
             // 填充目标消息
             const auto& state = tracker_->target_state;

@@ -17,7 +17,7 @@
 
 namespace rune {
 Tracker::Tracker() {
-    ukf = new UKF_PLUS(0, true, false, 3.5, 6); //ukf滤波器初始化 原1.5  1.2
+    ukf = new UKF_PLUS(0, true, false, 1.5, 1.2); //ukf滤波器初始化 原1.5  1.2
 }
 
 // void Tracker::update(const Rune::SharedPtr & rune_msg)

@@ -128,6 +128,7 @@ private:
         return true;
     }
 
+    //判断顺时针还是逆时针
     bool Judge();
 
     bool FittingBig();

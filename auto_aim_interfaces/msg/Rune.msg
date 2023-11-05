@@ -6,5 +6,4 @@ std_msgs/Header header
 float32 speed
 
 bool find
-bool can_shoot
 int32 motion

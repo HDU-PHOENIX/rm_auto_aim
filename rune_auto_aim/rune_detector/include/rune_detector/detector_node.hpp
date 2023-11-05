@@ -52,6 +52,11 @@ private:
    */
     bool DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
+    // debug 模式
+    bool debug_;
+    std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
+    std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
+
     /**
    * @brief debug 模式下发布识别到的神符信息
    */

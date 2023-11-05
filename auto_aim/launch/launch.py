@@ -35,8 +35,8 @@ def generate_launch_description():
                         {'baud_rate':115200},
                         {'device_name' : "/dev/ttyACM0"},
                         {'default_data_recv_start':115},#此处要用ascii码 用字符会报错
-                        {'default_data_recv_color':114},
-                        {'default_data_recv_mode':114},
+                        {'default_data_recv_color':114},#98为b
+                        {'default_data_recv_mode':114},#114为r 97为a
                         {'default_data_recv_speed':20.0},
                         {'default_data_recv_euler':[0.0,0.0,0.0]},
                         {'default_data_recv_shootbool':0},
@@ -55,6 +55,12 @@ def generate_launch_description():
                     package='rune_detector',
                     plugin='rune::RuneDetectorNode',
                     name='rune_detector_node',
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                ),
+                ComposableNode(
+                    package='rune_tracker',
+                    plugin='rune::RuneTrackerNode',
+                    name='rune_tracker_node',
                     extra_arguments=[{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(

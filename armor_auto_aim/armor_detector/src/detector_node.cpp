@@ -24,18 +24,14 @@
 #include "armor_detector/detector_node.hpp"
 
 namespace armor {
-ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
-    Node("armor_detector", options) {
+ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options): Node("armor_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
 
     // 初始化 Detector
     detector_ = InitDetector();
 
     // 创建装甲板消息发布器
-    armors_pub_ = this->create_publisher<auto_aim_interfaces::msg::Armors>(
-        "/detector/armors",
-        rclcpp::SensorDataQoS()
-    );
+    armors_pub_ = this->create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
 
     // Visualization Marker Publisher
     // See http://wiki.ros.org/rviz/DisplayTypes/Marker
@@ -59,8 +55,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     text_marker_.color.b = 1.0;
     text_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
 
-    marker_pub_ =
-        this->create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
 
     // Debug 信息发布者
     debug_ = this->declare_parameter("debug", false);
@@ -70,30 +65,21 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     // 监视 Debug 参数变化
     debug_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-    debug_cb_handle_ =
-        debug_param_sub_->add_parameter_callback("debug", [this](const rclcpp::Parameter& p) {
-            debug_ = p.as_bool();
-            debug_ ? CreateDebugPublishers() : DestroyDebugPublishers();
-        });
+    debug_cb_handle_ = debug_param_sub_->add_parameter_callback("debug", [this](const rclcpp::Parameter& p) {
+        debug_ = p.as_bool();
+        debug_ ? CreateDebugPublishers() : DestroyDebugPublishers();
+    });
 
     // 创建相机信息订阅者
-    cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-        "/camera_info",
-        rclcpp::SensorDataQoS(),
-        [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
-            cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
-            cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
-            pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
-            cam_info_sub_.reset();
-        }
-    );
+    cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
+        cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
+        cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
+        pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
+        cam_info_sub_.reset();
+    });
 
     // 创建图像订阅者
-    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/image_for_armor",
-        rclcpp::SensorDataQoS(),
-        std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
-    );
+    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor", rclcpp::SensorDataQoS(), std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1));
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
@@ -128,17 +114,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 cv::Mat rotation_matrix;
                 cv::Rodrigues(rvec, rotation_matrix);
                 // tf2 旋转矩阵
-                tf2::Matrix3x3 tf2_rotation_matrix(
-                    rotation_matrix.at<double>(0, 0),
-                    rotation_matrix.at<double>(0, 1),
-                    rotation_matrix.at<double>(0, 2),
-                    rotation_matrix.at<double>(1, 0),
-                    rotation_matrix.at<double>(1, 1),
-                    rotation_matrix.at<double>(1, 2),
-                    rotation_matrix.at<double>(2, 0),
-                    rotation_matrix.at<double>(2, 1),
-                    rotation_matrix.at<double>(2, 2)
-                );
+                tf2::Matrix3x3 tf2_rotation_matrix(rotation_matrix.at<double>(0, 0), rotation_matrix.at<double>(0, 1), rotation_matrix.at<double>(0, 2), rotation_matrix.at<double>(1, 0), rotation_matrix.at<double>(1, 1), rotation_matrix.at<double>(1, 2), rotation_matrix.at<double>(2, 0), rotation_matrix.at<double>(2, 1), rotation_matrix.at<double>(2, 2));
                 // 旋转矩阵 to 四元数
                 tf2::Quaternion tf2_q;
                 tf2_rotation_matrix.getRotation(tf2_q);
@@ -152,8 +128,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 armor_msg.euler[2] = euler[2];
 
                 // 计算装甲板中心到图像中心的距离
-                armor_msg.distance_to_image_center =
-                    pnp_solver_->CalculateDistanceToCenter(armor.center);
+                armor_msg.distance_to_image_center = pnp_solver_->CalculateDistanceToCenter(armor.center);
 
                 // Fill the markers
                 armor_marker_.id++;
@@ -222,19 +197,17 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     auto model_path = pkg_path + "/model/mlp.onnx";
     auto label_path = pkg_path + "/model/label.txt";
     double threshold = this->declare_parameter("classifier_threshold", 0.7);
-    std::vector<std::string> ignore_classes =
-        this->declare_parameter("ignore_classes", std::vector<std::string> { "negative" });
-    detector->classifier =
-        std::make_unique<NumberClassifier>(model_path, label_path, threshold, ignore_classes);
+    std::vector<std::string> ignore_classes = this->declare_parameter("ignore_classes", std::vector<std::string> { "negative" });
+    detector->classifier = std::make_unique<NumberClassifier>(model_path, label_path, threshold, ignore_classes);
 
     return detector;
 }
 
-std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg
-) {
+std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
     // 通过 img_msg 指针构造图像
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
-
+    // cv::imshow("tmp", img);
+    // cv::waitKey(1);
     // 更新参数
     detector_->binary_thres = get_parameter("binary_thres").as_int();
     detector_->detect_color = get_parameter("detect_color").as_int();
@@ -250,21 +223,11 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
 
     // 发布 debug 信息
     if (debug_) {
-        binary_img_pub_.publish(
-            cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg()
-        );
+        binary_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg());
 
         // 根据 x 坐标对灯条和装甲板排序
-        std::sort(
-            detector_->debug_lights.data.begin(),
-            detector_->debug_lights.data.end(),
-            [](const auto& l1, const auto& l2) { return l1.center_x < l2.center_x; }
-        );
-        std::sort(
-            detector_->debug_armors.data.begin(),
-            detector_->debug_armors.data.end(),
-            [](const auto& a1, const auto& a2) { return a1.center_x < a2.center_x; }
-        );
+        std::sort(detector_->debug_lights.data.begin(), detector_->debug_lights.data.end(), [](const auto& l1, const auto& l2) { return l1.center_x < l2.center_x; });
+        std::sort(detector_->debug_armors.data.begin(), detector_->debug_armors.data.end(), [](const auto& a1, const auto& a2) { return a1.center_x < a2.center_x; });
 
         // 发布灯条和装甲板 debug 信息
         lights_data_pub_->publish(detector_->debug_lights);
@@ -274,9 +237,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
             // 获取所有的数字图像
             auto all_num_img = detector_->GetAllNumbersImage();
             // 发布数字图像
-            number_img_pub_.publish(
-                *cv_bridge::CvImage(img_msg->header, "mono8", all_num_img).toImageMsg()
-            );
+            number_img_pub_.publish(*cv_bridge::CvImage(img_msg->header, "mono8", all_num_img).toImageMsg());
         }
 
         // 在图像上画出结果，显示数字和置信度
@@ -287,15 +248,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
         std::stringstream latency_ss;
         latency_ss << "Latency: " << std::fixed << std::setprecision(2) << latency << "ms";
         auto latency_s = latency_ss.str();
-        cv::putText(
-            img,
-            latency_s,
-            cv::Point(10, 30),
-            cv::FONT_HERSHEY_SIMPLEX,
-            1.0,
-            cv::Scalar(0, 255, 0),
-            2
-        );
+        cv::putText(img, latency_s, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
         // 发布结果图像
         result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "rgb8", img).toImageMsg());
     }
@@ -304,10 +257,8 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
 }
 
 void ArmorDetectorNode::CreateDebugPublishers() {
-    lights_data_pub_ =
-        this->create_publisher<auto_aim_interfaces::msg::DebugLights>("/detector/debug_lights", 10);
-    armors_data_pub_ =
-        this->create_publisher<auto_aim_interfaces::msg::DebugArmors>("/detector/debug_armors", 10);
+    lights_data_pub_ = this->create_publisher<auto_aim_interfaces::msg::DebugLights>("/detector/debug_lights", 10);
+    armors_data_pub_ = this->create_publisher<auto_aim_interfaces::msg::DebugArmors>("/detector/debug_armors", 10);
 
     binary_img_pub_ = image_transport::create_publisher(this, "/detector/binary_img");
     number_img_pub_ = image_transport::create_publisher(this, "/detector/number_img");

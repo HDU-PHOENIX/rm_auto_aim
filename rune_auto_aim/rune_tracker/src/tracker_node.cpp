@@ -66,16 +66,16 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option): Node("rune_
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS()
     );
-    omega_file.open("./record/test.txt"); //用于记录曲线
+    omega_file.open("./record/omega.txt"); //用于记录曲线
     if (!omega_file.is_open()) {
         while (true) {
             std::cout << "cannot open the omega.txt" << std::endl;
         }
     }
-    omega_time.open("./record/testtime.txt");
+    omega_time.open("./record/omegatime.txt");
     if (!omega_time.is_open()) {
         while (true) {
-            std::cout << "cannot open the omega.txt" << std::endl;
+            std::cout << "cannot open the omegatime.txt" << std::endl;
         }
     }
 
@@ -120,7 +120,7 @@ bool RuneTrackerNode::Judge() {
     constexpr double delta = 1e-2;
     if (rotation_direction == RotationDirection::Anticlockwise ? leaf_angle_diff < delta
                                                                : leaf_angle_diff < -delta)
-    { //判断顺时针还是逆时针
+    {
         if (SetRotate(RotationDirection::Anticlockwise)) {
             return false;
         }
@@ -172,7 +172,6 @@ bool RuneTrackerNode::FittingBig() {
         t_zero = data->header.stamp; //时间起点
         cere_rotated_angle = leaf_angle; //记录第一帧符叶的角度
         tracker.pred_time = 0;
-        //tracker.pred_angle = cere_rotated_angle;//2023.9.9号做了修改 改成了tracker.angle的赋值
         tracker.angle = cere_rotated_angle;
     }
 
@@ -431,7 +430,7 @@ bool RuneTrackerNode::Fitting() {
 
 double
 RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, double pred_time) {
-    std::cout << "in integral" << std::endl;
+    // std::cout << "in integral" << std::endl;
     double a = params[0];
     double phi = params[1];
     double t_e = t_s + pred_time;
@@ -442,6 +441,7 @@ RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, doub
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
+    RCLCPP_INFO(this->get_logger(), "receive rune message");
     data = rune_ptr;
     if (rune_ptr->find) //如果detector识别到了符装甲板
     {
