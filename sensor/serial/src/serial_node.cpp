@@ -1,18 +1,18 @@
 #include "serial/serial_node.hpp"
-#include <rclcpp/executors.hpp>
-#include <rclcpp/parameter_value.hpp>
-#include <rclcpp/qos.hpp>
-#include <tf2/LinearMath/Quaternion.h>
 
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options):
-    Node("serial_node", options),
-    broadcaster(this, rclcpp::SensorDataQoS()) {
+    Node("serial_node", options) {
     this->InitParameter();
     this->serial_ = InitSerial();
 
+    broadcaster_camera2gimble_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    broadcaster_gimble2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    tfs_camera2gimble_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+    tfs_gimble2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+
     this->serial_info_pub_ =
-        create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", 2);
+        create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", rclcpp::SensorDataQoS());
     this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
         "/target_info",
         rclcpp::SensorDataQoS(),
@@ -94,22 +94,33 @@ void SerialNode::LoopForPublish() {
 
         // 发布 相机 到 云台中心 的坐标系转换
         SendTransform(
+            broadcaster_camera2gimble_,
+            tfs_camera2gimble_,
             "camera",
-            "ginble", // ginble: 云台中心
+            "gimble", // gimble: 云台中心
             // 四元数字和欧拉角转换 https://quaternions.online
             tf2::Quaternion(-0.500, 0.500, -0.500, 0.500),
             tf2::Vector3(0.2, 0, 0)
         );
-        // 补偿 yaw pitch 轴的旋转角度
-        Compensate(serial_info_.euler[0], serial_info_.euler[2]);
+        // 发布 云台中心 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
+        SendTransform(
+            broadcaster_gimble2odom_,
+            tfs_gimble2odom_,
+            "gimble", // gimble: 云台中心
+            "odom",
+            [this]() {
+                tf2::Quaternion q;
+                q.setRPY(0, -serial_info_.euler[2], -serial_info_.euler[0]);
+                return q;
+            }(),
+            tf2::Vector3(0, 0, 0)
+        );
 
         serial_info_pub_->publish(serial_info_);
     }
 }
 
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
-    // TODO: 从参数服务器中获取串口参数
-
     auto serial = std::make_unique<sensor::Serial>(
         baud_rate_,
         device_name_,
@@ -132,31 +143,25 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
 }
 
 void SerialNode::SendTransform(
+    const std::unique_ptr<tf2_ros::TransformBroadcaster>& broadcaster,
+    const std::unique_ptr<geometry_msgs::msg::TransformStamped>& tfs,
     const std::string& frame_id,
     const std::string& child_frame_id,
     const tf2::Quaternion& q,
     const tf2::Vector3& v
 ) {
-    tfs.header.stamp = this->now();
-    tfs.header.frame_id = frame_id;
-    tfs.child_frame_id = child_frame_id;
-    tfs.transform.rotation.x = q.getX();
-    tfs.transform.rotation.y = q.getY();
-    tfs.transform.rotation.z = q.getZ();
-    tfs.transform.rotation.w = q.getW();
-    tfs.transform.translation.x = v.getX();
-    tfs.transform.translation.y = v.getY();
-    tfs.transform.translation.z = v.getZ();
+    tfs->header.stamp = this->now();
+    tfs->header.frame_id = frame_id;
+    tfs->child_frame_id = child_frame_id;
+    tfs->transform.rotation.x = q.getX();
+    tfs->transform.rotation.y = q.getY();
+    tfs->transform.rotation.z = q.getZ();
+    tfs->transform.rotation.w = q.getW();
+    tfs->transform.translation.x = v.getX();
+    tfs->transform.translation.y = v.getY();
+    tfs->transform.translation.z = v.getZ();
 
-    this->broadcaster.sendTransform(tfs);
-}
-
-void SerialNode::Compensate(float& yaw, float& pitch) {
-    tf2::Quaternion q;
-    tf2::Vector3 v(0, 0, 0);
-    q.setRPY(0, pitch, yaw);
-
-    SendTransform("odom", "ginble", q, tf2::Vector3(0, 0, 0));
+    broadcaster->sendTransform(*tfs);
 }
 
 } // namespace sensor
