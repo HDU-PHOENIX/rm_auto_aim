@@ -154,6 +154,8 @@ private:
 
     double delay; //理论延迟和追踪延迟之和
     double chasedelay; //追踪延迟 从launch参数给定
+    std::shared_ptr<rclcpp::ParameterEventHandler> chasedelay_param_sub_;
+    std::shared_ptr<rclcpp::ParameterCallbackHandle> chasedelay_cb_handle_;
 
     // rclcpp::Time delay;//理论延迟和追踪延迟之和
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差

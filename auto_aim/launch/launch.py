@@ -36,7 +36,7 @@ def generate_launch_description():
                         {'device_name' : "/dev/ttyACM0"},
                         {'default_data_recv_start':115},
                         {'default_data_recv_color':114},
-                        {'default_data_recv_mode':97}, # r:114 a:97
+                        {'default_data_recv_mode':114}, # r:114 a:97
                         {'default_data_recv_speed':20.0},
                         {'default_data_recv_euler':[0.0,0.0,0.0]},
                         {'default_data_recv_shootbool':0},

@@ -7,7 +7,7 @@ AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: DontAlign
 AlignOperands: false
-AlignTrailingComments: false
+AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -70,11 +70,5 @@ SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-AlignConsecutiveMacros: AcrossEmptyLinesAndComments
-AlignTrailingComments: true
-MaxEmptyLinesToKeep: 1
-SpacesBeforeTrailingComments: 1
-Standard: c++17
-UseTab: Never
 Standard: c++17
 UseTab: Never
