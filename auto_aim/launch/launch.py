@@ -49,6 +49,15 @@ def generate_launch_description():
                     package='armor_detector',
                     plugin='armor::ArmorDetectorNode',
                     name='armor_detector_node',
+                    extra_arguments=[{"use_intra_process_comms": True}],
+                    parameters=[
+                        {'debug': True}
+                    ]
+                ),
+                ComposableNode(
+                    package='armor_tracker',
+                    plugin='armor::ArmorTrackerNode',
+                    name='armor_tracker_node',
                     extra_arguments=[{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(

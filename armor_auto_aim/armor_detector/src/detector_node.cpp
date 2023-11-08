@@ -23,14 +23,18 @@
 #include "armor_detector/detector_node.hpp"
 
 namespace armor {
-ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options): Node("armor_detector", options) {
+ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
+    Node("armor_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
 
     // 初始化 Detector
     detector_ = InitDetector();
 
     // 创建装甲板消息发布器
-    armors_pub_ = this->create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
+    armors_pub_ = this->create_publisher<auto_aim_interfaces::msg::Armors>(
+        "/detector/armors",
+        rclcpp::SensorDataQoS()
+    );
 
     // Visualization Marker Publisher
     // See http://wiki.ros.org/rviz/DisplayTypes/Marker
@@ -86,7 +90,6 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
 
     // PnP 求解
     if (pnp_solver_ != nullptr) {
-        // std::cout << "pnp_solver has ptr" << std::endl;
         armors_msg_.header = armor_marker_.header = text_marker_.header = img_msg->header;
         armors_msg_.armors.clear();
         marker_array_.markers.clear();
@@ -119,13 +122,6 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 tf2_rotation_matrix.getRotation(tf2_q);
                 armor_msg.pose.orientation = tf2::toMsg(tf2_q);
 
-                // 获取欧拉角 TODO: getRPY() 获取问题，从哪
-                tf2::Vector3 euler;
-                tf2::Matrix3x3(tf2_q).getRPY(euler[0], euler[1], euler[2]);
-                armor_msg.euler[0] = euler[0];
-                armor_msg.euler[1] = euler[1];
-                armor_msg.euler[2] = euler[2];
-
                 // 计算装甲板中心到图像中心的距离
                 armor_msg.distance_to_image_center = pnp_solver_->CalculateDistanceToCenter(armor.center);
 
@@ -145,16 +141,22 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             }
         }
 
-        // 发布已识别到的装甲板的信息
-        armors_pub_->publish(armors_msg_);
+        if (debug_ && armors_msg_.armors.empty()) {
+            // 发布默认装甲板消息
+            RCLCPP_DEBUG(this->get_logger(), "No armor found");
+            default_armors_msg_.header = img_msg->header;
+            armors_pub_->publish(default_armors_msg_);
+        } else if (auto&& number_of_armor = armors_msg_.armors.size()) {
+            // 发布已识别到的装甲板的信息
+            RCLCPP_DEBUG(this->get_logger(), "Find %zu armors", number_of_armor);
+            armors_pub_->publish(armors_msg_);
+        }
 
         // Publishing marker
         PublishMarkers();
     } else {
         std::cout << "pnp_solver null_ptr" << std::endl;
     }
-    // auto end = this->now();
-    // std::cout << "Detect Armors" << (end - start).seconds() * 1000 << "ms" << std::endl;
 }
 
 std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
@@ -188,6 +190,14 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     a_params.max_large_center_distance = declare_parameter("armor.max_large_center_distance", 5.5);
     a_params.max_angle = declare_parameter("armor.max_angle", 35.0);
 
+    default_armor_msg_.number = "3";
+    default_armor_msg_.type = "small";
+    default_armor_msg_.distance_to_image_center = 0;
+    default_armor_msg_.euler = { 0, 0, 0 };
+    default_armor_msg_.pose.position = geometry_msgs::msg::Point();
+    default_armor_msg_.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 0));
+    default_armors_msg_.armors.emplace_back(default_armor_msg_);
+
     // 初始化 Detector
     auto detector = std::make_unique<Detector>(binary_thres, detect_color, l_params, a_params);
 
@@ -205,8 +215,7 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
 std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
     // 通过 img_msg 指针构造图像
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
-    // cv::imshow("tmp", img);
-    // cv::waitKey(1);
+
     // 更新参数
     detector_->binary_thres = get_parameter("binary_thres").as_int();
     detector_->detect_color = get_parameter("detect_color").as_int();
@@ -249,7 +258,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
         auto latency_s = latency_ss.str();
         cv::putText(img, latency_s, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
         // 发布结果图像
-        result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "rgb8", img).toImageMsg());
+        result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "bgr8", img).toImageMsg());
     }
 
     return armors;

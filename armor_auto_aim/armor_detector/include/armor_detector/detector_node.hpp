@@ -70,6 +70,9 @@ private:
 
     // 自定义的装甲板信息
     auto_aim_interfaces::msg::Armors armors_msg_;
+    // 默认的装甲板信息
+    auto_aim_interfaces::msg::Armor default_armor_msg_;
+    auto_aim_interfaces::msg::Armors default_armors_msg_;
     // 发布者，发布检测到的装甲板
     rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
 
