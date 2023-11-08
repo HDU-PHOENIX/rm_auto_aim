@@ -1,6 +1,6 @@
 #include "armor_tracker/extended_kalman_filter.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 // 构造函数的实现
 ExtendedKalmanFilter::ExtendedKalmanFilter(
     const VecVecFunc& f,
@@ -53,4 +53,4 @@ Eigen::MatrixXd ExtendedKalmanFilter::Update(const Eigen::VectorXd& z) {
     return x_post;
 }
 
-} // namespace rm_auto_aim
+} // namespace armor

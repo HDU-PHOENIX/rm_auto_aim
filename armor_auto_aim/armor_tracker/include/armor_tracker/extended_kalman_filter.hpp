@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <functional>
 
-namespace rm_auto_aim {
+namespace armor {
 // 扩展卡尔曼滤波器类
 class ExtendedKalmanFilter {
 public:
@@ -73,6 +73,6 @@ private:
     Eigen::VectorXd x_post;
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_PROCESSOR__KALMAN_FILTER_HPP_

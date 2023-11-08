@@ -19,9 +19,11 @@
 #include "auto_aim_interfaces/msg/armors.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 
-enum class ArmorsNum { NORMAL_4 = 4, BALANCE_2 = 2, OUTPOST_3 = 3 };
+enum class ArmorsNum { NORMAL_4 = 4,
+                       BALANCE_2 = 2,
+                       OUTPOST_3 = 3 };
 
 // 装甲追踪器类
 class Tracker {
@@ -93,6 +95,6 @@ private:
     double last_yaw_; // 上一次的偏航角
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_PROCESSOR__TRACKER_HPP_

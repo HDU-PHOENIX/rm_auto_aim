@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace rm_auto_aim {
+namespace armor {
 // ArmorTrackerNode类的构造函数
 ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     Node("armor_tracker", options) {
@@ -112,23 +112,32 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     using std::placeholders::_1;
     using std::placeholders::_2;
     using std::placeholders::_3;
-    reset_tracker_srv_ = this->create_service<std_srvs::srv::Trigger>("/tracker/reset", [this](const std_srvs::srv::Trigger::Request::SharedPtr, std_srvs::srv::Trigger::Response::SharedPtr response) {
-        tracker_->tracker_state = Tracker::LOST;
-        response->success = true;
-        RCLCPP_INFO(this->get_logger(), "Tracker reset!");
-        return;
-    });
+    reset_tracker_srv_ = this->create_service<std_srvs::srv::Trigger>(
+        "/tracker/reset",
+        [this](
+            const std_srvs::srv::Trigger::Request::SharedPtr,
+            std_srvs::srv::Trigger::Response::SharedPtr response
+        ) {
+            tracker_->tracker_state = Tracker::LOST;
+            response->success = true;
+            RCLCPP_INFO(this->get_logger(), "Tracker reset!");
+            return;
+        }
+    );
 
     // tf2相关
 
     // tf2 buffer & listener 相关
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(this->get_node_base_interface(), this->get_node_timers_interface());
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+        this->get_node_base_interface(),
+        this->get_node_timers_interface()
+    );
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
     // 订阅器和过滤器
-    armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
+    armors_sub_.subscribe(this, "/detector/armors");
     target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
         armors_sub_,                        // message_filters subscriber
@@ -224,7 +233,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
         // 计算和上帧之间的时间间隔
         dt_ = (time - last_time_).seconds();
-        tracker_->lost_thres = static_cast<int>(lost_time_thres_ / dt_); // TODO:
+        tracker_->lost_thres = static_cast<int>(lost_time_thres_ / dt_);
 
         // 更新追踪器
         tracker_->Update(armors_msg);
@@ -343,8 +352,8 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
     marker_pub_->publish(marker_array);
 }
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #include "rclcpp_components/register_node_macro.hpp"
 
-RCLCPP_COMPONENTS_REGISTER_NODE(rm_auto_aim::ArmorTrackerNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(armor::ArmorTrackerNode)

@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 
-namespace rm_auto_aim {
+namespace armor {
 Tracker::Tracker(double max_match_distance, double max_match_yaw_diff):
     tracker_state(LOST),
     tracked_id(std::string("")),
@@ -225,4 +225,4 @@ Eigen::Vector3d Tracker::GetArmorPositionFromState(const Eigen::VectorXd& x) {
     return Eigen::Vector3d(xa, ya, za);
 }
 
-} // namespace rm_auto_aim
+} // namespace armor

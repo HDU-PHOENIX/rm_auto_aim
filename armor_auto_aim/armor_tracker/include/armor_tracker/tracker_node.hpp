@@ -23,7 +23,7 @@
 #include "auto_aim_interfaces/msg/target.hpp"
 #include "auto_aim_interfaces/msg/tracker_info.hpp"
 
-namespace rm_auto_aim {
+namespace armor {
 
 using tf2_filter = tf2_ros::MessageFilter<auto_aim_interfaces::msg::Armors>;
 
@@ -36,7 +36,6 @@ private:
      * @brief 处理 Armors 消息的回调函数
      *        该函数首先将装甲板坐标从相机坐标系转换到 odom 系，并移除不符合要求的装甲板
      *        然后根据追踪器状态调用 Tracker::Init() or Tracker::Update()
-     *
      */
     void
     ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr
@@ -84,6 +83,6 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 };
 
-} // namespace rm_auto_aim
+} // namespace armor
 
 #endif // ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
