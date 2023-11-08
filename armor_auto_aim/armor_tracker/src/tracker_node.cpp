@@ -137,7 +137,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
     // 订阅器和过滤器
-    armors_sub_.subscribe(this, "/detector/armors");
+    armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
     target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
         armors_sub_,                        // message_filters subscriber
@@ -187,7 +187,6 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
 }
 
 void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg) {
-    RCLCPP_INFO(this->get_logger(), "ArmorsTrackerCallback");
     // 将装甲板位置从相机坐标系转换到 odom（目标坐标系）
     for (auto& armor: armors_msg->armors) {
         geometry_msgs::msg::PoseStamped ps;

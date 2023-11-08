@@ -92,6 +92,7 @@ void SerialNode::LoopForPublish() {
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
 
+        // x:red y:green z:blue
         // 发布 相机 到 云台中心 的坐标系转换
         SendTransform(
             broadcaster_camera2gimble_,
@@ -99,8 +100,12 @@ void SerialNode::LoopForPublish() {
             "camera",
             "gimble", // gimble: 云台中心
             // 四元数字和欧拉角转换 https://quaternions.online
-            tf2::Quaternion(-0.500, 0.500, -0.500, 0.500),
-            tf2::Vector3(0.2, 0, 0)
+            []() {
+                tf2::Quaternion q;
+                q.setRPY(M_PI_2, -M_PI_2, 0);
+                return q;
+            }(),
+            tf2::Vector3(0, 0, -0.2)
         );
         // 发布 云台中心 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
         SendTransform(
