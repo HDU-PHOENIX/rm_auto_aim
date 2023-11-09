@@ -31,12 +31,7 @@ public:
     explicit RuneDetectorNode(const rclcpp::NodeOptions& options);
 
 private:
-    // void Callback(const sensor_msgs::msg::Image::SharedPtr img_msg);
-
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
-    // void topic_callback(
-    //     const sensor_msgs::msg::Image::ConstSharedPtr &img_msg,
-    //     const auto_aim_interfaces::msg::SerialInfo::ConstSharedPtr &serial_msg);
 
     /**
    * @brief 初始化神符识别器，设置识别器参数

@@ -22,25 +22,19 @@
 #include <string>
 #include <vector>
 
-#include "rune_tracker/tracker.hpp"
-// #include "auto_aim_interfaces/msg/armors.hpp"
 #include "auto_aim_interfaces/msg/rune_target.hpp"
-// #include "auto_aim_interfaces/msg/tracker_info.hpp"
-
-#include <opencv2/core/types.hpp> //提供Point Point2d/2f
+#include "rune_tracker/tracker.hpp"
+#include <sensor_msgs/msg/camera_info.hpp>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
-#include "point.hpp" //添加Angle方法
+#include "pnp_solver.hpp"
+#include "point.hpp"                 //添加Angle方法
 #include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
-#include "sizes.hpp"
-#include "statistic.hpp" //添加Statistic模版类
-#include "timestamp.h" //添加Timestamp类
 #include "tracker.hpp"
-#include "ukf_plus.h" //添加UKF_PLUS类
+#include "ukf_plus.h"             //添加UKF_PLUS类
+#include <opencv2/core/types.hpp> //提供Point Point2d/2f
 //  Ceres-solver
 #include <ceres/ceres.h>
-// Coordinate
-#include "coordinate.h"
 
 namespace rune {
 // 使用tf2_ros::MessageFilter对自动瞄准接口的Armors消息进行过滤
@@ -74,7 +68,9 @@ private:
     };
 
     struct CURVE_FITTING_COST {
-        CURVE_FITTING_COST(double x, double y): _x(x), _y(y) {}
+        CURVE_FITTING_COST(double x, double y):
+            _x(x),
+            _y(y) {}
 
         template<typename T>
         bool operator()(const T* const param, T* residual) const {
@@ -96,7 +92,7 @@ private:
         double pred_angle; //预测的角度
         double pred_time;
         cv::Point2d armor; //用于追踪上一次的符叶点
-    } tracker; //用于跟踪上一次的拟合情况
+    } tracker;             //用于跟踪上一次的拟合情况
 
     bool SetRotate(const RotationDirection& rotation_direction) {
         static int cnt = 0;
@@ -107,7 +103,6 @@ private:
         if (++cnt < 10) {
             return false;
         }
-        // Log::Debug("RotationDirection Changed From {} to {}", this->rotation_direction, rotation_direction);
         this->rotation_direction = rotation_direction;
         Reset();
         return true;
@@ -122,7 +117,6 @@ private:
         if (++cnt < 10) {
             return false;
         }
-        // Log::Debug("MotionState Changed From {} to {}", this->motion_state, motion_state);
         this->motion_state = motion_state;
         Reset();
         return true;
@@ -149,59 +143,63 @@ private:
         tracker_->ukf->Clear();
 
         cere_param_list.clear();
-        //Log::Debug("Rune::Reset()");
     }
 
-    double delay; //理论延迟和追踪延迟之和
+    // 相机信息订阅者
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
+    // 相机中心
+    cv::Point2f cam_center_;
+    // 相机信息
+    std::shared_ptr<sensor_msgs::msg::CameraInfo> cam_info_;
+    // PnP 解算器
+    std::unique_ptr<PnPSolver> pnp_solver_;
+
+    double delay;      //理论延迟和追踪延迟之和
     double chasedelay; //追踪延迟 从launch参数给定
     std::shared_ptr<rclcpp::ParameterEventHandler> chasedelay_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> chasedelay_cb_handle_;
 
     // rclcpp::Time delay;//理论延迟和追踪延迟之和
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差
-    double rotate_angle; //预测符叶旋转角度
-    cv::Point2f leaf_dir; //这一帧符叶向量
+    double rotate_angle;                                 //预测符叶旋转角度
+    cv::Point2f leaf_dir;                                //这一帧符叶向量
 
     double cere_rotated_angle;
-    rclcpp::Time t_zero; //时间起点
-    // std_msgs::msg::Header t_zero;//用于记录时间起点
+    rclcpp::Time t_zero;                           //时间起点
     RingBufferStatistic<double, 1 << 3> angles {}; //符叶角度
     RingBufferStatistic<double, 1 << 3> speeds {}; //角速度
-    Statistic<double> radius; //符叶半径
-    Statistic<double> speed; //符叶角速度
+    Statistic<double> radius;                      //符叶半径
+    Statistic<double> speed;                       //符叶角速度
 
-    std::shared_ptr<Coordinate> coordinate; //坐标系转换类
+    // std::shared_ptr<Coordinate> coordinate; //坐标系转换类
     std::unique_ptr<Tracker> tracker_; //ukf滤波器
 
     bool finish_fitting; //完成拟合的标志
 
     int count_cere;
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
-    double a_omega_phi_b[4]; //拟合的参数
-    ceres::Solver::Options options; //解决方案的配置
-    ceres::Solver::Summary summary; //拟合的信息
-    Timestamp fitting_start, fitting_end; //记录拟合的用时
+    double a_omega_phi_b[4];               //拟合的参数
+    ceres::Solver::Options options;        //解决方案的配置
+    ceres::Solver::Summary summary;        //拟合的信息
 
     double pred_angle; //预测角度
 
-    auto_aim_interfaces::msg::Rune::SharedPtr data; //当前帧的数据
+    auto_aim_interfaces::msg::Rune::SharedPtr data;      //当前帧的数据
     auto_aim_interfaces::msg::Rune::SharedPtr data_last; //上一帧的数据
 
     std::ofstream omega_file;
     std::ofstream omega_time;
     std::ofstream origin_omega_file;
     std::ofstream origin_omega_time;
-    std::ofstream error_file;
-    std::ofstream error_time; //用于记录拟合的误差
 
     message_filters::Subscriber<auto_aim_interfaces::msg::Rune> runes_sub_;
-    std::string target_frame_; // TODO: ???
-    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_; // tf2 缓冲区
+    std::string target_frame_;                                 // TODO: ???
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;              // tf2 缓冲区
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
     std::shared_ptr<tf2_filter> tf2_filter_;
 
     rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr
-        target_pub; //向shooter节点发送数据
+        target_pub;                                  //向shooter节点发送数据
     auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
 
     //-----------------------------------------------------------------------------以下是装甲板部分的变量 与符无关

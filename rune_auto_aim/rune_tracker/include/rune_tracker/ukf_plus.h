@@ -9,7 +9,7 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
 
-class UKF_PLUS : public Filter {
+class UKF_PLUS: public Filter {
 public:
     ///* predicted sigma points matrix
     MatrixXd Xsig_pred_;
@@ -25,8 +25,7 @@ public:
 
     virtual ~UKF_PLUS();
 
-    void Init(bool verbose = false, bool use_laser = true, bool use_radar = true,
-              double std_a = 2.0, double std_yawdd = 0.5);
+    void Init(bool verbose = false, bool use_laser = true, bool use_radar = true, double std_a = 2.0, double std_yawdd = 0.5);
 
     void Clear();
     /**

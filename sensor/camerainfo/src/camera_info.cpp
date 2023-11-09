@@ -16,11 +16,11 @@ CameraInfoNode::CameraInfoNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
     std::copy(camera_matrix_.begin(), camera_matrix_.end(), camera_info_.k.data()); //相机内参
-    camera_info_.d = distortion_coefficients_; //相机畸变矩阵
+    camera_info_.d = distortion_coefficients_;                                      //相机畸变矩阵
 
     auto t = this->now();
 
-    while (this->now() - t < rclcpp::Duration(3, 0)) {
+    while (this->now() - t < rclcpp::Duration(1, 0)) {
         camera_info_pub_->publish(camera_info_);
     }
 }

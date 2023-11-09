@@ -130,7 +130,7 @@ void UKF_PLUS::ProcessMeasurement(MeasurementPackage meas_package) {
     timestep_++;
 
     //如果没有卡尔曼输入时间间隔过长，则直接用当前测量值初始化
-    if (!is_initialized_ || dt > 0.2) {
+    if (!is_initialized_ || dt > 0.10) {
         if ((meas_package.sensor_type_ == MeasurementPackage::LASER) && use_laser_) {
             // Initialize state by lidar measurement.
             if (verbose_)
@@ -143,7 +143,6 @@ void UKF_PLUS::ProcessMeasurement(MeasurementPackage meas_package) {
             yaw = 0.0;
             yawd = 0.0;
             x_ << px, py, v, yaw, yawd;
-
             // done initializing, no need to predict or update
             is_initialized_ = true;
         }
