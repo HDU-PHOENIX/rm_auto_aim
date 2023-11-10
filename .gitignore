@@ -4,3 +4,4 @@ log
 .cache
 Camera
 .vscode
+record/*.txt

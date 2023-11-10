@@ -6,7 +6,9 @@
 
 namespace sensor {
 
-MindVision::MindVision(): i_camera_counts(1), i_status(-1) {
+MindVision::MindVision():
+    i_camera_counts(1),
+    i_status(-1) {
     // 相机 SDK 初始化
     CameraSdkInit(1);
 

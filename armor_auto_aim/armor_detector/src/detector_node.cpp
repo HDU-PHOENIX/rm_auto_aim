@@ -62,6 +62,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     // Debug 信息发布者
     debug_ = this->declare_parameter("debug", false);
+    send_default_armor_ = this->declare_parameter("send_default_armor", false);
     if (debug_) {
         CreateDebugPublishers();
     }
@@ -141,14 +142,10 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             }
         }
 
-        if (debug_ && armors_msg_.armors.empty()) {
-            // 发布默认装甲板消息
-            RCLCPP_DEBUG(this->get_logger(), "No armor found");
+        if (debug_ && send_default_armor_ && armors_msg_.armors.empty()) {
             default_armors_msg_.header = img_msg->header;
             armors_pub_->publish(default_armors_msg_);
-        } else if (auto&& number_of_armor = armors_msg_.armors.size()) {
-            // 发布已识别到的装甲板的信息
-            RCLCPP_DEBUG(this->get_logger(), "Find %zu armors", number_of_armor);
+        } else if (armors_msg_.armors.size() > 0) {
             armors_pub_->publish(armors_msg_);
         }
 

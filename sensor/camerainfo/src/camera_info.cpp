@@ -3,24 +3,20 @@
 namespace camerainfo {
 CameraInfoNode::CameraInfoNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("camera_info", options) {
-    this->declare_parameter("camera_matrix",
-                            rclcpp::PARAMETER_DOUBLE_ARRAY); //相机内参
-    this->declare_parameter("distortion",
-                            rclcpp::PARAMETER_DOUBLE_ARRAY); //相机内参
-    this->get_parameter("camera_matrix",
-                        camera_matrix_); //相机内参
-    this->get_parameter("distortion",
-                        distortion_coefficients_); //相机畸变矩阵
+    this->declare_parameter("camera_matrix", rclcpp::PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter("distortion", rclcpp::PARAMETER_DOUBLE_ARRAY);
+    this->get_parameter("camera_matrix", camera_matrix_);
+    this->get_parameter("distortion", distortion_coefficients_);
+
     camera_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
         "/camera_info",
         rclcpp::SensorDataQoS()
     );
-    std::copy(camera_matrix_.begin(), camera_matrix_.end(), camera_info_.k.data()); //相机内参
-    camera_info_.d = distortion_coefficients_;                                      //相机畸变矩阵
+    std::copy(camera_matrix_.begin(), camera_matrix_.end(), camera_info_.k.data());
+    camera_info_.d = distortion_coefficients_;
 
-    auto t = this->now();
-
-    while (this->now() - t < rclcpp::Duration(1, 0)) {
+    auto&& temp_time = this->now();
+    while (this->now() - temp_time < rclcpp::Duration(3, 0)) {
         camera_info_pub_->publish(camera_info_);
     }
 }

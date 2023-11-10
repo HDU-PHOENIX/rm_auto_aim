@@ -27,11 +27,6 @@ public:
      */
     void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
-    /**
-     * @brief 初始化参数服务器,参数服务器用于存储下位机的默认数据和串口信息
-     */
-    void InitParameter();
-
 private:
     /**
      * @brief 初始化下位机串口

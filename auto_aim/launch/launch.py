@@ -32,16 +32,8 @@ def generate_launch_description():
                     plugin='sensor::SerialNode',
                     name="serial_node",
                     parameters=[
-                        {'baud_rate':115200},
-                        {'device_name' : "/dev/ttyACM0"},
-                        {'default_data_recv_start':115},
-                        {'default_data_recv_color':114},
-                        {'default_data_recv_mode':114}, # r:114 a:97
-                        {'default_data_recv_speed':20.0},
-                        {'default_data_recv_euler':[0.0,0.0,0.0]},
-                        {'default_data_recv_shootbool':0},
-                        {'default_data_recv_runeflag':0},
-                        {'default_data_recv_end':101},
+                        {'default_data_recv_mode':97}, # r:114 a:97
+                        {'default_data_recv_euler':[0.2, 0.0, 0.2]},
                     ],
                     extra_arguments=[{"use_intra_process_comms": True}]
                 ),
@@ -51,7 +43,8 @@ def generate_launch_description():
                     name='armor_detector_node',
                     extra_arguments=[{"use_intra_process_comms": True}],
                     parameters=[
-                        {'debug': True}
+                        {'debug': True},
+                        {'send_default_armor': True}
                     ]
                 ),
                 ComposableNode(

@@ -97,6 +97,7 @@ private:
 
     // Debug information
     bool debug_;
+    bool send_default_armor_;
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
     rclcpp::Publisher<auto_aim_interfaces::msg::DebugLights>::SharedPtr lights_data_pub_;
