@@ -7,10 +7,14 @@
   <maintainer email="2534732180@qq.com">pantao</maintainer>
   <license>TODO: License declaration</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+    <!-- buildtool_depend: dependencies of the build process -->
+    <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+    <!-- depend: build, export, and execution dependency -->
+    <depend>rclcpp</depend>
+    <depend>rclcpp_components</depend>
+    <depend>auto_aim_interfaces</depend>
+    <depend>eigen</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

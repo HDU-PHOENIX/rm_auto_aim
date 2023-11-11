@@ -117,7 +117,17 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 cv::Mat rotation_matrix;
                 cv::Rodrigues(rvec, rotation_matrix);
                 // tf2 旋转矩阵
-                tf2::Matrix3x3 tf2_rotation_matrix(rotation_matrix.at<double>(0, 0), rotation_matrix.at<double>(0, 1), rotation_matrix.at<double>(0, 2), rotation_matrix.at<double>(1, 0), rotation_matrix.at<double>(1, 1), rotation_matrix.at<double>(1, 2), rotation_matrix.at<double>(2, 0), rotation_matrix.at<double>(2, 1), rotation_matrix.at<double>(2, 2));
+                tf2::Matrix3x3 tf2_rotation_matrix(
+                    rotation_matrix.at<double>(0, 0),
+                    rotation_matrix.at<double>(0, 1),
+                    rotation_matrix.at<double>(0, 2),
+                    rotation_matrix.at<double>(1, 0),
+                    rotation_matrix.at<double>(1, 1),
+                    rotation_matrix.at<double>(1, 2),
+                    rotation_matrix.at<double>(2, 0),
+                    rotation_matrix.at<double>(2, 1),
+                    rotation_matrix.at<double>(2, 2)
+                );
                 // 旋转矩阵 to 四元数
                 tf2::Quaternion tf2_q;
                 tf2_rotation_matrix.getRotation(tf2_q);
@@ -146,6 +156,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             default_armors_msg_.header = img_msg->header;
             armors_pub_->publish(default_armors_msg_);
         } else if (armors_msg_.armors.size() > 0) {
+            RCLCPP_INFO(this->get_logger(), "Find %zu armors!", armors_msg_.armors.size());
             armors_pub_->publish(armors_msg_);
         }
 
@@ -282,8 +293,8 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
 }
 
 void ArmorDetectorNode::PublishMarkers() {
-    using Marker = visualization_msgs::msg::Marker;
-    armor_marker_.action = armors_msg_.armors.empty() ? Marker::DELETE : Marker::ADD;
+    // using Marker = visualization_msgs::msg::Marker;
+    // armor_marker_.action = armors_msg_.armors.empty() ? Marker::DELETE : Marker::ADD;
     marker_array_.markers.emplace_back(armor_marker_);
     marker_pub_->publish(marker_array_);
 }

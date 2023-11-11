@@ -13,7 +13,7 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options):
     this->serial_info_pub_ =
         create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", rclcpp::SensorDataQoS());
     this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
-        "/target_info",
+        "/shooter_info",
         rclcpp::SensorDataQoS(),
         std::bind(&SerialNode::SerialInfoCallback, this, std::placeholders::_1)
     );
