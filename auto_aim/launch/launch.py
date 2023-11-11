@@ -62,12 +62,12 @@ def generate_launch_description():
                         {'debug': True},
                     ]
                 ),
-                # ComposableNode(
-                #     package='rune_tracker',
-                #     plugin='rune::RuneTrackerNode',
-                #     name='rune_tracker_node',
-                #     extra_arguments=[{"use_intra_process_comms": True}]
-                # ),
+                ComposableNode(
+                    package='rune_tracker',
+                    plugin='rune::RuneTrackerNode',
+                    name='rune_tracker_node',
+                    extra_arguments=[{"use_intra_process_comms": True}]
+                ),
                 ComposableNode(
                     package='camerainfo',
                     plugin='camerainfo::CameraInfoNode',

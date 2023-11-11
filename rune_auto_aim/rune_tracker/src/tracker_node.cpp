@@ -1,5 +1,6 @@
 // Copyright 2023 wangchi
 #include "rune_tracker/tracker_node.hpp"
+#include <rclcpp/logging.hpp>
 
 namespace rune {
 // RuneTrackerNode类的构造函数
@@ -36,6 +37,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
         cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
         pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
+        // RCLCPP_INFO(this->get_logger(), "camera_info received");
         cam_info_sub_.reset();
     });
     // 重置追踪器服务
@@ -113,7 +115,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     armor_marker_.scale.z = 0.125;
     armor_marker_.color.a = 1.0;
     armor_marker_.color.r = 1.0;
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
 }
 
 bool RuneTrackerNode::Judge() {
@@ -409,9 +411,9 @@ RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, doub
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
     data = rune_ptr;
-    auto&& theory_delay = data->pose_c.position.z / 27;
+    auto&& theory_delay = data->pose_c.position.z / 25;
     delay = theory_delay + chasedelay;
-    runes_msg_.speed = 27;
+    runes_msg_.speed = 25;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
     RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
@@ -455,9 +457,10 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     std::vector<cv::Point2d> rotate_armors;             //旋转后的装甲板坐标
     cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
     for (int i = 0; i < 4; i++) {
-        rotate_armors.emplace_back(cv::Point2d(data->rune_points[i].x, data->rune_points[i].y));
+        rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
     }
-    for (auto&& vertex: rotate_armors) { //将关键点以圆心旋转rotate_angle
+    for (auto&& vertex: rotate_armors) {
+        //将关键点以圆心旋转rotate_angle 得到预测点
         vertex = Rotate(vertex, symbol, rotate_angle);
     }
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
@@ -492,6 +495,7 @@ void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget&
     // linear_v_marker_.header = target_msg.header;
     // angular_v_marker_.header = target_msg.header;
     armor_marker_.header = target_msg.header;
+    RCLCPP_INFO(this->get_logger(), "data frame id %s", armor_marker_.header.frame_id.c_str());
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.id = 0;
     armor_marker_.pose.position.x = target_msg.pc.position.x;
@@ -500,7 +504,7 @@ void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget&
 
     visualization_msgs::msg::MarkerArray marker_array;
 
-    marker_array.markers.emplace_back(position_marker_);
+    marker_array.markers.emplace_back(armor_marker_);
     // marker_array.markers.emplace_back(linear_v_marker_);
     // marker_array.markers.emplace_back(angular_v_marker_);
     marker_pub_->publish(marker_array);
