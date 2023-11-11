@@ -32,7 +32,7 @@ def generate_launch_description():
                     plugin='sensor::SerialNode',
                     name="serial_node",
                     parameters=[
-                        {'default_data_recv_mode':97}, # r:114 a:97
+                        {'default_data_recv_mode':114}, # r:114 a:97
                         {'default_data_recv_euler':[0.2, 0.0, 0.2]},
                     ],
                     extra_arguments=[{"use_intra_process_comms": True}]
@@ -57,14 +57,17 @@ def generate_launch_description():
                     package='rune_detector',
                     plugin='rune::RuneDetectorNode',
                     name='rune_detector_node',
-                    extra_arguments=[{"use_intra_process_comms": True}]
+                    extra_arguments=[{"use_intra_process_comms": True}],
+                    parameters=[
+                        {'debug': True},
+                    ]
                 ),
-                ComposableNode(
-                    package='rune_tracker',
-                    plugin='rune::RuneTrackerNode',
-                    name='rune_tracker_node',
-                    extra_arguments=[{"use_intra_process_comms": True}]
-                ),
+                # ComposableNode(
+                #     package='rune_tracker',
+                #     plugin='rune::RuneTrackerNode',
+                #     name='rune_tracker_node',
+                #     extra_arguments=[{"use_intra_process_comms": True}]
+                # ),
                 ComposableNode(
                     package='camerainfo',
                     plugin='camerainfo::CameraInfoNode',

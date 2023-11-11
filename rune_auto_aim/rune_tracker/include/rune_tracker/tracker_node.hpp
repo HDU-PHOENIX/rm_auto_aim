@@ -135,15 +135,12 @@ private:
         speed.Clear();
         speeds.Clear();
         angles.Clear();
-
-        // data_enough = false;
-        // quality_guaranteed = false;
-        // curve_done = false;
-
         tracker_->ukf->Clear();
-
         cere_param_list.clear();
     }
+
+    // 发布标记点函数
+    void publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
 
     // 相机信息订阅者
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
@@ -192,6 +189,7 @@ private:
     std::ofstream origin_omega_file;
     std::ofstream origin_omega_time;
 
+    //使用tf2_ros::MessageFilter对自动瞄准接口的Rune消息进行过滤
     message_filters::Subscriber<auto_aim_interfaces::msg::Rune> runes_sub_;
     std::string target_frame_;                                 // TODO: ???
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;              // tf2 缓冲区
@@ -202,33 +200,19 @@ private:
         target_pub;                                  //向shooter节点发送数据
     auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
 
-    //-----------------------------------------------------------------------------以下是装甲板部分的变量 与符无关
-    // 发布标记点函数
-    //   void publishMarkers(const auto_aim_interfaces::msg::Target & target_msg);
-
     //   // 上次接收消息的时间
     //   rclcpp::Time last_time_;
     //   double dt_;
 
-    //   // 使用tf2消息过滤器的订阅器
-    //   std::string target_frame_;
-    //   std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
-    //   std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
-    //   message_filters::Subscriber<auto_aim_interfaces::msg::Rune> armors_sub_;
-    //   std::shared_ptr<tf2_filter> tf2_filter_;
-
     //   // 追踪器信息发布器
     //   rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
 
-    //   // 发布器
-    //   rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_;
-
-    //   // 可视化标记发布器
-    //   visualization_msgs::msg::Marker position_marker_;
-    //   visualization_msgs::msg::Marker linear_v_marker_;
-    //   visualization_msgs::msg::Marker angular_v_marker_;
-    //   visualization_msgs::msg::Marker armor_marker_;
-    //   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+    // 可视化标记发布器
+    visualization_msgs::msg::Marker position_marker_;
+    visualization_msgs::msg::Marker linear_v_marker_;
+    visualization_msgs::msg::Marker angular_v_marker_;
+    visualization_msgs::msg::Marker armor_marker_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 };
 
 } // namespace rune

@@ -85,41 +85,35 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         }
     }
 
-    //   // 测量发布器（用于调试）
-    //   info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
-
-    //   // 发布器
-    //   target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>(
-    //     "/tracker/target", rclcpp::SensorDataQoS());
-
-    //   // 可视化标记发布器
-    //   // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
-    //   position_marker_.ns = "position";
-    //   position_marker_.type = visualization_msgs::msg::Marker::SPHERE;
-    //   position_marker_.scale.x = position_marker_.scale.y = position_marker_.scale.z = 0.1;
-    //   position_marker_.color.a = 1.0;
-    //   position_marker_.color.g = 1.0;
-    //   linear_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
-    //   linear_v_marker_.ns = "linear_v";
-    //   linear_v_marker_.scale.x = 0.03;
-    //   linear_v_marker_.scale.y = 0.05;
-    //   linear_v_marker_.color.a = 1.0;
-    //   linear_v_marker_.color.r = 1.0;
-    //   linear_v_marker_.color.g = 1.0;
-    //   angular_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
-    //   angular_v_marker_.ns = "angular_v";
-    //   angular_v_marker_.scale.x = 0.03;
-    //   angular_v_marker_.scale.y = 0.05;
-    //   angular_v_marker_.color.a = 1.0;
-    //   angular_v_marker_.color.b = 1.0;
-    //   angular_v_marker_.color.g = 1.0;
-    //   armor_marker_.ns = "armors";
-    //   armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
-    //   armor_marker_.scale.x = 0.03;
-    //   armor_marker_.scale.z = 0.125;
-    //   armor_marker_.color.a = 1.0;
-    //   armor_marker_.color.r = 1.0;
-    //   marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
+    // 可视化标记发布器
+    // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
+    position_marker_.ns = "position";
+    position_marker_.type = visualization_msgs::msg::Marker::SPHERE;
+    position_marker_.scale.x = position_marker_.scale.y = position_marker_.scale.z = 0.1;
+    position_marker_.color.a = 1.0;
+    position_marker_.color.g = 1.0;
+    linear_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
+    linear_v_marker_.ns = "linear_v";
+    linear_v_marker_.scale.x = 0.03;
+    linear_v_marker_.scale.y = 0.05;
+    linear_v_marker_.color.a = 1.0;
+    linear_v_marker_.color.r = 1.0;
+    linear_v_marker_.color.g = 1.0;
+    angular_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
+    angular_v_marker_.ns = "angular_v";
+    angular_v_marker_.scale.x = 0.03;
+    angular_v_marker_.scale.y = 0.05;
+    angular_v_marker_.color.a = 1.0;
+    angular_v_marker_.color.b = 1.0;
+    angular_v_marker_.color.g = 1.0;
+    armor_marker_.ns = "armors";
+    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
+    armor_marker_.scale.x = 0.03; //TODO:x,y,z值还需修改
+    armor_marker_.scale.y = 0.23;
+    armor_marker_.scale.z = 0.125;
+    armor_marker_.color.a = 1.0;
+    armor_marker_.color.r = 1.0;
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
 }
 
 bool RuneTrackerNode::Judge() {
@@ -417,6 +411,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     data = rune_ptr;
     auto&& theory_delay = data->pose_c.position.z / 27;
     delay = theory_delay + chasedelay;
+    runes_msg_.speed = 27;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
     RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
@@ -455,9 +450,9 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     FittingBig();                    //拟合大符
     Fitting();                       //拟合小符
     RCLCPP_INFO(this->get_logger(), "rotate_angle is %f", rotate_angle);
-    data_last = data;             //记录上一帧的数据
-    leaf_angle_last = leaf_angle; //记录上一帧的角度
-    std::vector<cv::Point2d> rotate_armors;
+    data_last = data;                                   //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                       //记录上一帧的角度
+    std::vector<cv::Point2d> rotate_armors;             //旋转后的装甲板坐标
     cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(cv::Point2d(data->rune_points[i].x, data->rune_points[i].y));
@@ -465,105 +460,51 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     for (auto&& vertex: rotate_armors) { //将关键点以圆心旋转rotate_angle
         vertex = Rotate(vertex, symbol, rotate_angle);
     }
-    cv::Mat rvec, tvec;
-    //获取旋转之后的相机坐标系下的坐标
+    cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
     if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec)) {
     } else {
         RCLCPP_INFO(this->get_logger(), "rune_tracker solve pnp failed");
     }
-    // geometry_msgs::msg::PoseStamped ps;
-    // ps.header = data->header;
-    // ps.pose = data->pose_c; //装甲板在相机坐标系下的位置
-    // try {
-    //     // 将装甲板位置从 相机坐标系 转换到 gimble（目标坐标系）
-    //     // 此后装甲板信息中的 armor.pose 为装甲板在 gimble 系中的位置
-    //     ps.pose = tf2_buffer_->transform(ps, target_frame_).pose;
-    // } catch (const tf2::ExtrapolationException& ex) {
-    //     RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
-    //     return;
-    // }
-    // runes_msg_.pw.position.x = pw[0];
-    // runes_msg_.pw.position.y = pw[1];
-    // runes_msg_.pw.position.z = pw[2];
+    geometry_msgs::msg::PoseStamped ps;
+    ps.header = data->header;
+    geometry_msgs::msg::Point p_a;
+    p_a.x = runes_msg_.pc.position.x = tvec.at<double>(0);
+    p_a.y = runes_msg_.pc.position.y = tvec.at<double>(1);
+    p_a.z = runes_msg_.pc.position.z = tvec.at<double>(2);
+    ps.pose.position = p_a; //旋转后的装甲板在相机坐标系下的位置
+    try {
+        // 将装甲板位置从 相机坐标系 转换到 gimble（目标坐标系）
+        // 此后装甲板信息中的 armor.pose 为装甲板在 gimble 系中的位置
+        ps.pose = tf2_buffer_->transform(ps, target_frame_).pose;
+    } catch (const tf2::ExtrapolationException& ex) {
+        RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
+        return;
+    }
+    runes_msg_.pw.position.x = ps.pose.position.x;
+    runes_msg_.pw.position.y = ps.pose.position.y;
+    runes_msg_.pw.position.z = ps.pose.position.z;
     target_pub->publish(runes_msg_);
+    publishMarkers(runes_msg_);
 }
 
-// void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::Target & target_msg)
-// {
-//   position_marker_.header = target_msg.header;
-//   linear_v_marker_.header = target_msg.header;
-//   angular_v_marker_.header = target_msg.header;
-//   armor_marker_.header = target_msg.header;
+void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
+    // position_marker_.header = target_msg.header;
+    // linear_v_marker_.header = target_msg.header;
+    // angular_v_marker_.header = target_msg.header;
+    armor_marker_.header = target_msg.header;
+    armor_marker_.action = visualization_msgs::msg::Marker::ADD;
+    armor_marker_.id = 0;
+    armor_marker_.pose.position.x = target_msg.pc.position.x;
+    armor_marker_.pose.position.y = target_msg.pc.position.y;
+    armor_marker_.pose.position.z = target_msg.pc.position.z;
 
-//   visualization_msgs::msg::MarkerArray marker_array;
-//   if (target_msg.tracking) {
-//     double yaw = target_msg.yaw, r1 = target_msg.radius_1, r2 = target_msg.radius_2;
-//     double xc = target_msg.position.x, yc = target_msg.position.y, za = target_msg.position.z;
-//     double vx = target_msg.velocity.x, vy = target_msg.velocity.y, vz = target_msg.velocity.z;
-//     double dz = target_msg.dz;
+    visualization_msgs::msg::MarkerArray marker_array;
 
-//     position_marker_.action = visualization_msgs::msg::Marker::ADD;
-//     position_marker_.pose.position.x = xc;
-//     position_marker_.pose.position.y = yc;
-//     position_marker_.pose.position.z = za + dz / 2;
-
-//     linear_v_marker_.action = visualization_msgs::msg::Marker::ADD;
-//     linear_v_marker_.points.clear();
-//     linear_v_marker_.points.emplace_back(position_marker_.pose.position);
-//     geometry_msgs::msg::Point arrow_end = position_marker_.pose.position;
-//     arrow_end.x += vx;
-//     arrow_end.y += vy;
-//     arrow_end.z += vz;
-//     linear_v_marker_.points.emplace_back(arrow_end);
-
-//     angular_v_marker_.action = visualization_msgs::msg::Marker::ADD;
-//     angular_v_marker_.points.clear();
-//     angular_v_marker_.points.emplace_back(position_marker_.pose.position);
-//     arrow_end = position_marker_.pose.position;
-//     arrow_end.z += target_msg.v_yaw / M_PI;
-//     angular_v_marker_.points.emplace_back(arrow_end);
-
-//     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
-//     armor_marker_.scale.y = tracker_->tracked_armor.type == "small" ? 0.135 : 0.23;
-//     bool is_current_pair = true;
-//     size_t a_n = target_msg.armors_num;
-//     geometry_msgs::msg::Point p_a;
-//     double r = 0;
-//     for (size_t i = 0; i < a_n; i++) {
-//       double tmp_yaw = yaw + i * (2 * M_PI / a_n);
-//       // 只有4个装甲板有2个半径和高度
-//       if (a_n == 4) {
-//         r = is_current_pair ? r1 : r2;
-//         p_a.z = za + (is_current_pair ? 0 : dz);
-//         is_current_pair = !is_current_pair;
-//       } else {
-//         r = r1;
-//         p_a.z = za;
-//       }
-//       p_a.x = xc - r * cos(tmp_yaw);
-//       p_a.y = yc - r * sin(tmp_yaw);
-
-//       armor_marker_.id = i;
-//       armor_marker_.pose.position = p_a;
-//       tf2::Quaternion q;
-//       q.setRPY(0, target_msg.id == "outpost" ? -0.26 : 0.26, tmp_yaw);
-//       armor_marker_.pose.orientation = tf2::toMsg(q);
-//       marker_array.markers.emplace_back(armor_marker_);
-//     }
-//   } else {
-//     position_marker_.action = visualization_msgs::msg::Marker::DELETE;
-//     linear_v_marker_.action = visualization_msgs::msg::Marker::DELETE;
-//     angular_v_marker_.action = visualization_msgs::msg::Marker::DELETE;
-
-//     armor_marker_.action = visualization_msgs::msg::Marker::DELETE;
-//     marker_array.markers.emplace_back(armor_marker_);
-//   }
-
-//   marker_array.markers.emplace_back(position_marker_);
-//   marker_array.markers.emplace_back(linear_v_marker_);
-//   marker_array.markers.emplace_back(angular_v_marker_);
-//   marker_pub_->publish(marker_array);
-// }
+    marker_array.markers.emplace_back(position_marker_);
+    // marker_array.markers.emplace_back(linear_v_marker_);
+    // marker_array.markers.emplace_back(angular_v_marker_);
+    marker_pub_->publish(marker_array);
+}
 
 } // namespace rune
 

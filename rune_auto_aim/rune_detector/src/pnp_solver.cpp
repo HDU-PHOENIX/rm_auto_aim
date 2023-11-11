@@ -65,7 +65,7 @@ bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat&
         rvec,
         tvec,
         false,
-        cv::SOLVEPNP_IPPE
+        cv::SOLVEPNP_IPPE_SQUARE
     );
 }
 
