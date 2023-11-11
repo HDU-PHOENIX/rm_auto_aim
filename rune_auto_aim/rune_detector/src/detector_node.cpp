@@ -46,7 +46,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
 
     // Visualization Marker Publisher
     // See http://wiki.ros.org/rviz/DisplayTypes/Marker
-    rune_marker_.ns = "rune";
+    rune_marker_.ns = "armors";
     rune_marker_.action = visualization_msgs::msg::Marker::ADD;
     rune_marker_.type = visualization_msgs::msg::Marker::CUBE;
     rune_marker_.scale.x = 0.05;
@@ -57,7 +57,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rune_marker_.color.b = 1.0;
     rune_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
 
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_detector/marker", 10);
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
 
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
@@ -76,10 +76,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     detector_->detect(img, objects_); // 把神符识别结果放到objects_里面
 
-    runes_msg_.header = rune_marker_.header = text_marker_.header = img_msg->header;
-    marker_array_.markers.clear();
+    runes_msg_.header = rune_marker_.header = img_msg->header;
+
     rune_marker_.id = 0;
-    text_marker_.id = 0;
     // RuneClass cls; // 符叶枚举类对象 用于标记符叶的种类
     bool flag1 = false, flag2 = false;     //bool flag3 = false;
     cv::Point2f symbol;                    // 符叶R标的位置
@@ -226,13 +225,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             runes_msg_.find = true; // 找到符叶
 
             // Fill the markers
+            rune_marker_.header.frame_id = "camera";
             rune_marker_.id++;
             rune_marker_.pose = runes_msg_.pose_c;
-            text_marker_.id++;
-            text_marker_.pose.position = runes_msg_.pose_c.position;
-            text_marker_.pose.position.y -= 0.1;
-            marker_array_.markers.emplace_back(rune_marker_);
-            marker_array_.markers.emplace_back(text_marker_);
             return true;
         }
     } else {
@@ -258,20 +253,16 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     runes_msg_.motion = 2;
     runes_msg_.pose_c.position.x = 0;
     runes_msg_.pose_c.position.y = 0;
-    runes_msg_.pose_c.position.z = 8;
+    runes_msg_.pose_c.position.z = 0;
     runes_msg_.leaf_dir.x = 0;
     runes_msg_.leaf_dir.y = 0; // 符叶向量
     runes_msg_.symbol.x = 0;   // R标位置 图像左上角为原点
     runes_msg_.symbol.y = 0;   // R标位置 图像左上角为原点
     runes_msg_.header.frame_id = "camera";
     // Fill the markers
-    rune_marker_.id++;
+    // rune_marker_.id++;
+    rune_marker_.header.frame_id = "camera";
     rune_marker_.pose = runes_msg_.pose_c;
-    text_marker_.id++;
-    text_marker_.pose.position = runes_msg_.pose_c.position;
-    text_marker_.pose.position.y -= 0.1;
-    marker_array_.markers.emplace_back(rune_marker_);
-    marker_array_.markers.emplace_back(text_marker_);
     PublishMarkers();                // 发布标记
     runes_pub_->publish(runes_msg_); // 发布神符信息
 }
@@ -279,8 +270,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
 void RuneDetectorNode::PublishMarkers() {
     using Marker = visualization_msgs::msg::Marker;
     rune_marker_.action = Marker::ADD;
-    marker_array_.markers.emplace_back(rune_marker_);
-    marker_pub_->publish(marker_array_);
+    marker_pub_->publish(rune_marker_);
 }
 
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {

@@ -75,10 +75,9 @@ private:
 
     // 用于视化的标记信息
     visualization_msgs::msg::Marker rune_marker_;
-    visualization_msgs::msg::Marker text_marker_;
-    visualization_msgs::msg::MarkerArray marker_array_;
+
     // 可视化标记发布者
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
 
     // 相机信息订阅者
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
