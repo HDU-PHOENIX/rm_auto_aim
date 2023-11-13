@@ -167,7 +167,7 @@ bool RuneTrackerNode::FittingBig() {
         RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
         // return false;
     }
-    RCLCPP_INFO(this->get_logger(), "cere_param_list.size() is %ld", cere_param_list.size());
+    // RCLCPP_INFO(this->get_logger(), "cere_param_list.size() is %ld", cere_param_list.size());
     if (cere_param_list.size() < 100) { //数据队列设为100个，数据队列未满
         auto&& theta = leaf_angle;      //观测到这一帧符叶的角度
 
@@ -461,7 +461,9 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     }
     for (auto&& vertex: rotate_armors) {
         //将关键点以圆心旋转rotate_angle 得到预测点
+        RCLCPP_INFO(this->get_logger(), "before rotate  %f,%f", vertex.x, vertex.y);
         vertex = Rotate(vertex, symbol, rotate_angle);
+        RCLCPP_INFO(this->get_logger(), "after rotate  %f,%f", vertex.x, vertex.y);
     }
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
     if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec)) {
@@ -483,6 +485,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
         return;
     }
+    RCLCPP_INFO(this->get_logger(), "armor position is %f %f %f", p_a.x, p_a.y, p_a.z);
     runes_msg_.pw.position.x = ps.pose.position.x;
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
@@ -495,7 +498,7 @@ void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget&
     // linear_v_marker_.header = target_msg.header;
     // angular_v_marker_.header = target_msg.header;
     armor_marker_.header = target_msg.header;
-    RCLCPP_INFO(this->get_logger(), "data frame id %s", armor_marker_.header.frame_id.c_str());
+    // RCLCPP_INFO(this->get_logger(), "data frame id %s", armor_marker_.header.frame_id.c_str());
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.id = 0;
     armor_marker_.pose.position.x = target_msg.pc.position.x;

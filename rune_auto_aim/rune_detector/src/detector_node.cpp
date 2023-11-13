@@ -262,14 +262,14 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     // Fill the markers
     rune_marker_.header.frame_id = "camera";
     rune_marker_.pose = runes_msg_.pose_c;
-    runes_msg_.rune_points[0].x = 1;
-    runes_msg_.rune_points[0].y = 1;
-    runes_msg_.rune_points[1].x = 1;
-    runes_msg_.rune_points[1].y = 2;
-    runes_msg_.rune_points[2].x = 2;
-    runes_msg_.rune_points[2].y = 2;
-    runes_msg_.rune_points[3].x = 2;
-    runes_msg_.rune_points[3].y = 1;
+    runes_msg_.rune_points[0].x = 100;
+    runes_msg_.rune_points[0].y = 100;
+    runes_msg_.rune_points[1].x = 100;
+    runes_msg_.rune_points[1].y = 200;
+    runes_msg_.rune_points[2].x = 200;
+    runes_msg_.rune_points[2].y = 200;
+    runes_msg_.rune_points[3].x = 200;
+    runes_msg_.rune_points[3].y = 100;
     PublishMarkers();                // 发布标记
     runes_pub_->publish(runes_msg_); // 发布神符信息
 }
