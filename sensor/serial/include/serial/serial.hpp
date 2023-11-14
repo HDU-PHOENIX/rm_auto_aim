@@ -55,8 +55,8 @@ public:
         char& mode,
         double& speed,
         std::vector<double>& euler,
-        int& shootbool,
-        int& runeflag,
+        char& shootbool,
+        char& runeflag,
         char& end
     );
 

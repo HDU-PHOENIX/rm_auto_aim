@@ -105,14 +105,11 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     char default_data_recv_start = declare_parameter("default_data_recv_start", 's');
     char default_data_recv_color = declare_parameter("default_data_recv_color", 'r');
     char default_data_recv_mode = declare_parameter("default_data_recv_mode", 'a');
-    double default_data_recv_speed = declare_parameter("default_data_recv_speed", 0.0);
-    std::vector<double> default_data_recv_euler = declare_parameter("default_data_recv_euler", std::vector<double> { 0.0, 0.0, 0.0 });
-    int default_data_recv_shootbool = declare_parameter("default_data_recv_shootbool", 0);
-    int default_data_recv_runeflag = declare_parameter("default_data_recv_runeflag", 0);
+    auto default_data_recv_speed = declare_parameter("default_data_recv_speed", 0.0);
+    auto default_data_recv_euler = declare_parameter("default_data_recv_euler", std::vector<double> { 0.0, 0.0, 0.0 });
+    char default_data_recv_shootbool = declare_parameter("default_data_recv_shootbool", 0);
+    char default_data_recv_runeflag = declare_parameter("default_data_recv_runeflag", 0);
     char default_data_recv_end = declare_parameter("default_data_recv_end", 'e');
-
-    RCLCPP_INFO(this->get_logger(), "default_data_recv_mode = %c", default_data_recv_mode);
-    RCLCPP_INFO(this->get_logger(), "default_data_recv_eule = %f, %f, %f", default_data_recv_euler[0], default_data_recv_euler[1], default_data_recv_euler[2]);
 
     auto serial = std::make_unique<sensor::Serial>(
         baud_rate,

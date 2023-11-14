@@ -19,40 +19,42 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         "target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
-            auto position = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z));
-
+            auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z));
+            //TODO: 考虑做防抖处理
             auto_aim_interfaces::msg::SerialInfo serial_info;
             serial_info.start.data = 's';
             serial_info.end.data = 'e';
             serial_info.is_find.data = 1;
-            serial_info.euler[3] = position[0];
-            serial_info.euler[0] = position[1];
+            serial_info.euler[3] = yaw_and_pitch[0];
+            serial_info.euler[0] = yaw_and_pitch[1];
             serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->dz;
+            serial_info.distance = msg->dz; //TODO: 距离可能还需修改
             serial_info_pub_->publish(serial_info);
         }
     );
 }
 
 std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
-    auto gravity = declare_parameter("gravity", 9.8);
-    auto mode = declare_parameter("mode", 's');
-    auto kof_of_small = declare_parameter("kof_of_small", 0.01903);
-    auto kof_of_large = declare_parameter("kof_of_large", 0.000556);
-    auto correction_of_x = declare_parameter("correction_of_x", 0.0);
-    auto correction_of_y = declare_parameter("correction_of_y", 0.0);
-    auto stop_error = declare_parameter("stop_error", 0.0001);
-    auto velocity = declare_parameter("velocity", 0.0);
-    int r_k_iter = declare_parameter("R_K_iter", 25);
+    auto gravity = declare_parameter("gravity", 9.781);                        // 重力加速度
+    auto mode = declare_parameter("mode", 's');                                // 子弹类型
+    auto k_of_small = declare_parameter("k_of_small", 0.01903);                // 小弹丸风阻系数
+    auto k_of_big = declare_parameter("k_of_big", 0.000556);                   // 大弹丸风阻系数
+    auto k_of_light = declare_parameter("k_of_light", 0.00053);                // 荧光弹丸风阻系数
+    auto correction_of_x = declare_parameter("correction_of_x", 0.0);          // yaw轴补偿
+    auto correction_of_y = declare_parameter("correction_of_y", 0.0);          // pitch轴补偿
+    auto stop_error = declare_parameter("stop_error", 0.001);                  // 停止迭代的最小误差(单位m)
+    auto velocity = declare_parameter("velocity", 25);                         // 子弹速度
+    auto number_of_iterations = declare_parameter("number_of_iterations", 60); // 龙格库塔法求解落点的迭代次数
     return std::make_unique<Shooter>(
         gravity,
         mode,
-        kof_of_small,
-        kof_of_large,
+        k_of_small,
+        k_of_big,
+        k_of_light,
         correction_of_x,
         correction_of_y,
         stop_error,
-        r_k_iter,
+        number_of_iterations,
         velocity
     );
 }

@@ -1,10 +1,6 @@
 #include "map"
 #include <Eigen/Dense>
 
-#define SMALL 0
-#define LARGE 1
-#define LIGHT 2
-
 namespace armor {
 
 class Shooter {
@@ -12,12 +8,13 @@ public:
     explicit Shooter(
         const double& gravity,
         const char& mode,
-        const double& kof_of_small,
-        const double& kof_of_large,
+        const double& k_of_small,
+        const double& k_of_big,
+        const double& k_of_light,
         const double& correction_of_x,
         const double& correction_of_y,
         const double& stop_error,
-        const int& R_K_iter,
+        const int& number_of_iterations,
         const double& velocity
     );
     ~Shooter() = default;
@@ -32,19 +29,16 @@ public:
     Eigen::Vector2d DynamicCalcCompensate(Eigen::Vector3d xyz);
 
 private:
-    double gravity_;         //重力系数
-    double kof_;             //风阻系数
-    double kof_of_small;     //小弹丸风阻系数
-    double kof_of_large;     //大弹丸风阻系数
-    double kof_of_light;     //荧光弹丸风阻系数
-    double correction_of_x_; //yaw轴补偿
-    double correction_of_y_; //pitch轴补偿
-    double stop_error_;      //停止迭代的最小误差(单位m)
-    int R_K_iter_;           //龙格库塔法求解落点的迭代次数
-    double velocity_;        //子弹速度
-    Eigen::Vector3d orin_pw_;
-    Eigen::Vector3d shoot_pw_; //预瞄点的世界坐标下的坐标
-    Eigen::Vector3d shoot_pc_; //预瞄点的相机坐标下的坐标
-    Eigen::Vector3d shoot_pu_; //预瞄点的像素坐标下的坐标
+    double gravity_;           // 重力系数
+    double k_;                 // 风阻系数
+    double correction_of_x_;   // yaw轴补偿
+    double correction_of_y_;   // pitch轴补偿
+    double stop_error_;        // 停止迭代的最小误差(单位m)
+    int number_of_iterations_; // 龙格库塔法求解落点的迭代次数
+    double velocity_;          // 子弹速度
+    Eigen::Vector3d orin_pw_;  // 目标点的世界坐标下的坐标
+    Eigen::Vector3d shoot_pw_; // 预瞄点的世界坐标下的坐标
+    Eigen::Vector3d shoot_pc_; // 预瞄点的相机坐标下的坐标
+    Eigen::Vector3d shoot_pu_; // 预瞄点的像素坐标下的坐标
 };
 } // namespace armor

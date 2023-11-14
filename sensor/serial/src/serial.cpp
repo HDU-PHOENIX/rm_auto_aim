@@ -160,8 +160,8 @@ void Serial::SetDefaultDataRecv(
     char& mode,
     double& speed,
     std::vector<double>& euler,
-    int& shootbool,
-    int& runeflag,
+    char& shootbool,
+    char& runeflag,
     char& end
 ) {
     this->default_data_recv_.start = start;

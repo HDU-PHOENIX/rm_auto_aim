@@ -2,30 +2,44 @@
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 
+#define SMALL 's'
+#define BIG   'b'
+#define LIGHT 'l'
+
 namespace armor {
 Shooter::Shooter(
     const double& gravity,
     const char& mode,
-    const double& kof_of_small,
-    const double& kof_of_large,
+    const double& k_of_small,
+    const double& k_of_big,
+    const double& k_of_light,
     const double& correction_of_x,
     const double& correction_of_y,
     const double& stop_error,
-    const int& R_K_iter,
+    const int& number_of_iterations,
     const double& velocity
 ):
     gravity_(gravity),
-    kof_(mode == 's' ? kof_of_small : kof_of_large),
     correction_of_x_(correction_of_x),
     correction_of_y_(correction_of_y),
     stop_error_(stop_error),
-    R_K_iter_(R_K_iter),
-    velocity_(velocity) {}
+    number_of_iterations_(number_of_iterations),
+    velocity_(velocity) {
+    if (mode == SMALL) {
+        k_ = k_of_small;
+    } else if (mode == BIG) {
+        k_ = k_of_big;
+    } else if (mode == LIGHT) {
+        k_ = k_of_light;
+    } else {
+        RCLCPP_ERROR(rclcpp::get_logger("shooter_node"), "the mode is not correct, please verify your mode");
+    }
+}
 
 Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     auto max_iter = 100;
     if (velocity_ == 0) {
-        RCLCPP_ERROR(rclcpp::get_logger("shooter_node"), "the velocity_ is 0,place verify your velocity_");
+        RCLCPP_ERROR(rclcpp::get_logger("shooter_node"), "the velocity is 0,place verify your velocity_");
     }
 
     //TODO:根据陀螺仪安装位置调整距离求解方式
@@ -50,24 +64,24 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
         auto y = 0.0;
         auto p = tan(pitch_new / 180 * M_PI);
         auto u = velocity_ / sqrt(1 + pow(p, 2));
-        auto delta_x = dist_horizonal / R_K_iter_;
-        for (int j = 0; j < R_K_iter_; j++) {
-            auto k1_u = -kof_ * u * sqrt(1 + pow(p, 2));
+        auto delta_x = dist_horizonal / number_of_iterations_;
+        for (int j = 0; j < number_of_iterations_; j++) {
+            auto k1_u = -k_ * u * sqrt(1 + pow(p, 2));
             auto k1_p = -gravity_ / pow(u, 2);
             auto k1_u_sum = u + k1_u * (delta_x / 2);
             auto k1_p_sum = p + k1_p * (delta_x / 2);
 
-            auto k2_u = -kof_ * k1_u_sum * sqrt(1 + pow(k1_p_sum, 2));
+            auto k2_u = -k_ * k1_u_sum * sqrt(1 + pow(k1_p_sum, 2));
             auto k2_p = -gravity_ / pow(k1_u_sum, 2);
             auto k2_u_sum = u + k2_u * (delta_x / 2);
             auto k2_p_sum = p + k2_p * (delta_x / 2);
 
-            auto k3_u = -kof_ * k2_u_sum * sqrt(1 + pow(k2_p_sum, 2));
+            auto k3_u = -k_ * k2_u_sum * sqrt(1 + pow(k2_p_sum, 2));
             auto k3_p = -gravity_ / pow(k2_u_sum, 2);
             auto k3_u_sum = u + k3_u * (delta_x / 2);
             auto k3_p_sum = p + k3_p * (delta_x / 2);
 
-            auto k4_u = -kof_ * k3_u_sum * sqrt(1 + pow(k3_p_sum, 2));
+            auto k4_u = -k_ * k3_u_sum * sqrt(1 + pow(k3_p_sum, 2));
             auto k4_p = -gravity_ / pow(k3_u_sum, 2);
 
             u += (delta_x / 6) * (k1_u + 2 * k2_u + 2 * k3_u + k4_u);

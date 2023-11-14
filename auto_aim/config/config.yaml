@@ -5,10 +5,8 @@
 /camera_info_node:
     ros__parameters:
         camera_matrix: [
-            2045.7299044722633, 0,
-            639.91373901944, 0,
-            2041.4000138988533,
-            505.5792498148916,
+            2045.7299044722633, 0, 639.91373901944,
+            0, 2041.4000138988533, 505.5792498148916,
             0, 0, 1
         ]
         distortion: [
@@ -21,9 +19,22 @@
 
 /serial_node:
     ros__parameters:
-        default_data_recv_mode: 97 # a:97 r:114
+        default_data_recv_mode: a # a:97 r:114
         default_data_recv_euler: [0.2, 0.0, 0.2]
 
 /armor_detector_node:
     ros__parameters:
         armor_detector_node: True
+
+/armor_shooter:
+    ros__parameters:
+        gravity: 9.781
+        mode: 115 # small:115 big:98 light:108
+        k_of_small: 0.01903
+        k_of_big: 0.000556
+        k_of_light: 0.00053
+        correction_of_x: -2.3899999999999997
+        correction_of_y: -1.7899999999999991
+        stop_error: 0.001
+        velocity: 25
+        number_of_iterations: 60
