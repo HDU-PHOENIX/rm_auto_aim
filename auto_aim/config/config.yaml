@@ -1,0 +1,29 @@
+/**:
+  ros__parameters:
+    debug: true
+
+/camera_info_node:
+    ros__parameters:
+        camera_matrix: [
+            2045.7299044722633, 0,
+            639.91373901944, 0,
+            2041.4000138988533,
+            505.5792498148916,
+            0, 0, 1
+        ]
+        distortion: [
+            -0.04513949433516694,
+            -0.9392361285963754,
+            -0.0017701462462787585,
+            -0.0016870244604070346,
+            8.479602455636757
+        ]
+
+/serial_node:
+    ros__parameters:
+        default_data_recv_mode: 97 # a:97 r:114
+        default_data_recv_euler: [0.2, 0.0, 0.2]
+
+/armor_detector_node:
+    ros__parameters:
+        armor_detector_node: True

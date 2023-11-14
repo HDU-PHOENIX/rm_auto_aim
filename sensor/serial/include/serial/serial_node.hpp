@@ -52,23 +52,6 @@ private:
         const tf2::Vector3& v
     );
 
-    // 串口相关
-    drivers::serial_driver::FlowControl flow_control_ = drivers::serial_driver::FlowControl::NONE;
-    drivers::serial_driver::Parity parity_ = drivers::serial_driver::Parity::NONE;
-    drivers::serial_driver::StopBits stop_bits_ = drivers::serial_driver::StopBits::ONE;
-    uint32_t baud_rate_;      // 波特率
-    std::string device_name_; // 串口设备名
-
-    // 默认下位机数据包信息设置参数
-    char default_data_recv_start_;
-    char default_data_recv_color_;
-    char default_data_recv_mode_;
-    double default_data_recv_speed_;
-    std::vector<double> default_data_recv_euler_;
-    int default_data_recv_shootbool_;
-    int default_data_recv_runeflag_;
-    char default_data_recv_end_;
-
     // 线程相关
     std::thread thread_for_publish_;
     std::atomic<bool> canceled_;

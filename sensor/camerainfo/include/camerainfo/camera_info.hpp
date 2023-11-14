@@ -14,11 +14,11 @@ public:
 private:
     sensor_msgs::msg::CameraInfo camera_info_;
     rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_pub_;
-    // 相机内参矩阵
+    // 鐩告満鍐呭弬鐭╅樀
     // cv::Mat I_MAT;
-    // // 相机畸变矩阵
+    // // 鐩告満鐣稿彉鐭╅樀
     // cv::Mat D_MAT;
-    std::vector<double> camera_matrix_; //相机内参
-    std::vector<double> distortion_coefficients_; //相机畸变矩阵
+    std::vector<double> camera_matrix_;           //鐩告満鍐呭弬
+    std::vector<double> distortion_coefficients_; //鐩告満鐣稿彉鐭╅樀
 };
 } // namespace camerainfo

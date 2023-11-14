@@ -39,8 +39,7 @@ void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
     } catch (const std::exception& ex) {
         RCLCPP_ERROR(
             rclcpp::get_logger("serial_node"),
-            "Error creating serial port: %s - %s",
-            device_name_.c_str(),
+            "Error creating serial port: %s",
             ex.what()
         );
     };
@@ -100,33 +99,37 @@ void SerialNode::LoopForPublish() {
 }
 
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
-    baud_rate_ = declare_parameter("baud_rate", 115200);
-    device_name_ = declare_parameter("device_name", "/dev/ttyUSB0");
-    default_data_recv_start_ = declare_parameter("default_data_recv_start", 's');
-    default_data_recv_color_ = declare_parameter("default_data_recv_color", 'r');
-    default_data_recv_mode_ = declare_parameter("default_data_recv_mode", 'a');
-    default_data_recv_speed_ = declare_parameter("default_data_recv_speed", 0.0);
-    default_data_recv_euler_ = declare_parameter("default_data_recv_euler", std::vector<double> { 0.0, 0.0, 0.0 });
-    default_data_recv_shootbool_ = declare_parameter("default_data_recv_shootbool", 0);
-    default_data_recv_runeflag_ = declare_parameter("default_data_recv_runeflag", 0);
-    default_data_recv_end_ = declare_parameter("default_data_recv_end", 'e');
+    uint32_t baud_rate = declare_parameter("baud_rate", 115200);
+    std::string device_name = declare_parameter("device_name", "/dev/ttyUSB0");
+
+    char default_data_recv_start = declare_parameter("default_data_recv_start", 's');
+    char default_data_recv_color = declare_parameter("default_data_recv_color", 'r');
+    char default_data_recv_mode = declare_parameter("default_data_recv_mode", 'a');
+    double default_data_recv_speed = declare_parameter("default_data_recv_speed", 0.0);
+    std::vector<double> default_data_recv_euler = declare_parameter("default_data_recv_euler", std::vector<double> { 0.0, 0.0, 0.0 });
+    int default_data_recv_shootbool = declare_parameter("default_data_recv_shootbool", 0);
+    int default_data_recv_runeflag = declare_parameter("default_data_recv_runeflag", 0);
+    char default_data_recv_end = declare_parameter("default_data_recv_end", 'e');
+
+    RCLCPP_INFO(this->get_logger(), "default_data_recv_mode = %c", default_data_recv_mode);
+    RCLCPP_INFO(this->get_logger(), "default_data_recv_eule = %f, %f, %f", default_data_recv_euler[0], default_data_recv_euler[1], default_data_recv_euler[2]);
 
     auto serial = std::make_unique<sensor::Serial>(
-        baud_rate_,
-        device_name_,
-        flow_control_,
-        parity_,
-        stop_bits_
+        baud_rate,
+        device_name,
+        drivers::serial_driver::FlowControl::NONE,
+        drivers::serial_driver::Parity::NONE,
+        drivers::serial_driver::StopBits::ONE
     );
     serial->SetDefaultDataRecv(
-        default_data_recv_start_,
-        default_data_recv_color_,
-        default_data_recv_mode_,
-        default_data_recv_speed_,
-        default_data_recv_euler_,
-        default_data_recv_shootbool_,
-        default_data_recv_runeflag_,
-        default_data_recv_end_
+        default_data_recv_start,
+        default_data_recv_color,
+        default_data_recv_mode,
+        default_data_recv_speed,
+        default_data_recv_euler,
+        default_data_recv_shootbool,
+        default_data_recv_runeflag,
+        default_data_recv_end
     );
 
     return serial;

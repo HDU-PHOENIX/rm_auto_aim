@@ -14,53 +14,52 @@
 
 """Launch a talker and a listener in a component container."""
 
+import os
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
     """Generate launch description with multiple components."""
+    config = os.path.join(
+        get_package_share_directory('auto_aim'),
+        'config', 'config.yaml'
+    )
+
     container = ComposableNodeContainer(
-            name='rm_auto_aim',
+            name='auto_aim',
             namespace='',
             package='rclcpp_components',
             executable='component_container',
             composable_node_descriptions=[
                 ComposableNode(
-                    package='serial',
-                    plugin='sensor::SerialNode',
-                    name="serial_node",
-                    parameters=[
-                        {'default_data_recv_mode':114}, # r:114 a:97
-                        {'default_data_recv_euler':[0.2, 0.0, 0.2]},
-                    ],
-                    extra_arguments=[{"use_intra_process_comms": True}]
+                    package = 'serial',
+                    plugin = 'sensor::SerialNode',
+                    name = "serial_node",
+                    parameters = [config],
+                    extra_arguments = [{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(
-                    package='armor_detector',
-                    plugin='armor::ArmorDetectorNode',
-                    name='armor_detector_node',
-                    extra_arguments=[{"use_intra_process_comms": True}],
-                    parameters=[
-                        {'debug': True},
-                        {'send_default_armor': True}
-                    ]
+                    package = 'armor_detector',
+                    plugin = 'armor::ArmorDetectorNode',
+                    name = 'armor_detector_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 ),
                 ComposableNode(
-                    package='armor_tracker',
-                    plugin='armor::ArmorTrackerNode',
-                    name='armor_tracker_node',
-                    extra_arguments=[{"use_intra_process_comms": True}]
+                    package = 'armor_tracker',
+                    plugin = 'armor::ArmorTrackerNode',
+                    name = 'armor_tracker_node',
+                    extra_arguments = [{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(
-                    package='rune_detector',
-                    plugin='rune::RuneDetectorNode',
-                    name='rune_detector_node',
-                    extra_arguments=[{"use_intra_process_comms": True}],
-                    parameters=[
-                        {'debug': True},
-                    ]
+                    package = 'rune_detector',
+                    plugin = 'rune::RuneDetectorNode',
+                    name = 'rune_detector_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 ),
                 ComposableNode(
                     package='rune_tracker',
@@ -69,35 +68,20 @@ def generate_launch_description():
                     extra_arguments=[{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(
-                    package='camerainfo',
-                    plugin='camerainfo::CameraInfoNode',
-                    name='camera_info_node',
-                    extra_arguments=[{"use_intra_process_comms": True}],
-                    parameters=[
-                        {'camera_matrix': [2045.7299044722633,
-                                           0,
-                                           639.91373901944,
-                                           0,
-                                           2041.4000138988533,
-                                           505.5792498148916,
-                                           0,
-                                           0,
-                                           1]},
-                        {'distortion': [-0.04513949433516694,
-                                        -0.9392361285963754,
-                                        -0.0017701462462787585,
-                                        -0.0016870244604070346,
-                                        8.479602455636757]},
-                    ]
+                    package = 'camerainfo',
+                    plugin = 'camerainfo::CameraInfoNode',
+                    name = 'camera_info_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 ),
                 ComposableNode(
-                    package='camera',
-                    plugin='sensor::CameraNode',
-                    name='camera_node',
-                    extra_arguments=[{"use_intra_process_comms": True}]
+                    package = 'camera',
+                    plugin = 'sensor::CameraNode',
+                    name = 'camera_node',
+                    extra_arguments = [{"use_intra_process_comms": True}]
                 )
             ],
-            output='screen',
+            output = 'screen',
     )
 
     return launch.LaunchDescription([container])
