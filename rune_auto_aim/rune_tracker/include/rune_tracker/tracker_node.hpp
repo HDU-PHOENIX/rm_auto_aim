@@ -138,6 +138,10 @@ private:
         tracker_->ukf->Clear();
         cere_param_list.clear();
     }
+    //当delta_angle太大时，认为ceres拟合数据不准确，需要重新拟合
+    void Refitting();
+
+    void InitRecord();
 
     // 发布标记点函数
     void publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);

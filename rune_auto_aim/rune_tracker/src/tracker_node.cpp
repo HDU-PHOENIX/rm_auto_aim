@@ -74,18 +74,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS()
     );
-    omega_file.open("./record/omega.txt"); //用于记录曲线
-    if (!omega_file.is_open()) {
-        while (true) {
-            std::cout << "cannot open the omega.txt" << std::endl;
-        }
-    }
-    omega_time.open("./record/omegatime.txt");
-    if (!omega_time.is_open()) {
-        while (true) {
-            std::cout << "cannot open the omegatime.txt" << std::endl;
-        }
-    }
+    InitRecord(); //打开txt文件 用于记录卡尔曼滤波曲线和原始曲线
 
     // 可视化标记发布器
     // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
@@ -116,6 +105,33 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     armor_marker_.color.a = 1.0;
     armor_marker_.color.r = 1.0;
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
+}
+
+void RuneTrackerNode::InitRecord() {
+    omega_file.open("./record/omega.txt"); //用于记录曲线
+    if (!omega_file.is_open()) {
+        while (true) {
+            std::cout << "cannot open the omega.txt" << std::endl;
+        }
+    }
+    omega_time.open("./record/omegatime.txt");
+    if (!omega_time.is_open()) {
+        while (true) {
+            std::cout << "cannot open the omegatime.txt" << std::endl;
+        }
+    }
+    origin_omega_time.open("./record/origin_omegatime.txt");
+    if (!origin_omega_time.is_open()) {
+        while (true) {
+            std::cout << "cannot open the origin_omegatime.txt" << std::endl;
+        }
+    }
+    origin_omega_file.open("./record/origin_omega.txt");
+    if (!origin_omega_file.is_open()) {
+        while (true) {
+            std::cout << "cannot open the origin_omega.txt" << std::endl;
+        }
+    }
 }
 
 bool RuneTrackerNode::Judge() {
@@ -168,11 +184,12 @@ bool RuneTrackerNode::FittingBig() {
         // return false;
     }
     // RCLCPP_INFO(this->get_logger(), "cere_param_list.size() is %ld", cere_param_list.size());
-    if (cere_param_list.size() < 100) { //数据队列设为100个，数据队列未满
-        auto&& theta = leaf_angle;      //观测到这一帧符叶的角度
+    if (cere_param_list.size() < 100) {
+        //数据队列设为100个，数据队列未满
+        auto&& theta = leaf_angle; //观测到这一帧符叶的角度
 
-        // origin_omega_file<< fabs(leaf_angle_diff) / (data->header.stamp - data_last->header.stamp)<<std::endl;
-        // origin_omega_time<<(data->sensor->timestamp - t_zero).GetSeconds()<<std::endl;
+        origin_omega_file << fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
+        origin_omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
 
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -193,19 +210,13 @@ bool RuneTrackerNode::FittingBig() {
         omega_file << omega << std::endl;
         omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
         runes_msg_.can_shoot = false;
-
         return false;
-    } else if (cere_param_list.size() == 100) { //队列数据已满
-
+    } else if (cere_param_list.size() == 100) {
+        //队列数据已满
         auto&& theta = leaf_angle; //当前符叶的角度(弧度制)
+        origin_omega_file << fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
+        origin_omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
 
-        // origin_omega_file<< fabs(leaf_angle_diff) / (data->sensor->timestamp-last->sensor->timestamp)<<std::endl;
-        // origin_omega_time<<(data->sensor->timestamp - t_zero).GetSeconds()<<std::endl;
-
-        // if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds() > 0.2) {
-        //     //如果两帧数据的时间差大于0.2s，则认为数据丢失，滤波器要进行reset
-        //     return false;
-        // }
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
             MeasurementPackage::SensorType::LASER,
@@ -215,10 +226,6 @@ bool RuneTrackerNode::FittingBig() {
         //ukf
         tracker_->ukf->ProcessMeasurement(package);
         double&& omega = 1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL;
-        if (omega == 0) {
-            //如果丢识别时间过长，则此时ukf内部会手动将速度置为0，此时omega为0，会导致后续的拟合出错
-            return false;
-        }
         cere_param_list.pop_front(); //队列头数据弹出
         cere_param_list.push_back(CereParam {
             .omega = omega,
@@ -231,12 +238,12 @@ bool RuneTrackerNode::FittingBig() {
         } else {
             RCLCPP_INFO(this->get_logger(), "predict inaccuracy,restart fittting");
         }
+        //当现在的时间减去上一次拟合的时间大于预测的时间时，开始判断拟合参数的误差
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(tracker.timestamp)).seconds()
             >= tracker.pred_time)
         {
             //开始判断拟合参数的误差
             RCLCPP_INFO(this->get_logger(), "varify predict");
-
             // 计算误差
             double delta_angle = 0;
             if (this->rotation_direction == RotationDirection::Anticlockwise
@@ -288,57 +295,7 @@ bool RuneTrackerNode::FittingBig() {
                 }
                 finish_fitting = false; //连续五次误差超过0.1，则认为需要重新拟合
                 count_cere = 0;
-                ceres::Problem problem;
-                for (unsigned long i = 0; i < cere_param_list.size(); i++) { //将数据添加入问题
-                    problem.AddResidualBlock(
-                        new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
-                            new CURVE_FITTING_COST(
-                                cere_param_list[i].time,
-                                cere_param_list[i].omega
-                            )
-                        ),
-                        new ceres::CauchyLoss(0.1),
-                        a_omega_phi_b
-                    );
-                }
-
-                problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
-                problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
-                problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884); // 数据是官方的
-                problem.SetParameterUpperBound(a_omega_phi_b, 1, 2);
-                // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
-                // problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
-                // problem.SetParameterLowerBound(a_omega_phi_b, 1,1.6);
-                // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
-
-                problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
-                problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
-                problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
-                problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
-                // problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.59);
-                // problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.19);
-
-                ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
-                //输出拟合的信息
-                RCLCPP_INFO(this->get_logger(), "fitting params is a : %f omega : %f phi : %f ,b : %f", a_omega_phi_b[0], a_omega_phi_b[1], a_omega_phi_b[2], a_omega_phi_b[3]);
-                tracker.pred_time = delay
-                    + (this->now() - rclcpp::Time(data->header.stamp))
-                          .seconds(); //更新下一次重新判断拟合的时间
-                tracker.pred_angle = integral(
-                    a_omega_phi_b[1],
-                    std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
-                    (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                    delay + (this->now() - data->header.stamp).seconds()
-                );
-                pred_angle = integral(
-                    a_omega_phi_b[1],
-                    std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
-                    (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                    (delay + (this->now() - data->header.stamp).seconds())
-                );
-                tracker.angle = leaf_angle;
-                tracker.timestamp = data->header.stamp;
-                runes_msg_.can_shoot = true;
+                Refitting();
                 return true;
             }
         } else {
@@ -354,6 +311,59 @@ bool RuneTrackerNode::FittingBig() {
         }
     }
     return true;
+}
+
+void RuneTrackerNode::Refitting() {
+    ceres::Problem problem;
+    for (unsigned long i = 0; i < cere_param_list.size(); i++) { //将数据添加入问题
+        problem.AddResidualBlock(
+            new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
+                new CURVE_FITTING_COST(
+                    cere_param_list[i].time,
+                    cere_param_list[i].omega
+                )
+            ),
+            new ceres::CauchyLoss(0.1),
+            a_omega_phi_b
+        );
+    }
+    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
+    problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
+    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884); // 数据是官方的
+    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2);
+    // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
+    // problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
+    // problem.SetParameterLowerBound(a_omega_phi_b, 1,1.6);
+    // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
+
+    problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
+    problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
+    problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
+    problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
+    // problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.59);
+    // problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.19);
+
+    ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
+    //输出拟合的信息
+    RCLCPP_INFO(this->get_logger(), "fitting params is a : %f omega : %f phi : %f ,b : %f", a_omega_phi_b[0], a_omega_phi_b[1], a_omega_phi_b[2], a_omega_phi_b[3]);
+    tracker.pred_time = delay
+        + (this->now() - rclcpp::Time(data->header.stamp))
+              .seconds(); //更新下一次重新判断拟合的时间
+    tracker.pred_angle = integral(
+        a_omega_phi_b[1],
+        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+        delay + (this->now() - data->header.stamp).seconds()
+    );
+    pred_angle = integral(
+        a_omega_phi_b[1],
+        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+        (delay + (this->now() - data->header.stamp).seconds())
+    );
+    tracker.angle = leaf_angle;
+    tracker.timestamp = data->header.stamp;
+    runes_msg_.can_shoot = true;
 }
 
 bool RuneTrackerNode::Fitting() {
