@@ -1,5 +1,3 @@
-// Copyright 2023 wangchi
-
 #include "rune_tracker/tracker.hpp"
 
 #include <angles/angles.h>

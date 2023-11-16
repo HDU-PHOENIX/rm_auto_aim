@@ -159,7 +159,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
             } // 如果yolo没有检测到R标
 
-            // data->armor = armor;
             cv::circle(img, armor, 6, Colors::Aqua, -1);
             cv::circle(img, symbol, 6, Colors::Yellow, -1);
             flag1 = true;
@@ -169,11 +168,13 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
             // cls = RuneClass::BlueActivated;
             //flag3 = true;
+            continue;
 
         } else if (object.color == 1 && object.cls == 2) {
             // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
             // cls = RuneClass::RedActivated;
             //flag3 = true;
+            continue;
         }
 
         for (int i = 0; i < 5; i++) { // 画出五个关键点
@@ -283,7 +284,7 @@ void RuneDetectorNode::PublishMarkers() {
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();
     auto pkg_path = ament_index_cpp::get_package_share_directory("rune_detector");
-    auto model_path = pkg_path + "/model/Rune/model_15/yolox_fp16.onnx";
+    auto model_path = pkg_path + "/model/yolox_fp16.onnx";
     detector->Init(model_path);
 
     return detector;

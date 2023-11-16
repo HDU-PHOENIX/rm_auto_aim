@@ -1,8 +1,6 @@
 #include "rune_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
-#include <algorithm>
 #include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
-#include <random>
 
 namespace rune {
 
@@ -18,7 +16,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
-            //输入gimbles坐标系下的坐标 输出yaw和pitch
+            //输入odom坐标系下的坐标 输出yaw和pitch
             auto&& YawAndPitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             //TODO: 这里可能要做防抖处理
             auto_aim_interfaces::msg::SerialInfo serial_info;

@@ -1,4 +1,3 @@
-// Copyright 2023 wangchi
 #ifndef ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
 #define ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
 
@@ -128,6 +127,8 @@ private:
     bool FittingBig();
 
     bool Fitting();
+    //ceres求解器求解 获得大符角速度参数 A omega phi b 并且验证预测参数是否正确
+    bool CeresProcess();
 
     double integral(double w, std::vector<double> params, double t_s, double pred_time);
 
@@ -140,8 +141,11 @@ private:
     }
     //当delta_angle太大时，认为ceres拟合数据不准确，需要重新拟合
     void Refitting();
-
+    //初始化txt的读取，用于记录原始角速度曲线和卡尔曼滤波曲线
     void InitRecord();
+
+    //数据处理，判断角速度是否正常，正常则记录数据并且丢入ukf，传入的参数为符叶角度
+    void DataProcess();
 
     // 发布标记点函数
     void publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
@@ -162,6 +166,7 @@ private:
 
     // rclcpp::Time delay;//理论延迟和追踪延迟之和
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差
+    double leaf_angular_velocity;                        //符叶角速度
     double rotate_angle;                                 //预测符叶旋转角度
     cv::Point2f leaf_dir;                                //这一帧符叶向量
 
@@ -172,12 +177,12 @@ private:
     Statistic<double> radius;                      //符叶半径
     Statistic<double> speed;                       //符叶角速度
 
-    // std::shared_ptr<Coordinate> coordinate; //坐标系转换类
-    std::unique_ptr<Tracker> tracker_; //ukf滤波器
+    std::unique_ptr<Tracker> tracker_; //封装了ukf滤波器
 
     bool finish_fitting; //完成拟合的标志
 
-    int count_cere;
+    //count_find用于滤波器突变后不可信数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
+    int count_cere, count_find;
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
     double a_omega_phi_b[4];               //拟合的参数
     ceres::Solver::Options options;        //解决方案的配置
@@ -212,9 +217,9 @@ private:
     //   rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
 
     // 可视化标记发布器
-    visualization_msgs::msg::Marker position_marker_;
-    visualization_msgs::msg::Marker linear_v_marker_;
-    visualization_msgs::msg::Marker angular_v_marker_;
+    // visualization_msgs::msg::Marker position_marker_;
+    // visualization_msgs::msg::Marker linear_v_marker_;
+    // visualization_msgs::msg::Marker angular_v_marker_;
     visualization_msgs::msg::Marker armor_marker_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 };
