@@ -29,7 +29,7 @@ namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
-    confidence_threshold_ = 0.7; // 置信度阈值
+    confidence_threshold_ = 0.8; // 置信度阈值
     detector_ = InitDetector();  // 初始化神符识别器
 
     //创建标记发布者
@@ -221,7 +221,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             }
             runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
             runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
-            // runes_msg_.header = img_msg->header; // 包含时间戳
             runes_msg_.header.frame_id = "camera";
             runes_msg_.find = true; // 找到符叶
 
@@ -250,19 +249,14 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     //     }
     // }
 
+    //发送测试数据 默认参数
     DetectRunes(img_msg);
     runes_msg_.motion = 2;
-    runes_msg_.pose_c.position.x = 0;
-    runes_msg_.pose_c.position.y = 0;
-    runes_msg_.pose_c.position.z = 5;
-    runes_msg_.leaf_dir.x = 0;
-    runes_msg_.leaf_dir.y = 0; // 符叶向量
+    runes_msg_.leaf_dir.x = 1;
+    runes_msg_.leaf_dir.y = 1; // 符叶向量
     runes_msg_.symbol.x = 0;   // R标位置 图像左上角为原点
     runes_msg_.symbol.y = 0;   // R标位置 图像左上角为原点
     runes_msg_.header.frame_id = "camera";
-    // Fill the markers
-    rune_marker_.header.frame_id = "camera";
-    rune_marker_.pose = runes_msg_.pose_c;
     runes_msg_.rune_points[0].x = 100;
     runes_msg_.rune_points[0].y = 100;
     runes_msg_.rune_points[1].x = 100;
@@ -271,6 +265,19 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     runes_msg_.rune_points[2].y = 200;
     runes_msg_.rune_points[3].x = 200;
     runes_msg_.rune_points[3].y = 100;
+    cv::Mat rvec, tvec;
+    std::vector<cv::Point2d> rune_points_;
+    rune_points_.emplace_back(100, 100);
+    rune_points_.emplace_back(100, 200);
+    rune_points_.emplace_back(200, 200);
+    rune_points_.emplace_back(200, 100);
+    pnp_solver_->SolvePnP(rune_points_, rvec, tvec);
+    runes_msg_.pose_c.position.x = tvec.at<double>(0);
+    runes_msg_.pose_c.position.y = tvec.at<double>(1);
+    runes_msg_.pose_c.position.z = tvec.at<double>(2);
+    // Fill the markers
+    rune_marker_.header.frame_id = "camera";
+    rune_marker_.pose = runes_msg_.pose_c;
     PublishMarkers();                // 发布标记
     runes_pub_->publish(runes_msg_); // 发布神符信息
 }

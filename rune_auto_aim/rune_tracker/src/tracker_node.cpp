@@ -452,9 +452,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     }
     for (auto&& vertex: rotate_armors) {
         //将关键点以圆心旋转rotate_angle 得到预测点
-        RCLCPP_INFO(this->get_logger(), "before rotate  %f,%f", vertex.x, vertex.y);
         vertex = Rotate(vertex, symbol, rotate_angle);
-        RCLCPP_INFO(this->get_logger(), "after rotate  %f,%f", vertex.x, vertex.y);
     }
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
     if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec)) {
@@ -493,6 +491,7 @@ void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget&
     armor_marker_.pose.position.z = target_msg.pc.position.z; //可视化相机坐标系下的装甲板位置
     visualization_msgs::msg::MarkerArray marker_array;
     marker_array.markers.emplace_back(armor_marker_);
+    armor_marker_.header.frame_id = target_frame_;
     armor_marker_.id = 1;
     armor_marker_.pose.position.x = target_msg.pw.position.x;
     armor_marker_.pose.position.y = target_msg.pw.position.y;
