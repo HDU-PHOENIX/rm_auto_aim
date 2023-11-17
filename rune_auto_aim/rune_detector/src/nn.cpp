@@ -71,7 +71,7 @@ static void generate_grids_and_stride(const int target_w, const int target_h, st
 
         for (int g1 = 0; g1 < num_grid_h; g1++) {
             for (int g0 = 0; g0 < num_grid_w; g0++) {
-                grid_strides.push_back((GridAndStride) { g0, g1, stride });
+                grid_strides.push_back(GridAndStride { g0, g1, stride });
             }
         }
     }
@@ -183,14 +183,14 @@ static void qsort_descent_inplace(std::vector<NeuralNetwork::RuneObject>& faceob
         }
     }
 
-#pragma omp parallel sections
+    // #pragma omp parallel sections
     {
-#pragma omp section
+        // #pragma omp section
         {
             if (left < j)
                 qsort_descent_inplace(faceobjects, left, j);
         }
-#pragma omp section
+        // #pragma omp section
         {
             if (i < right)
                 qsort_descent_inplace(faceobjects, i, right);
@@ -255,7 +255,7 @@ static void nms_sorted_bboxes(std::vector<NeuralNetwork::RuneObject>& faceobject
      * @param img_w Width of Image.
      * @param img_h Height of Image.
      */
-static void decodeOutputs(const float* prob, std::vector<NeuralNetwork::RuneObject>& objects, Eigen::Matrix<float, 3, 3>& transform_matrix, const int img_w, const int img_h) {
+static void decodeOutputs(const float* prob, std::vector<NeuralNetwork::RuneObject>& objects, Eigen::Matrix<float, 3, 3>& transform_matrix) {
     std::vector<NeuralNetwork::RuneObject> proposals;
     std::vector<int> strides = { 8, 16, 32 };
     std::vector<GridAndStride> grid_strides;
@@ -364,17 +364,16 @@ bool NeuralNetwork::detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>&
 
     auto moutputHolder = moutput->rmap();
     const float* net_pred = moutputHolder.as<const InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-    // const short int * net_pred = moutputHolder.as<const InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP16>::value_type*>();
-    int img_w = src.cols;
-    int img_h = src.rows;
-    decodeOutputs(net_pred, objects, transfrom_matrix, img_w, img_h);
+    // int img_w = src.cols;
+    // int img_h = src.rows;
+    decodeOutputs(net_pred, objects, transfrom_matrix);
     for (auto object = objects.begin(); object != objects.end(); ++object)
     {
         if ((*object).pts.size() >= 10) {
             auto N = (*object).pts.size();
             cv::Point2f pts_final[5];
 
-            for (int i = 0; i < N; i++) {
+            for (long unsigned int i = 0; i < N; i++) {
                 pts_final[i % 5] += (*object).pts[i];
             }
 
