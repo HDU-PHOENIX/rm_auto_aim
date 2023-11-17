@@ -24,7 +24,7 @@
 
 /armor_detector_node:
     ros__parameters:
-        armor_detector_node: True
+        send_default_armor: True
 
 /rune_tracker_node:
     ros__parameters:
