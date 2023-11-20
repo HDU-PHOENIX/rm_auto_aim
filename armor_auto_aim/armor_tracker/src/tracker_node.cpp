@@ -210,7 +210,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             [this](const auto_aim_interfaces::msg::Armor& armor) {
                 return abs(armor.pose.position.z) > 1.2 // odom 系下的装甲板高度高于车
                     || Eigen::Vector2d(armor.pose.position.x, armor.pose.position.y).norm()
-                    > max_armor_distance_; // 装甲板距离图像中心（相当于当前瞄准点吧）的最大距离
+                    > max_armor_distance_; // 装甲板距离车过远
             }
         ),
         armors_msg->armors.end()

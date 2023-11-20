@@ -28,8 +28,8 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             serial_info.euler[3] = yaw_and_pitch[0];
             serial_info.euler[0] = yaw_and_pitch[1];
             serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->dz; //TODO: 距离可能还需修改
-            serial_info_pub_->publish(serial_info);
+            serial_info.distance = msg->position.z;
+            serial_info_pub_->publish(std::move(serial_info));
         }
     );
 }

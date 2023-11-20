@@ -46,7 +46,7 @@ private:
      */
     void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
-    // 装甲板距离车中心（ odom 中心 ）最大距离
+    // 装甲板距离车中心（ odom 中心 ）的水平最大距离
     double max_armor_distance_;
 
     // 上次接收消息的时间
