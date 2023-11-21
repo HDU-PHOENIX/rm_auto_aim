@@ -69,6 +69,13 @@ def generate_launch_description():
                     parameters = [config]
                 ),
                 ComposableNode(
+                    package='rune_shooter',
+                    plugin='rune::RuneShooterNode',
+                    name='rune_shooter_node',
+                    extra_arguments=[{"use_intra_process_comms": True}],
+                    parameters = [config]
+                ),
+                ComposableNode(
                     package = 'camerainfo',
                     plugin = 'camerainfo::CameraInfoNode',
                     name = 'camera_info_node',

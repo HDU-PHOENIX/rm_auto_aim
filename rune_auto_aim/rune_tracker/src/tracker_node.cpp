@@ -162,7 +162,6 @@ bool RuneTrackerNode::FittingBig() {
         else if (cere_rotated_angle < -M_PI)
             cere_rotated_angle += 2 * M_PI;
         RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
-        // return false;
     }
     // RCLCPP_INFO(this->get_logger(), "cere_param_list.size() is %ld", cere_param_list.size());
     CeresProcess();
@@ -179,7 +178,7 @@ void RuneTrackerNode::DataProcess() {
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
             > 0.2) {
-            count_find = 20;
+            count_find = 20; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
         }
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -204,14 +203,15 @@ void RuneTrackerNode::DataProcess() {
 bool RuneTrackerNode::CeresProcess() {
     if (cere_param_list.size() < 100) {
         //数据队列设为100个，数据队列未满
-        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - t_zero).seconds();
+        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess();
         runes_msg_.can_shoot = false;
         return false;
     } else if (cere_param_list.size() == 100) {
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
-        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - t_zero).seconds();
+        //TODO:这里可能会有问题后续逻辑得仔细考虑一下
+        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess();
 
         if (finish_fitting) {
@@ -219,7 +219,7 @@ bool RuneTrackerNode::CeresProcess() {
         } else {
             RCLCPP_INFO(this->get_logger(), "predict inaccuracy,restart fittting");
         }
-        //当现在的时间减去上一次拟合的时间大于预测的时间时，开始判断拟合参数的误差
+        //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(tracker.timestamp)).seconds()
             >= tracker.pred_time) {
             //开始判断拟合参数的误差
@@ -237,7 +237,7 @@ bool RuneTrackerNode::CeresProcess() {
             }
             std::cout << "delta_angle is " << delta_angle << std::endl;
 
-            if (delta_angle < 0.15) {
+            if (delta_angle < 0.2) {
                 //误差小于0.1,则认为拟合良好
                 pred_angle = integral(
                     a_omega_phi_b[1],
