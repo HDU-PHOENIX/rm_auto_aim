@@ -4,9 +4,9 @@ sudo apt update && sudo apt install curl -y
 echo "successfully install curl"
 curl https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB > /tmp/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 if [ -f /tmp/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB ]; then
-    echo "successfully wget  GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB"
+    echo "successfully curl GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB"
 else
-    echo "wget GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB failed"
+    echo "curl GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB failed"
     exit -1
 fi
 
