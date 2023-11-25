@@ -120,6 +120,8 @@ private:
         Reset();
         return true;
     }
+    //用于计算小符角速度
+    void CalSmallSpeed();
 
     //判断顺时针还是逆时针
     bool Judge();
@@ -161,6 +163,7 @@ private:
 
     double delay;      //理论延迟和追踪延迟之和
     double chasedelay; //追踪延迟 从launch参数给定
+    double bullet_speed;
     std::shared_ptr<rclcpp::ParameterEventHandler> chasedelay_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> chasedelay_cb_handle_;
 
@@ -181,8 +184,8 @@ private:
 
     bool finish_fitting; //完成拟合的标志
 
-    //count_find用于滤波器突变后不可信数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
-    int count_cere, count_find;
+    //count_cant_use用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
+    int count_cere, count_cant_use;
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
     double a_omega_phi_b[4];               //拟合的参数
     ceres::Solver::Options options;        //解决方案的配置

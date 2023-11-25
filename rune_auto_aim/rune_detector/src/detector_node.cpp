@@ -13,8 +13,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 // STD
-// #include <algorithm>
-// #include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -22,6 +20,8 @@
 #include "rune_detector/detector_node.hpp"
 
 #include "rune_detector/rune_type.hpp"
+
+#define SEND_DEFAULT_DATA true
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -237,18 +237,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    // if (pnp_solver_ == nullptr) {
-    //     RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
-    // } else {
-    //     //检测图片 如果检测到了符叶则发布符叶信息
-    //     if (DetectRunes(img_msg)) {
-    //         PublishMarkers();                // 发布标记
-    //         runes_pub_->publish(runes_msg_); // 发布神符信息
-    //     } else {
-    //         RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
-    //     }
-    // }
-
+#if SEND_DEFAULT_DATA
     //发送测试数据 默认参数
     DetectRunes(img_msg);
     runes_msg_.motion = 2;
@@ -280,6 +269,19 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     rune_marker_.pose = runes_msg_.pose_c;
     PublishMarkers();                // 发布标记
     runes_pub_->publish(runes_msg_); // 发布神符信息
+#else
+    if (pnp_solver_ == nullptr) {
+        RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
+    } else {
+        //检测图片 如果检测到了符叶则发布符叶信息
+        if (DetectRunes(img_msg)) {
+            PublishMarkers();                // 发布标记
+            runes_pub_->publish(runes_msg_); // 发布神符信息
+        } else {
+            RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
+        }
+    }
+#endif
 }
 
 void RuneDetectorNode::PublishMarkers() {

@@ -1,13 +1,13 @@
 #include "rune_tracker/tracker_node.hpp"
 #include <rclcpp/logging.hpp>
-
+#define ORIGIN_METHOD false
+#define NEW_METHOD    true
 namespace rune {
 // RuneTrackerNode类的构造函数
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     Node("rune_tracker", option) {
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
-    // coordinate = std::make_shared<Coordinate>();
     options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
     // options.linear_solver_type = ceres::ITERATIVE_SCHUR;
     finish_fitting = false;
@@ -16,13 +16,13 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     tracker.angle = 0;                            //2023.9.7号做了修改 加上了tracker.angle的初始化
     options.minimizer_progress_to_stdout = false; //选择不打印拟合信息
     options.num_threads = 4;                      //使用4个线程进行拟合
-    // horizon = 8;
     a_omega_phi_b[0] = RUNE_ROTATE_A_MIN;
     a_omega_phi_b[1] = RUNE_ROTATE_O_MIN;
     a_omega_phi_b[2] = 0;
     a_omega_phi_b[3] = 0;
     count_cere = 0;
-    count_find = 0;
+    bullet_speed = this->declare_parameter("bullet_speed", 25.0);
+    count_cant_use = this->declare_parameter("count_cant_use", 0);
 
     this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值
     chasedelay_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
@@ -62,7 +62,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        100,                                // size of the tf2 cache
+        10,                                 // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::duration<int>(1)       // timeout
@@ -169,17 +169,18 @@ bool RuneTrackerNode::FittingBig() {
 }
 
 void RuneTrackerNode::DataProcess() {
+    auto&& theta = leaf_angle;
     if (leaf_angular_velocity < 4) {
         origin_omega_file << leaf_angular_velocity << std::endl;
         origin_omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
-
-        count_find--;
+#if NEW_METHOD
         //如果这一帧和上一针时间差大于0.2s，则认为这一帧的数据不可用
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
-            > 0.2) {
-            count_find = 20; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
+            > 0.15) {
+            count_cant_use = 20; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
         }
+        count_cant_use--;
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
             MeasurementPackage::SensorType::LASER,
@@ -190,7 +191,7 @@ void RuneTrackerNode::DataProcess() {
         double&& omega =
             1.0 * abs(tracker_->ukf->x_(0));
 
-        if (count_find <= 0) {
+        if (count_cant_use <= 0) {
             cere_param_list.push_back(CereParam {
                 .omega = omega,
                 .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() });
@@ -198,8 +199,25 @@ void RuneTrackerNode::DataProcess() {
             omega_file << omega << std::endl;
             omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
         }
+#endif
+#if ORIGIN_METHOD
+        // 用二维坐标拟合
+        MeasurementPackage package = MeasurementPackage(
+            (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+            MeasurementPackage::SensorType::LASER,
+            Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(theta - cere_rotated_angle),
+                              RUNE_ARMOR_TO_SYMBOL * sin(theta - cere_rotated_angle) }
+        );
+        //将传感器的坐标数据丢入UKF
+        //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
+
+        tracker_->ukf->ProcessMeasurement(package); //估计当前真实的状态
+        double&& omega =
+            1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
+#endif
     }
 }
+
 bool RuneTrackerNode::CeresProcess() {
     if (cere_param_list.size() < 100) {
         //数据队列设为100个，数据队列未满
@@ -296,7 +314,8 @@ bool RuneTrackerNode::CeresProcess() {
 
 void RuneTrackerNode::Refitting() {
     ceres::Problem problem;
-    for (unsigned long i = 0; i < cere_param_list.size(); i++) { //将数据添加入问题
+    for (unsigned long i = 0; i < cere_param_list.size(); i++) {
+        //将数据添加入问题
         problem.AddResidualBlock(
             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
                 new CURVE_FITTING_COST(
@@ -424,24 +443,10 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
 
     leaf_angle = Angle(leaf_dir); //返回弧度制的角度
-    if (angles.Any()) {
-        leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
-        auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
-        angles.PushForcibly(angles[-1] + leaf_angle_diff_abs);
-        //下面求解角速度
-        speed.Push(
-            leaf_angle_diff_abs
-            / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
-                  .seconds()
-        );
-        speeds.PushForcibly(speed.Value());
-    } else {
-        angles.PushForcibly(leaf_angle);
-    }
-    radius.Push(cv::norm(leaf_dir)); //计算半径
-    Judge();                         //判断顺时针还是逆时针
-    FittingBig();                    //拟合大符
-    Fitting();                       //拟合小符
+    CalSmallSpeed();              //计算小符角速度
+    Judge();                      //判断顺时针还是逆时针
+    FittingBig();                 //拟合大符
+    Fitting();                    //拟合小符
     RCLCPP_INFO(this->get_logger(), "rotate_angle is %f", rotate_angle);
     data_last = data;                                   //记录上一帧的数据
     leaf_angle_last = leaf_angle;                       //记录上一帧的角度
@@ -480,6 +485,24 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.z = ps.pose.position.z;
     target_pub->publish(runes_msg_);
     publishMarkers(runes_msg_);
+}
+
+void RuneTrackerNode::CalSmallSpeed() {
+    if (angles.Any()) {
+        leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
+        auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
+        angles.PushForcibly(angles[-1] + leaf_angle_diff_abs);
+        //下面求解角速度
+        speed.Push(
+            leaf_angle_diff_abs
+            / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
+                  .seconds()
+        );
+        speeds.PushForcibly(speed.Value());
+    } else {
+        angles.PushForcibly(leaf_angle);
+    }
+    radius.Push(cv::norm(leaf_dir)); //计算半径
 }
 
 void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {

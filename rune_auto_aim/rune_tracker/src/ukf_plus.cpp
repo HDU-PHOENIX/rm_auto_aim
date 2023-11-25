@@ -130,12 +130,11 @@ void UKF_PLUS::ProcessMeasurement(MeasurementPackage meas_package) {
     timestep_++;
 
     //如果没有卡尔曼输入时间间隔过长，则直接用当前测量值初始化
-    if (!is_initialized_ || dt > 0.10) {
+    if (!is_initialized_ || dt > 0.15) {
         if ((meas_package.sensor_type_ == MeasurementPackage::LASER) && use_laser_) {
             // Initialize state by lidar measurement.
             if (verbose_)
                 cout << "Initial lidar measurement received!" << endl;
-
             double px, py, v, yaw, yawd;
             px = meas_package.raw_measurements_[0];
             py = meas_package.raw_measurements_[1];
@@ -174,11 +173,12 @@ void UKF_PLUS::ProcessMeasurement(MeasurementPackage meas_package) {
 
         if ((meas_package.sensor_type_ == MeasurementPackage::LASER) && use_laser_)
         {
-            UpdateLidarUnscented(meas_package); //2023.9.8将UpdateLidar改为UpdateLidarUnscented
+            UpdateLidarUnscented(meas_package);
             //UpdateLidar(meas_package);
         }
-        if ((meas_package.sensor_type_ == MeasurementPackage::RADAR) && use_radar_)
+        if ((meas_package.sensor_type_ == MeasurementPackage::RADAR) && use_radar_) {
             UpdateRadar(meas_package);
+        }
     }
 
     if (!x_.allFinite()) {
