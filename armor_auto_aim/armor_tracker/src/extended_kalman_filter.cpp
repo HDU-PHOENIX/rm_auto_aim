@@ -1,7 +1,6 @@
 #include "armor_tracker/extended_kalman_filter.hpp"
 
 namespace armor {
-// 构造函数的实现
 ExtendedKalmanFilter::ExtendedKalmanFilter(
     const VecVecFunc& f,
     const VecVecFunc& h,
@@ -23,12 +22,10 @@ ExtendedKalmanFilter::ExtendedKalmanFilter(
     x_pri(n),
     x_post(n) {}
 
-// 设置初始状态的实现
 void ExtendedKalmanFilter::SetState(const Eigen::VectorXd& x0) {
     x_post = x0;
 }
 
-// 预测方法的实现
 Eigen::MatrixXd ExtendedKalmanFilter::Predict() {
     F = jacobian_f(x_post), Q = update_Q();
 
@@ -42,7 +39,6 @@ Eigen::MatrixXd ExtendedKalmanFilter::Predict() {
     return x_pri;
 }
 
-// 更新方法的实现
 Eigen::MatrixXd ExtendedKalmanFilter::Update(const Eigen::VectorXd& z) {
     H = jacobian_h(x_pri), R = update_R(z);
 

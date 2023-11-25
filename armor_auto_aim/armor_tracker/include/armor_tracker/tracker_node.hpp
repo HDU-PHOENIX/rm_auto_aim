@@ -37,9 +37,18 @@ private:
      *        该函数首先将装甲板坐标从相机坐标系转换到 odom 系，并移除不符合要求的装甲板
      *        然后根据追踪器状态调用 Tracker::Init() or Tracker::Update()
      */
-    void
-    ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr
-    );
+    void ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_ptr);
+
+    /**
+     * @brief 创建扩展卡尔曼滤波器
+     * @return ExtendedKalmanFilter
+     */
+    ExtendedKalmanFilter CreateEKF();
+
+    /**
+     * @brief 初始化可视化标记
+     */
+    void InitMarkers();
 
     /**
      * @brief 发布 Marker debug 信息
@@ -63,16 +72,13 @@ private:
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_tracker_srv_;
 
     // 使用 tf 2消息过滤器的订阅器
-    std::string target_frame_;                                 // TODO: ???
-    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;              // tf2 缓冲区
-    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
+    std::string target_frame_;
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
     message_filters::Subscriber<auto_aim_interfaces::msg::Armors> armors_sub_;
     std::shared_ptr<tf2_filter> tf2_filter_;
 
-    // 追踪器信息发布器
     rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
-
-    // 发布器
     rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_;
 
     // 可视化标记发布器

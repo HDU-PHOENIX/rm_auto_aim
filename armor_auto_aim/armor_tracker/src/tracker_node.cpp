@@ -1,4 +1,5 @@
 #include "armor_tracker/tracker_node.hpp"
+// #include "armor_tracker/extended_kalman_filter.hpp"
 
 // STD
 #include <memory>
@@ -19,94 +20,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     tracker_->tracking_thres = this->declare_parameter("tracker.tracking_thres", 5);
     lost_time_thres_ = this->declare_parameter("tracker.lost_time_thres", 0.3);
 
-    // EKF参数设置
-    // 状态: robot_center_x, v_xc, yc, v_yc, armor_z, v_za, yaw, v_yaw, r
-    // 测量: armor_x, armor_y, armor_z, yaw
-    // f - 过程函数（运动关系）
-    auto f = [this](const Eigen::VectorXd& x) {
-        Eigen::VectorXd x_new = x;
-        x_new(0) += x(1) * dt_;
-        x_new(2) += x(3) * dt_;
-        x_new(4) += x(5) * dt_;
-        x_new(6) += x(7) * dt_;
-        return x_new;
-    };
-    // J_f - 过程函数的雅可比矩阵
-    auto j_f = [this](const Eigen::VectorXd&) {
-        Eigen::MatrixXd f(9, 9);
-        // clang-format off
-        f <<  1,   dt_, 0,   0,   0,   0,   0,   0,   0,
-              0,   1,   0,   0,   0,   0,   0,   0,   0,
-              0,   0,   1,   dt_, 0,   0,   0,   0,   0, 
-              0,   0,   0,   1,   0,   0,   0,   0,   0,
-              0,   0,   0,   0,   1,   dt_, 0,   0,   0,
-              0,   0,   0,   0,   0,   1,   0,   0,   0,
-              0,   0,   0,   0,   0,   0,   1,   dt_, 0,
-              0,   0,   0,   0,   0,   0,   0,   1,   0,
-              0,   0,   0,   0,   0,   0,   0,   0,   1;
-        // clang-format on
-        return f;
-    };
-    // h - 观测函数（从状态量到观测量）
-    auto h = [](const Eigen::VectorXd& x) {
-        Eigen::VectorXd z(4);
-        double robot_center_x = x(0), yc = x(2), yaw = x(6), r = x(8);
-        z(0) = robot_center_x - r * cos(yaw); // armor_x
-        z(1) = yc - r * sin(yaw);             // armor_y
-        z(2) = x(4);                          // armor_z
-        z(3) = x(6);                          // yaw
-        return z;
-    };
-    // J_h - 观测函数的雅可比矩阵
-    auto j_h = [](const Eigen::VectorXd& x) {
-        Eigen::MatrixXd h(4, 9);
-        double yaw = x(6), r = x(8);
-        // clang-format off
-        //    robot_center_x   v_xc yc   v_yc armor_z   v_za yaw            v_yaw r
-        h <<  1,   0,   0,   0,   0,   0,   r*sin(yaw),  0,   -cos(yaw),
-              0,   0,   1,   0,   0,   0,   -r*cos(yaw), 0,   -sin(yaw),
-              0,   0,   0,   0,   1,   0,   0,              0,   0,
-              0,   0,   0,   0,   0,   0,   1,              0,   0;
-        // clang-format on
-        return h;
-    };
-    // update_Q - 过程噪声协方差矩阵
-    s2qxyz_ = declare_parameter("ekf.sigma2_q_xyz", 20.0);
-    s2qyaw_ = declare_parameter("ekf.sigma2_q_yaw", 100.0);
-    s2qr_ = declare_parameter("ekf.sigma2_q_r", 800.0);
-    auto u_q = [this]() {
-        Eigen::MatrixXd q(9, 9);
-        double t = dt_, x = s2qxyz_, y = s2qyaw_, r = s2qr_;
-        double q_x_x = pow(t, 4) / 4 * x, q_x_vx = pow(t, 3) / 2 * x, q_vx_vx = pow(t, 2) * x;
-        double q_y_y = pow(t, 4) / 4 * y, q_y_vy = pow(t, 3) / 2 * x, q_vy_vy = pow(t, 2) * y;
-        double q_r = pow(t, 4) / 4 * r;
-        // clang-format off
-        //    robot_center_x      v_xc    yc      v_yc    armor_z      v_za    yaw     v_yaw   r
-        q <<  q_x_x,  q_x_vx, 0,      0,      0,      0,      0,      0,      0,
-              q_x_vx, q_vx_vx,0,      0,      0,      0,       0,      0,      0,
-              0,      0,      q_x_x,  q_x_vx, 0,      0,      0,      0,      0,
-              0,      0,      q_x_vx, q_vx_vx,0,      0,      0,      0,      0,
-              0,      0,      0,      0,      q_x_x,  q_x_vx, 0,      0,      0,
-              0,      0,      0,      0,      q_x_vx, q_vx_vx,0,      0,      0,
-              0,      0,      0,      0,      0,      0,      q_y_y,  q_y_vy, 0,
-              0,      0,      0,      0,      0,      0,      q_y_vy, q_vy_vy,0,
-              0,      0,      0,      0,      0,      0,      0,      0,      q_r;
-        // clang-format on
-        return q;
-    };
-    // update_R - 测量噪声协方差矩阵
-    r_xyz_factor = declare_parameter("ekf.r_xyz_factor", 0.05);
-    r_yaw = declare_parameter("ekf.r_yaw", 0.02);
-    auto u_r = [this](const Eigen::VectorXd& z) {
-        Eigen::DiagonalMatrix<double, 4> r;
-        double x = r_xyz_factor;
-        r.diagonal() << abs(x * z[0]), abs(x * z[1]), abs(x * z[2]), r_yaw;
-        return r;
-    };
-    // P - 估计误差协方差矩阵
-    Eigen::DiagonalMatrix<double, 9> p0;
-    p0.setIdentity();
-    tracker_->ekf = ExtendedKalmanFilter { f, h, j_f, j_h, u_q, u_r, p0 };
+    tracker_->ekf = this->CreateEKF();
 
     // 重置追踪器服务
     using std::placeholders::_1;
@@ -157,33 +71,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     // 跟踪目标消息发布器
     target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>("/tracker/target", rclcpp::SensorDataQoS());
 
-    // 可视化标记相关
-    position_marker_.ns = "position";
-    position_marker_.type = visualization_msgs::msg::Marker::SPHERE;
-    position_marker_.scale.x = position_marker_.scale.y = position_marker_.scale.z = 0.1;
-    position_marker_.color.a = 1.0;
-    position_marker_.color.g = 1.0;
-    linear_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
-    linear_v_marker_.ns = "linear_v";
-    linear_v_marker_.scale.x = 0.03;
-    linear_v_marker_.scale.y = 0.05;
-    linear_v_marker_.color.a = 1.0;
-    linear_v_marker_.color.r = 1.0;
-    linear_v_marker_.color.g = 1.0;
-    angular_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
-    angular_v_marker_.ns = "angular_v";
-    angular_v_marker_.scale.x = 0.03;
-    angular_v_marker_.scale.y = 0.05;
-    angular_v_marker_.color.a = 1.0;
-    angular_v_marker_.color.b = 1.0;
-    angular_v_marker_.color.g = 1.0;
-    armor_marker_.ns = "armors";
-    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
-    armor_marker_.scale.x = 0.03;
-    armor_marker_.scale.z = 0.125;
-    armor_marker_.color.a = 1.0;
-    armor_marker_.color.r = 1.0;
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
+    this->InitMarkers();
 }
 
 void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg) {
@@ -193,8 +81,6 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         ps.header = armors_msg->header;
         ps.pose = armor.pose;
         try {
-            // 将装甲板位置从 相机坐标系 转换到 odom（目标坐标系）
-            // 此后装甲板信息中的 armor.pose 为装甲板在 odom 系中的位置
             armor.pose = tf2_buffer_->transform(ps, target_frame_).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
@@ -216,15 +102,14 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         armors_msg->armors.end()
     );
 
-    // 初始化消息
     auto_aim_interfaces::msg::TrackerInfo info_msg;
     auto_aim_interfaces::msg::Target target_msg;
     rclcpp::Time time = armors_msg->header.stamp;
     target_msg.header.stamp = time;
     target_msg.header.frame_id = target_frame_;
 
-    // 如果追踪器状态为 LOST，重新初始化追踪器
     if (tracker_->tracker_state == Tracker::LOST) {
+        // 如果追踪器状态为 LOST，重新初始化追踪器
         tracker_->Init(armors_msg);
         target_msg.tracking = false;
     } else {
@@ -273,6 +158,138 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     target_pub_->publish(target_msg);
 
     PublishMarkers(target_msg);
+}
+
+void ArmorTrackerNode::InitMarkers() {
+    // 可视化标记相关
+    position_marker_.ns = "position";
+    position_marker_.type = visualization_msgs::msg::Marker::SPHERE;
+    position_marker_.scale.x = position_marker_.scale.y = position_marker_.scale.z = 0.1;
+    position_marker_.color.a = 1.0;
+    position_marker_.color.g = 1.0;
+    linear_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
+    linear_v_marker_.ns = "linear_v";
+    linear_v_marker_.scale.x = 0.03;
+    linear_v_marker_.scale.y = 0.05;
+    linear_v_marker_.color.a = 1.0;
+    linear_v_marker_.color.r = 1.0;
+    linear_v_marker_.color.g = 1.0;
+    angular_v_marker_.type = visualization_msgs::msg::Marker::ARROW;
+    angular_v_marker_.ns = "angular_v";
+    angular_v_marker_.scale.x = 0.03;
+    angular_v_marker_.scale.y = 0.05;
+    angular_v_marker_.color.a = 1.0;
+    angular_v_marker_.color.b = 1.0;
+    angular_v_marker_.color.g = 1.0;
+    armor_marker_.ns = "armors";
+    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
+    armor_marker_.scale.x = 0.03;
+    armor_marker_.scale.z = 0.125;
+    armor_marker_.color.a = 1.0;
+    armor_marker_.color.r = 1.0;
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
+}
+ExtendedKalmanFilter ArmorTrackerNode::CreateEKF() {
+    // EKF参数设置
+    // 状态: robot_center_x, v_xc, yc, v_yc, armor_z, v_za, yaw, v_yaw, r
+    // 测量: armor_x, armor_y, armor_z, yaw
+    // f - 过程函数（运动关系）
+    auto f = [this](const Eigen::VectorXd& x) {
+        /* 
+            x_c  v_xc y_c  v_yc z_c v_zc yaw  v_yaw r
+            1,   t,   0,   0,   0,   0,   0,   0,   0,
+            0,   1,   0,   0,   0,   0,   0,   0,   0,
+            0,   0,   1,   t,   0,   0,   0,   0,   0,
+            0,   0,   0,   1,   0,   0,   0,   0,   0,
+            0,   0,   0,   0,   1,   t,   0,   0,   0,
+            0,   0,   0,   0,   0,   1,   0,   0,   0,
+            0,   0,   0,   0,   0,   0,   1,   t,   0,
+            0,   0,   0,   0,   0,   0,   0,   1,   0,
+            0,   0,   0,   0,   0,   0,   0,   0,   1;
+         */
+        Eigen::VectorXd x_new = x;
+        x_new(0) += x(1) * dt_;
+        x_new(2) += x(3) * dt_;
+        x_new(4) += x(5) * dt_;
+        x_new(6) += x(7) * dt_;
+        return x_new;
+    };
+    // J_f - 过程函数的雅可比矩阵
+    auto j_f = [this](const Eigen::VectorXd&) {
+        Eigen::MatrixXd f(9, 9);
+        // clang-format off
+        f <<  1,   dt_, 0,   0,   0,   0,   0,   0,   0,
+              0,   1,   0,   0,   0,   0,   0,   0,   0,
+              0,   0,   1,   dt_, 0,   0,   0,   0,   0, 
+              0,   0,   0,   1,   0,   0,   0,   0,   0,
+              0,   0,   0,   0,   1,   dt_, 0,   0,   0,
+              0,   0,   0,   0,   0,   1,   0,   0,   0,
+              0,   0,   0,   0,   0,   0,   1,   dt_, 0,
+              0,   0,   0,   0,   0,   0,   0,   1,   0,
+              0,   0,   0,   0,   0,   0,   0,   0,   1;
+        // clang-format on
+        return f;
+    };
+    // h - 观测函数（从状态量到观测量）
+    auto h = [](const Eigen::VectorXd& x) {
+        Eigen::VectorXd z(4);
+        double robot_center_x = x(0), yc = x(2), yaw = x(6), r = x(8);
+        z(0) = robot_center_x - r * cos(yaw); // armor_x
+        z(1) = yc - r * sin(yaw);             // armor_y
+        z(2) = x(4);                          // armor_z
+        z(3) = x(6);                          // yaw
+        return z;
+    };
+    // J_h - 观测函数的雅可比矩阵
+    auto j_h = [](const Eigen::VectorXd& x) {
+        Eigen::MatrixXd h(4, 9);
+        double yaw = x(6), r = x(8);
+        // clang-format off
+        //   xc  v_xc  yc  v_yc  zc   v_zc yaw            v_yaw  r
+        h << 1,   0,   0,   0,   0,   0,   r*sin(yaw),  0,    -cos(yaw),  // xa
+             0,   0,   1,   0,   0,   0,  -r*cos(yaw),  0,    -sin(yaw),  // ya
+             0,   0,   0,   0,   1,   0,   0,              0,    0,            // za
+             0,   0,   0,   0,   0,   0,   1,              0,    0;            // yaw
+        // clang-format on
+        return h;
+    };
+    // update_Q - 过程噪声协方差矩阵
+    s2qxyz_ = declare_parameter("ekf.sigma2_q_xyz", 20.0);
+    s2qyaw_ = declare_parameter("ekf.sigma2_q_yaw", 100.0);
+    s2qr_ = declare_parameter("ekf.sigma2_q_r", 800.0);
+    auto u_q = [this]() {
+        Eigen::MatrixXd q(9, 9);
+        double t = dt_, x = s2qxyz_, y = s2qyaw_, r = s2qr_;
+        double q_x_x = pow(t, 4) / 4 * x, q_x_vx = pow(t, 3) / 2 * x, q_vx_vx = pow(t, 2) * x;
+        double q_y_y = pow(t, 4) / 4 * y, q_y_vy = pow(t, 3) / 2 * x, q_vy_vy = pow(t, 2) * y;
+        double q_r = pow(t, 4) / 4 * r;
+        // clang-format off
+        //    robot_center_x      v_xc    yc      v_yc    armor_z      v_za    yaw     v_yaw   r
+        q <<  q_x_x,  q_x_vx, 0,      0,      0,      0,      0,      0,      0,
+              q_x_vx, q_vx_vx,0,      0,      0,      0,       0,      0,      0,
+              0,      0,      q_x_x,  q_x_vx, 0,      0,      0,      0,      0,
+              0,      0,      q_x_vx, q_vx_vx,0,      0,      0,      0,      0,
+              0,      0,      0,      0,      q_x_x,  q_x_vx, 0,      0,      0,
+              0,      0,      0,      0,      q_x_vx, q_vx_vx,0,      0,      0,
+              0,      0,      0,      0,      0,      0,      q_y_y,  q_y_vy, 0,
+              0,      0,      0,      0,      0,      0,      q_y_vy, q_vy_vy,0,
+              0,      0,      0,      0,      0,      0,      0,      0,      q_r;
+        // clang-format on
+        return q;
+    };
+    // update_R - 测量噪声协方差矩阵
+    r_xyz_factor = declare_parameter("ekf.r_xyz_factor", 0.05);
+    r_yaw = declare_parameter("ekf.r_yaw", 0.02);
+    auto u_r = [this](const Eigen::VectorXd& z) {
+        Eigen::DiagonalMatrix<double, 4> r;
+        double x = r_xyz_factor;
+        r.diagonal() << abs(x * z[0]), abs(x * z[1]), abs(x * z[2]), r_yaw;
+        return r;
+    };
+    // P - 估计误差协方差矩阵
+    Eigen::DiagonalMatrix<double, 9> p0;
+    p0.setIdentity(); // 单位阵
+    return ExtendedKalmanFilter { f, h, j_f, j_h, u_q, u_r, p0 };
 }
 
 void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg) {

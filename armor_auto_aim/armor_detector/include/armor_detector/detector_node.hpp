@@ -60,6 +60,7 @@ private:
      */
     void DestroyDebugPublishers();
 
+    void InitMarkers();
     /**
      * @brief 创建标记发布者
      */

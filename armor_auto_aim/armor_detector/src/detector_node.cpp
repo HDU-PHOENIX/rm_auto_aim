@@ -36,29 +36,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
 
-    // Visualization Marker Publisher
-    // See http://wiki.ros.org/rviz/DisplayTypes/Marker
-    armor_marker_.ns = "armors";
-    armor_marker_.action = visualization_msgs::msg::Marker::ADD;
-    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
-    armor_marker_.scale.x = 0.05;
-    armor_marker_.scale.z = 0.125;
-    armor_marker_.color.a = 1.0;
-    armor_marker_.color.g = 0.5;
-    armor_marker_.color.b = 1.0;
-    armor_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
-
-    text_marker_.ns = "classification";
-    text_marker_.action = visualization_msgs::msg::Marker::ADD;
-    text_marker_.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
-    text_marker_.scale.z = 0.1;
-    text_marker_.color.a = 1.0;
-    text_marker_.color.r = 1.0;
-    text_marker_.color.g = 1.0;
-    text_marker_.color.b = 1.0;
-    text_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
-
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
+    this->InitMarkers();
 
     // Debug 信息发布者
     debug_ = this->declare_parameter("debug", false);
@@ -290,6 +268,32 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
     binary_img_pub_.shutdown();
     number_img_pub_.shutdown();
     result_img_pub_.shutdown();
+}
+
+void ArmorDetectorNode::InitMarkers() {
+    // Visualization Marker Publisher
+    // See http://wiki.ros.org/rviz/DisplayTypes/Marker
+    armor_marker_.ns = "armors";
+    armor_marker_.action = visualization_msgs::msg::Marker::ADD;
+    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
+    armor_marker_.scale.x = 0.05;
+    armor_marker_.scale.z = 0.125;
+    armor_marker_.color.a = 1.0;
+    armor_marker_.color.g = 0.5;
+    armor_marker_.color.b = 1.0;
+    armor_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
+
+    text_marker_.ns = "classification";
+    text_marker_.action = visualization_msgs::msg::Marker::ADD;
+    text_marker_.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+    text_marker_.scale.z = 0.1;
+    text_marker_.color.a = 1.0;
+    text_marker_.color.r = 1.0;
+    text_marker_.color.g = 1.0;
+    text_marker_.color.b = 1.0;
+    text_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
+
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
 }
 
 void ArmorDetectorNode::PublishMarkers() {

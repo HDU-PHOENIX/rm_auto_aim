@@ -10,12 +10,10 @@ class ExtendedKalmanFilter {
 public:
     ExtendedKalmanFilter() = default;
 
-    // 函数类型定义
     using VecVecFunc = std::function<Eigen::VectorXd(const Eigen::VectorXd&)>;
     using VecMatFunc = std::function<Eigen::MatrixXd(const Eigen::VectorXd&)>;
     using VoidMatFunc = std::function<Eigen::MatrixXd()>;
 
-    // 构造函数
     explicit ExtendedKalmanFilter(
         const VecVecFunc& f,
         const VecVecFunc& h,
@@ -29,29 +27,21 @@ public:
     // 设置初始状态
     void SetState(const Eigen::VectorXd& x0);
 
-    // 预测一个时间步
     Eigen::MatrixXd Predict();
 
-    // 根据测量更新估计状态
     Eigen::MatrixXd Update(const Eigen::VectorXd& z);
 
 private:
-    // 处理非线性向量函数
-    VecVecFunc f;
-    // 观测非线性向量函数
-    VecVecFunc h;
-    // f()的雅可比矩阵
-    VecMatFunc jacobian_f;
-    Eigen::MatrixXd F;
-    // h()的雅可比矩阵
-    VecMatFunc jacobian_h;
-    Eigen::MatrixXd H;
-    // 过程噪声协方差矩阵
-    VoidMatFunc update_Q;
-    Eigen::MatrixXd Q;
-    // 测量噪声协方差矩阵
-    VecMatFunc update_R;
-    Eigen::MatrixXd R;
+    VecVecFunc f;          // 状态转移函数
+    VecVecFunc h;          // 观测函数（从状态到观测）
+    VecMatFunc jacobian_f; // 状态转移函数的雅可比矩阵
+    VecMatFunc jacobian_h; // 观测函数的雅可比矩阵
+    Eigen::MatrixXd F;     // 状态转移矩阵
+    Eigen::MatrixXd H;     // 观测矩阵
+    Eigen::MatrixXd Q;     // 过程噪声协方差矩阵
+    Eigen::MatrixXd R;     // 测量噪声协方差矩阵
+    VoidMatFunc update_Q;  // 过程噪声协方差矩阵更新函数
+    VecMatFunc update_R;   // 测量噪声协方差矩阵更新函数
 
     // 先验误差估计协方差矩阵
     Eigen::MatrixXd P_pri;
