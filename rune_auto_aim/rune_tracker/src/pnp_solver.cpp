@@ -30,16 +30,7 @@ PnPSolver::GeneratePw(double outerwidth, double insidewidth, double height) {
          * @return tvec 平移向量，相机坐标系下的坐标
          */
 bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec) {
-    // std::vector<cv::Point2f> image_rune_points;
-
-    // Fill in image points
-    // image_armor_points.emplace_back(armor.left_light.bottom);
-    // image_armor_points.emplace_back(armor.left_light.top);
-    // image_armor_points.emplace_back(armor.right_light.top);
-    // image_armor_points.emplace_back(armor.right_light.bottom);
-
     // Solve pnp
-    //auto object_points = armor.type == ArmorType::SMALL ? small_armor_points_ : large_armor_points_;
     return cv::solvePnP(
         GeneratePw(RUNE_PNP_OUTER_LIGHTBAR_WIDTH, RUNE_PNP_INSIDE_LIGHTBAR_WIDTH, RUNE_PNP_RADIUS),
         rune,

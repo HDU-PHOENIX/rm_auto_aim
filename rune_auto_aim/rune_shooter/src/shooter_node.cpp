@@ -54,17 +54,6 @@ std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {
         r_k_iter,
         velocity
     );
-    //     double gravity;     //重力系数
-    //     double kofsmall;    //小弹丸风阻系数
-    //     double koflarge;    //大弹丸风阻系数
-    //     double koflight;    //荧光弹丸风阻系数
-    //     int max_iter;       //龙格库塔法最大迭代次数
-    //     double velocity;    //弹丸速度
-    //     int R_K_iter;       //龙格库塔法求解落点的迭代次数
-    //     double stop_error;  //停止迭代的最小误差(单位m)
-    //     double k;           //风阻系数
-    //     double px;          //yaw轴补偿
-    //     double py;          //pitch轴补偿
 }
 
 } // namespace rune

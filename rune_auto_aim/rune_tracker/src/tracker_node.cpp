@@ -40,10 +40,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         // RCLCPP_INFO(this->get_logger(), "camera_info received");
         cam_info_sub_.reset();
     });
-    // 重置追踪器服务
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using std::placeholders::_3;
 
     // tf2相关
     // tf2 buffer & listener 相关
@@ -163,7 +159,6 @@ bool RuneTrackerNode::FittingBig() {
             cere_rotated_angle += 2 * M_PI;
         RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
     }
-    // RCLCPP_INFO(this->get_logger(), "cere_param_list.size() is %ld", cere_param_list.size());
     CeresProcess();
     return true;
 }
@@ -423,7 +418,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     data = rune_ptr;
     auto&& theory_delay = data->pose_c.position.z / 25;
     delay = theory_delay + chasedelay;
-    runes_msg_.speed = 25;
+    runes_msg_.speed = bullet_speed;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
     RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
@@ -446,7 +441,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     CalSmallSpeed();              //计算小符角速度
     Judge();                      //判断顺时针还是逆时针
     FittingBig();                 //拟合大符
-    Fitting();                    //拟合小符
+    Fitting();                    //计算预测角度
     RCLCPP_INFO(this->get_logger(), "rotate_angle is %f", rotate_angle);
     data_last = data;                                   //记录上一帧的数据
     leaf_angle_last = leaf_angle;                       //记录上一帧的角度
@@ -502,7 +497,7 @@ void RuneTrackerNode::CalSmallSpeed() {
     } else {
         angles.PushForcibly(leaf_angle);
     }
-    radius.Push(cv::norm(leaf_dir)); //计算半径
+    // radius.Push(cv::norm(leaf_dir)); //计算半径
 }
 
 void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
