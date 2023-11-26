@@ -4,11 +4,13 @@ namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options):
     Node("serial_node", options) {
     this->serial_ = InitSerial();
+    this->camera2shooter_tvec_ = declare_parameter("camera2shooter_tvec", std::vector<double> { 0.0, 0.0, 0.0 });
+    this->shooter2odom_tvec_ = declare_parameter("shooter2odom_tvec", std::vector<double> { 0.0, 0.0, 0.0 });
 
-    broadcaster_camera2gimble_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-    broadcaster_gimble2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-    tfs_camera2gimble_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
-    tfs_gimble2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+    broadcaster_camera2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    broadcaster_shooter2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+    tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
     this->serial_info_pub_ =
         create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", rclcpp::SensorDataQoS());
@@ -65,33 +67,32 @@ void SerialNode::LoopForPublish() {
         serial_info_.rune_flag.data = package.rune_flag;
 
         // x:red y:green z:blue
-        // 发布 相机 到 云台中心 的坐标系转换
+        // 发布 相机 到 枪口 的坐标系转换
         SendTransform(
-            broadcaster_camera2gimble_,
-            tfs_camera2gimble_,
+            broadcaster_camera2shooter_,
+            tfs_camera2shooter_,
             "camera",
-            "gimble",
-            // gimble: 云台中心
+            "shooter",
             // 四元数字和欧拉角转换 https://quaternions.online
             []() {
                 tf2::Quaternion q;
                 q.setRPY(M_PI_2, -M_PI_2, 0);
                 return q;
             }(),
-            tf2::Vector3(0, 0, -0.2)
+            tf2::Vector3(camera2shooter_tvec_[0], camera2shooter_tvec_[1], camera2shooter_tvec_[2])
         );
-        // 发布 云台中心 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
+        // 发布 枪口 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
         SendTransform(
-            broadcaster_gimble2odom_,
-            tfs_gimble2odom_,
-            "gimble",
+            broadcaster_shooter2odom_,
+            tfs_shooter2odom_,
+            "shooter",
             "odom",
             [this]() {
                 tf2::Quaternion q;
                 q.setRPY(0, -serial_info_.euler[2], -serial_info_.euler[0]);
                 return q;
             }(),
-            tf2::Vector3(0, 0, 0)
+            tf2::Vector3(shooter2odom_tvec_[0], shooter2odom_tvec_[1], shooter2odom_tvec_[2])
         );
 
         serial_info_pub_->publish(serial_info_);

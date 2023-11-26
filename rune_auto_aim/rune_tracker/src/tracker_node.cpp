@@ -53,7 +53,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
     // 订阅器和过滤器
     runes_sub_.subscribe(this, "/detector/runes", rmw_qos_profile_sensor_data);
-    target_frame_ = this->declare_parameter("target_frame", "odom");
+    target_frame_ = this->declare_parameter("target_frame", "shooter");
     tf2_filter_ = std::make_shared<tf2_filter>(
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
@@ -467,8 +467,8 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     p_a.z = runes_msg_.pc.position.z = tvec.at<double>(2);
     ps.pose.position = p_a; //旋转后的装甲板在相机坐标系下的位置
     try {
-        // 将装甲板位置从 相机坐标系 转换到 odom（目标坐标系）
-        // 此后装甲板信息中的 armor.pose 为装甲板在 odom 系中的位置
+        // 将装甲板位置从 相机坐标系 转换到 shooter（目标坐标系）
+        // 此后装甲板信息中的 armor.pose 为装甲板在 shooter 系中的位置
         ps.pose = tf2_buffer_->transform(ps, target_frame_).pose;
     } catch (const tf2::ExtrapolationException& ex) {
         RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
