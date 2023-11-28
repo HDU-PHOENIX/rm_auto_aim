@@ -153,10 +153,27 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.integer_range[0].to_value = 255;
     int binary_thres = declare_parameter("binary_thres", 160, param_desc);
 
+    param_desc.integer_range.resize(1);
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 255;
+    int gray_thres = declare_parameter("gray_thres", 160, param_desc);
+
+    param_desc.integer_range.resize(1);
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 255;
+    int color_thres = declare_parameter("color_thres", 160, param_desc);
+
     param_desc.description = "0-RED, 1-BLUE";
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 1;
     auto detect_color = declare_parameter("detect_color", RED, param_desc);
+
+    param_desc.description = "0-普通二值化, 1-通道相减二值化";
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 1;
+    auto detect_mode = declare_parameter("detect_mode", 0, param_desc);
 
     // c++20 designated initializer
     // Detector::LightParams l_params = { .min_ratio = declare_parameter("light.min_ratio", 0.1),
@@ -185,7 +202,14 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     default_armors_msg_.armors.emplace_back(default_armor_msg_);
 
     // 初始化 Detector
-    auto detector = std::make_unique<Detector>(binary_thres, detect_color, l_params, a_params);
+    std::unique_ptr<Detector> detector;
+    if (detect_mode == 0) {
+        detector = std::make_unique<Detector>(binary_thres, detect_color, l_params, a_params, detect_mode);
+    } else if (detect_mode == 1) {
+        detector = std::make_unique<Detector>(gray_thres, color_thres, detect_color, l_params, a_params, detect_mode);
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "Invalid detect_mode!");
+    }
 
     // 初始化分类器
     auto pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
@@ -204,6 +228,8 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
 
     // 更新参数
     detector_->binary_thres = get_parameter("binary_thres").as_int();
+    detector_->gray_thres = get_parameter("gray_thres").as_int();
+    detector_->color_thres = get_parameter("color_thres").as_int();
     detector_->detect_color = get_parameter("detect_color").as_int();
     detector_->classifier->threshold = get_parameter("classifier_threshold").as_double();
 
@@ -217,6 +243,10 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
 
     // 发布 debug 信息
     if (debug_) {
+        if (detector_->detect_mode == 1) {
+            gray_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->gray_mask).toImageMsg());
+            color_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->color_mask).toImageMsg());
+        }
         binary_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg());
 
         // 根据 x 坐标对灯条和装甲板排序
@@ -254,6 +284,8 @@ void ArmorDetectorNode::CreateDebugPublishers() {
     lights_data_pub_ = this->create_publisher<auto_aim_interfaces::msg::DebugLights>("/detector/debug_lights", 10);
     armors_data_pub_ = this->create_publisher<auto_aim_interfaces::msg::DebugArmors>("/detector/debug_armors", 10);
 
+    gray_mask_pub_ = image_transport::create_publisher(this, "/detector/gray_mask");
+    color_mask_pub_ = image_transport::create_publisher(this, "/detector/color_mask");
     binary_img_pub_ = image_transport::create_publisher(this, "/detector/binary_img");
     number_img_pub_ = image_transport::create_publisher(this, "/detector/number_img");
     result_img_pub_ = image_transport::create_publisher(this, "/detector/result_img");
@@ -265,6 +297,8 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
     armors_data_pub_.reset();
 
     // 关闭
+    gray_mask_pub_.shutdown();
+    color_mask_pub_.shutdown();
     binary_img_pub_.shutdown();
     number_img_pub_.shutdown();
     result_img_pub_.shutdown();

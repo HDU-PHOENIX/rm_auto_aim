@@ -27,6 +27,11 @@
 /armor_detector_node:
     ros__parameters:
         send_default_armor: True
+        binary_thres: 160
+        gray_thres: 200
+        color_thres: 120
+        detect_color: 1 # 0-红色, 1-蓝色
+        detect_mode: 1 # 0-普通二值化, 1-通道相减二值化
 
 /rune_tracker_node:
     ros__parameters:

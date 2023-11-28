@@ -3,6 +3,7 @@
 #include <opencv2/core/base.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
 // STD
@@ -16,15 +17,35 @@
 
 namespace armor {
 Detector::Detector(
+    const int& gray_thres,
+    const int& color_thres,
+    const int& color,
+    const LightParams& light_params,
+    const ArmorParams& armor_params,
+    const char& detect_mode
+):
+    binary_thres(0),
+    gray_thres(gray_thres),
+    color_thres(color_thres),
+    detect_color(color),
+    light_params(light_params),
+    armor_params(armor_params),
+    detect_mode(detect_mode) {}
+
+Detector::Detector(
     const int& bin_thres,
     const int& color,
     const LightParams& light_params,
-    const ArmorParams& armor_params
+    const ArmorParams& armor_params,
+    const char& detect_mode
 ):
     binary_thres(bin_thres),
+    gray_thres(0),
+    color_thres(0),
     detect_color(color),
     light_params(light_params),
-    armor_params(armor_params) {}
+    armor_params(armor_params),
+    detect_mode(detect_mode) {}
 
 std::vector<Armor> Detector::Detect(const cv::Mat& input) {
     binary_img = PreprocessImage(input);     // 二值化图像
@@ -47,7 +68,24 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
 
     // 二值化
     cv::Mat binary_img;
-    cv::threshold(gray_img, binary_img, binary_thres, 255, cv::THRESH_BINARY);
+    if (detect_mode == '0') {
+        cv::threshold(gray_img, binary_img, binary_thres, 255, cv::THRESH_BINARY);
+    } else {
+        std::vector<cv::Mat> channels;
+        split(rgb_img, channels);
+        // 找出灰度图里面较亮的地方
+        cv::threshold(gray_img, gray_mask, gray_thres, 255, cv::THRESH_BINARY);
+        if (detect_color == RED) {
+            // 红色-蓝色 获得红色区域轮廓
+            cv::subtract(channels[2], channels[0], color_mask);
+        } else if (detect_color == BLUE) {
+            // 蓝色-红色 获得蓝色区域轮廓
+            cv::subtract(channels[0], channels[2], color_mask);
+        }
+        cv::threshold(color_mask, color_mask, color_thres, 255, cv::THRESH_BINARY_INV);
+
+        cv::bitwise_and(gray_mask, color_mask, binary_img);
+    }
 
     return binary_img;
 }
@@ -74,33 +112,38 @@ std::vector<Light> Detector::FindLights(const cv::Mat& rbg_img, const cv::Mat& b
         auto light = Light(r_rect);
 
         if (IsLight(light)) {
-            // 获取包含灯条的最小直立矩形
-            auto rect = light.boundingRect();
+            if (detect_mode == '1') {
+                // 通道相减模式下，直接判断颜色
+                light.color = detect_color;
+                lights.emplace_back(light);
+            } else {
+                // 获取包含灯条的最小直立矩形
+                auto rect = light.boundingRect();
 
-            // 防止越界
-            if (0 <= rect.x && 0 <= rect.width && 0 <= rect.y && 0 <= rect.height
-                && rect.x + rect.width <= rbg_img.cols && rect.y + rect.height <= rbg_img.rows)
-            {
-                int sum_r = 0, sum_b = 0;
-                auto roi = rbg_img(rect);
-                // 遍历 ROI，计算灯条颜色
-                for (int i = 0; i < roi.rows; i++) {
-                    for (int j = 0; j < roi.cols; j++) {
-                        // TODO: 这个判断是否多余？
-                        if (cv::pointPolygonTest(
-                                contour,
-                                cv::Point2f(j + rect.x, i + rect.y),
-                                false
-                            )
-                            >= 0) {
-                            sum_r += roi.at<cv::Vec3b>(i, j)[0];
-                            sum_b += roi.at<cv::Vec3b>(i, j)[2];
+                // 防止越界
+                if (0 <= rect.x && 0 <= rect.width && 0 <= rect.y && 0 <= rect.height
+                    && rect.x + rect.width <= rbg_img.cols && rect.y + rect.height <= rbg_img.rows)
+                {
+                    int sum_r = 0, sum_b = 0;
+                    auto roi = rbg_img(rect);
+                    // 遍历 ROI，计算灯条颜色
+                    for (int i = 0; i < roi.rows; i++) {
+                        for (int j = 0; j < roi.cols; j++) {
+                            if (cv::pointPolygonTest(
+                                    contour,
+                                    cv::Point2f(j + rect.x, i + rect.y),
+                                    false
+                                )
+                                >= 0) {
+                                sum_r += roi.at<cv::Vec3b>(i, j)[0];
+                                sum_b += roi.at<cv::Vec3b>(i, j)[2];
+                            }
                         }
                     }
+                    // 直接通过像素值加和判断颜色
+                    light.color = sum_r > sum_b ? RED : BLUE;
+                    lights.emplace_back(light);
                 }
-                // 直接通过像素值加和判断颜色
-                light.color = sum_r > sum_b ? RED : BLUE;
-                lights.emplace_back(light);
             }
         }
     }
