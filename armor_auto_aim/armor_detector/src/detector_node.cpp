@@ -1,4 +1,5 @@
 #include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/mat.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -243,38 +244,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
 
     // 发布 debug 信息
     if (debug_) {
-        if (detector_->detect_mode == 1) {
-            gray_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->gray_mask).toImageMsg());
-            color_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->color_mask).toImageMsg());
-        }
-        binary_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg());
-
-        // 根据 x 坐标对灯条和装甲板排序
-        std::sort(detector_->debug_lights.data.begin(), detector_->debug_lights.data.end(), [](const auto& l1, const auto& l2) { return l1.center_x < l2.center_x; });
-        std::sort(detector_->debug_armors.data.begin(), detector_->debug_armors.data.end(), [](const auto& a1, const auto& a2) { return a1.center_x < a2.center_x; });
-
-        // 发布灯条和装甲板 debug 信息
-        lights_data_pub_->publish(detector_->debug_lights);
-        armors_data_pub_->publish(detector_->debug_armors);
-
-        if (!armors.empty()) {
-            // 获取所有的数字图像
-            auto all_num_img = detector_->GetAllNumbersImage();
-            // 发布数字图像
-            number_img_pub_.publish(*cv_bridge::CvImage(img_msg->header, "mono8", all_num_img).toImageMsg());
-        }
-
-        // 在图像上画出结果，显示数字和置信度
-        detector_->DrawResults(img);
-        // 画出相机中心
-        cv::circle(img, cam_center_, 5, cv::Scalar(255, 0, 0), 2);
-        // Draw latency
-        std::stringstream latency_ss;
-        latency_ss << "Latency: " << std::fixed << std::setprecision(2) << latency << "ms";
-        auto latency_s = latency_ss.str();
-        cv::putText(img, latency_s, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
-        // 发布结果图像
-        result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "bgr8", img).toImageMsg());
+        PublishDebugInfo(img, img_msg, armors, latency);
     }
 
     return armors;
@@ -302,6 +272,41 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
     binary_img_pub_.shutdown();
     number_img_pub_.shutdown();
     result_img_pub_.shutdown();
+}
+
+void ArmorDetectorNode::PublishDebugInfo(cv::Mat& img, const sensor_msgs::msg::Image::SharedPtr& img_msg, const std::vector<Armor>& armors, const double& latency) {
+    if (detector_->detect_mode == 1) {
+        gray_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->gray_mask).toImageMsg());
+        color_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->color_mask).toImageMsg());
+    }
+    binary_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg());
+
+    // 根据 x 坐标对灯条和装甲板排序
+    std::sort(detector_->debug_lights.data.begin(), detector_->debug_lights.data.end(), [](const auto& l1, const auto& l2) { return l1.center_x < l2.center_x; });
+    std::sort(detector_->debug_armors.data.begin(), detector_->debug_armors.data.end(), [](const auto& a1, const auto& a2) { return a1.center_x < a2.center_x; });
+
+    // 发布灯条和装甲板 debug 信息
+    lights_data_pub_->publish(detector_->debug_lights);
+    armors_data_pub_->publish(detector_->debug_armors);
+
+    if (!armors.empty()) {
+        // 获取所有的数字图像
+        auto all_num_img = detector_->GetAllNumbersImage();
+        // 发布数字图像
+        number_img_pub_.publish(*cv_bridge::CvImage(img_msg->header, "mono8", all_num_img).toImageMsg());
+    }
+
+    // 在图像上画出结果，显示数字和置信度
+    detector_->DrawResults(img);
+    // 画出相机中心
+    cv::circle(img, cam_center_, 5, cv::Scalar(255, 0, 0), 2);
+    // Draw latency
+    std::stringstream latency_ss;
+    latency_ss << "Latency: " << std::fixed << std::setprecision(2) << latency << "ms";
+    auto latency_s = latency_ss.str();
+    cv::putText(img, latency_s, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+    // 发布结果图像
+    result_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "bgr8", img).toImageMsg());
 }
 
 void ArmorDetectorNode::InitMarkers() {

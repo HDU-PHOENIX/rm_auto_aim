@@ -51,18 +51,35 @@ private:
     std::vector<Armor> DetectArmors(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     /**
-     * @brief debug 模式下发布识别到的装甲板信息
+     * @brief 创建 debug 信息发布者
+    *  @details 在监听到 debug 参数由 false 变为 true 时调用，创建发布者
      */
     void CreateDebugPublishers();
+
     /**
      * @brief 销毁 debug 信息发布者
-     * 
+     * @details 在监听到 debug 参数由 true 变为 false 时调用，销毁发布者，不占用资源
      */
     void DestroyDebugPublishers();
 
-    void InitMarkers();
     /**
-     * @brief 创建标记发布者
+     * @brief 发布 debug 信息
+     * @details 对外发布 debug 信息，包括灯条信息、装甲板信息、图像信息
+     */
+    void PublishDebugInfo(
+        cv::Mat& img,
+        const sensor_msgs::msg::Image::SharedPtr& img_msg,
+        const std::vector<Armor>& armors,
+        const double& latency
+    );
+
+    /**
+     * @brief 初始化 Maker 信息
+     */
+    void InitMarkers();
+
+    /**
+     * @brief 发布 Marker 信息
      */
     void PublishMarkers();
 
