@@ -2,6 +2,13 @@
   ros__parameters:
     debug: true
 
+
+/camera:
+    ros__parameters:
+        videofile: flase
+        video_path: 
+
+
 /camera_info_node:
     ros__parameters:
         camera_matrix: [

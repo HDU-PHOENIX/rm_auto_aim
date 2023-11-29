@@ -86,7 +86,8 @@ def generate_launch_description():
                     package = 'camera',
                     plugin = 'sensor::CameraNode',
                     name = 'camera_node',
-                    extra_arguments = [{"use_intra_process_comms": True}]
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 )
             ],
             output = 'screen',

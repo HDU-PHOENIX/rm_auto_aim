@@ -6,6 +6,7 @@
 
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
+#include <string>
 
 namespace sensor {
 
@@ -29,6 +30,10 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_rune_;
     // 串口数据接收者
     rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_subscriber_;
+
+    //是否外部输入视频流标志位
+    bool videoflag;
+    std::string video_path;
 };
 
 } // namespace sensor
