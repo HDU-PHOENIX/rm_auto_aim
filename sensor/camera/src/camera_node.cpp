@@ -1,4 +1,5 @@
 #include "camera/camera_node.hpp"
+#include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 
 namespace sensor {
@@ -8,8 +9,10 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "camera_node start");
 
     //是否使用视频流标志位
-    videoflag = this->declare_parameter<bool>("videoflag", false);
-    video_path = this->declare_parameter<std::string>("video_path");
+    videoflag = this->declare_parameter("videoflag", false);
+    video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
+
+    capture.open(video_path);
     // 创建发布者
     image_publisher_for_armor_ = this->create_publisher<sensor_msgs::msg::Image>(
         "/image_for_armor",
@@ -32,23 +35,22 @@ CameraNode::~CameraNode() {
 
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
     if (videoflag) {
-        cv::VideoCapture capture(video_path);
-        cv::Mat frame;
         while (true) {
             capture >> frame;
+            frame.resize(1280, 1024);
             if (frame.empty()) {
                 RCLCPP_INFO(this->get_logger(), "video end");
-                break;
+                exit(-1);
             } else {
                 sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
                 image_msg->header.stamp = this->now();
                 image_msg->header.frame_id = "camera";
-                image_msg->height = frame_->rows;
-                image_msg->width = frame_->cols;
+                image_msg->height = frame.rows;
+                image_msg->width = frame.cols;
                 image_msg->encoding = "bgr8";
                 image_msg->is_bigendian = 0u;
-                image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame_->step);
-                image_msg->data.assign(frame_->datastart, frame_->dataend);
+                image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
+                image_msg->data.assign(frame.datastart, frame.dataend);
 
                 // 根据 msg->mode.data 的值，选择发布到哪个话题
                 if (msg->mode.data == 'a') {
@@ -69,6 +71,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
                     RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
                 }
             }
+            frame.release();
         }
     } else {
         // 从 MindVision 摄像头获取图像

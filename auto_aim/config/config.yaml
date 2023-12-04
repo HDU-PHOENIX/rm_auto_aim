@@ -3,10 +3,10 @@
     debug: true
 
 
-/camera:
+/camera_node:
     ros__parameters:
-        videofile: flase
-        video_path: 
+        videoflag: true
+        video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
 
 
 /camera_info_node:
@@ -26,7 +26,7 @@
 
 /serial_node:
     ros__parameters:
-        default_data_recv_mode: 97 # a:97 r:114
+        default_data_recv_mode: 114 # a:97 r:114
         default_data_recv_euler: [0.2, 0.0, 0.2]
         camera2shooter_tvec: [0.0, 0.1, 0.1]
         shooter2odom_tvec: [-0.2, 0.1, -0.1]
@@ -39,6 +39,10 @@
         color_thres: 120
         detect_color: 1 # 0-红色, 1-蓝色
         detect_mode: 1 # 0-普通二值化, 1-通道相减二值化
+
+/rune_detector_node:
+    ros__parameters:
+        confidence_threshold: 0.95 #神经网络置信度阈值
 
 /rune_tracker_node:
     ros__parameters:

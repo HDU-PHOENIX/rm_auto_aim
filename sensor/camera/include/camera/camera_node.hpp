@@ -6,6 +6,7 @@
 
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
+#include <opencv2/videoio.hpp>
 #include <string>
 
 namespace sensor {
@@ -34,6 +35,8 @@ private:
     //是否外部输入视频流标志位
     bool videoflag;
     std::string video_path;
+    cv::VideoCapture capture;
+    cv::Mat frame;
 };
 
 } // namespace sensor

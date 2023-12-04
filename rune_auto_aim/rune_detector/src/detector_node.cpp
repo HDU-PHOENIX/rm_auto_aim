@@ -29,8 +29,8 @@ namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
-    confidence_threshold_ = 0.8; // 置信度阈值
-    detector_ = InitDetector();  // 初始化神符识别器
+    confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
+    detector_ = InitDetector();                                                   // 初始化神符识别器
 
     //创建标记发布者
     debug_ = this->declare_parameter("debug", false);
