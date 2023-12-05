@@ -1,5 +1,6 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/types.hpp>
+#include <rclcpp/logging.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/convert.h>
@@ -30,6 +31,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
+    model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
     detector_ = InitDetector();                                                   // 初始化神符识别器
 
     //创建标记发布者
@@ -237,6 +239,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
+    RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack !");
 #if SEND_DEFAULT_DATA
     //发送测试数据 默认参数
     DetectRunes(img_msg);
@@ -293,8 +296,8 @@ void RuneDetectorNode::PublishMarkers() {
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();
     auto pkg_path = ament_index_cpp::get_package_share_directory("rune_detector");
-    auto model_path = pkg_path + "/model/yolox_fp16.onnx";
-    detector->Init(model_path);
+    auto model_load_path = pkg_path + model_path;
+    detector->Init(model_load_path);
 
     return detector;
 }

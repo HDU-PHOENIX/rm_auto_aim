@@ -1,4 +1,5 @@
 #include "camera/camera_node.hpp"
+#include <iostream>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 
@@ -35,43 +36,39 @@ CameraNode::~CameraNode() {
 
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
     if (videoflag) {
-        while (true) {
-            capture >> frame;
-            frame.resize(1280, 1024);
-            if (frame.empty()) {
-                RCLCPP_INFO(this->get_logger(), "video end");
-                exit(-1);
-            } else {
-                sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
-                image_msg->header.stamp = this->now();
-                image_msg->header.frame_id = "camera";
-                image_msg->height = frame.rows;
-                image_msg->width = frame.cols;
-                image_msg->encoding = "bgr8";
-                image_msg->is_bigendian = 0u;
-                image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
-                image_msg->data.assign(frame.datastart, frame.dataend);
+        capture >> frame;
+        if (frame.empty()) {
+            RCLCPP_INFO(this->get_logger(), "video end");
+            exit(-1);
+        } else {
+            sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
+            image_msg->header.stamp = this->now();
+            image_msg->header.frame_id = "camera";
+            image_msg->height = frame.rows;
+            image_msg->width = frame.cols;
+            image_msg->encoding = "bgr8";
+            image_msg->is_bigendian = 0u;
+            image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
+            image_msg->data.assign(frame.datastart, frame.dataend);
 
-                // 根据 msg->mode.data 的值，选择发布到哪个话题
-                if (msg->mode.data == 'a') {
-                    // RCLCPP_INFO(this->get_logger(), "publish image for armor");
-                    image_publisher_for_armor_->publish(std::move(image_msg));
-                } else if (msg->mode.data == 'r') {
-                    // RCLCPP_INFO(this->get_logger(), "publish image for rune");
-                    //0为不可激活，1为小符，2为大符 将图片的frame_id临时设置为大小符模式，接收端要再改回来
-                    if (msg->rune_flag.data == 0) {
-                        image_msg->header.frame_id = "0";
-                    } else if (msg->rune_flag.data == 1) {
-                        image_msg->header.frame_id = "1";
-                    } else if (msg->rune_flag.data == 2) {
-                        image_msg->header.frame_id = "2";
-                    }
-                    image_publisher_for_rune_->publish(std::move(image_msg));
-                } else {
-                    RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
+            // 根据 msg->mode.data 的值，选择发布到哪个话题
+            if (msg->mode.data == 'a') {
+                // RCLCPP_INFO(this->get_logger(), "publish image for armor");
+                image_publisher_for_armor_->publish(std::move(image_msg));
+            } else if (msg->mode.data == 'r') {
+                // RCLCPP_INFO(this->get_logger(), "publish image for rune");
+                //0为不可激活，1为小符，2为大符 将图片的frame_id临时设置为大小符模式，接收端要再改回来
+                if (msg->rune_flag.data == 0) {
+                    image_msg->header.frame_id = "0";
+                } else if (msg->rune_flag.data == 1) {
+                    image_msg->header.frame_id = "1";
+                } else if (msg->rune_flag.data == 2) {
+                    image_msg->header.frame_id = "2";
                 }
+                image_publisher_for_rune_->publish(std::move(image_msg));
+            } else {
+                RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
             }
-            frame.release();
         }
     } else {
         // 从 MindVision 摄像头获取图像

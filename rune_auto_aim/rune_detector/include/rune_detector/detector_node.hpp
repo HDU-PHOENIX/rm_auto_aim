@@ -88,6 +88,9 @@ private:
     // PnP 解算器
     std::unique_ptr<PnPSolver> pnp_solver_;
 
+    //模型路径
+    std::string model_path;
+
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
     // std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
