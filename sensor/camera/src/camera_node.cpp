@@ -70,6 +70,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
                 RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
             }
         }
+        // cv::waitKey(5);
     } else {
         // 从 MindVision 摄像头获取图像
         if (!this->GetFrame(frame_)) {

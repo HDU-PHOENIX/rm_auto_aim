@@ -20,6 +20,7 @@
 
 #include "rune_detector/detector_node.hpp"
 
+#include "rune_detector/colors.hpp"
 #include "rune_detector/rune_type.hpp"
 
 #define SEND_DEFAULT_DATA true
@@ -139,8 +140,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 // armor, 3.5542, 0)) / 2;
                 symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 4.0542, 0)) / 2;
             }
-            cv::circle(img, armor, 6, Colors::Aqua, -1);
-            cv::circle(img, symbol, 6, Colors::Yellow, -1);
             flag1 = true;
             flag2 = true;
         } else if (object.color == 1 && object.cls == 1) {
@@ -160,9 +159,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 // armor, 3.5542, 0)) / 2;
                 symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
             } // 如果yolo没有检测到R标
-
-            cv::circle(img, armor, 6, Colors::Aqua, -1);
-            cv::circle(img, symbol, 6, Colors::Yellow, -1);
             flag1 = true;
             flag2 = true;
 
@@ -180,14 +176,14 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         }
 
         for (int i = 0; i < 5; i++) { // 画出五个关键点
-            cv::circle(img, object.vertices[i], 5, Colors::White, -1);
+            cv::circle(img, object.vertices[i], 5, Colors::Green, -1);
         }
-        cv::circle(img, (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[4]) / 4, 5, Colors::White,
-                   -1); //画出装甲板中心点
     }
 
     if (debug_) {
-        cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
+        cv::circle(img, rune_armor, 6, Colors::Green, -1);                            //画出装甲板中心
+        cv::circle(img, symbol, 6, Colors::Green, -1);                                //画出R标中心
+        cv::circle(img, cv::Point2f(img.rows / 2, img.cols / 2), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);
     } else {
@@ -239,7 +235,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack !");
+    // RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack !");
 #if SEND_DEFAULT_DATA
     //发送测试数据 默认参数
     DetectRunes(img_msg);

@@ -22,7 +22,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     a_omega_phi_b[3] = 0;
     count_cere = 0;
     bullet_speed = this->declare_parameter("bullet_speed", 25.0);
-    count_cant_use = this->declare_parameter("count_cant_use", 0);
+    filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0);
 
     this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值
     chasedelay_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
@@ -164,7 +164,7 @@ bool RuneTrackerNode::FittingBig() {
 }
 
 void RuneTrackerNode::DataProcess() {
-    auto&& theta = leaf_angle;
+    // auto&& theta = leaf_angle;
     if (leaf_angular_velocity < 4) {
         origin_omega_file << leaf_angular_velocity << std::endl;
         origin_omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
@@ -173,7 +173,7 @@ void RuneTrackerNode::DataProcess() {
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
             > 0.15) {
-            count_cant_use = 20; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
+            count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
         }
         count_cant_use--;
         MeasurementPackage package = MeasurementPackage(
@@ -248,8 +248,7 @@ bool RuneTrackerNode::CeresProcess() {
             if (delta_angle > M_PI) {
                 delta_angle = fabs(2 * M_PI - delta_angle);
             }
-            std::cout << "delta_angle is " << delta_angle << std::endl;
-
+            RCLCPP_INFO(this->get_logger(), "delta_angle is %f", delta_angle);
             if (delta_angle < 0.2) {
                 //误差小于0.1,则认为拟合良好
                 pred_angle = integral(
@@ -431,7 +430,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     //     SetState(MotionState::Big);
     // }//从下位机来的数据，判断是静止还是小符还是大符
 
-    SetState(MotionState::Big); //缺省设置为大符
+    SetState(MotionState::Small); //缺省设置为大符
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
 
@@ -461,11 +460,9 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     }
     geometry_msgs::msg::PoseStamped ps;
     ps.header = data->header;
-    geometry_msgs::msg::Point p_a;
-    p_a.x = runes_msg_.pc.position.x = tvec.at<double>(0);
-    p_a.y = runes_msg_.pc.position.y = tvec.at<double>(1);
-    p_a.z = runes_msg_.pc.position.z = tvec.at<double>(2);
-    ps.pose.position = p_a; //旋转后的装甲板在相机坐标系下的位置
+    ps.pose.position.x = runes_msg_.pc.position.x = tvec.at<double>(0);
+    ps.pose.position.y = runes_msg_.pc.position.y = tvec.at<double>(1);
+    ps.pose.position.z = runes_msg_.pc.position.z = tvec.at<double>(2);
     try {
         // 将装甲板位置从 相机坐标系 转换到 shooter（目标坐标系）
         // 此后装甲板信息中的 armor.pose 为装甲板在 shooter 系中的位置
@@ -474,7 +471,6 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
         return;
     }
-    RCLCPP_INFO(this->get_logger(), "armor position is %f %f %f", p_a.x, p_a.y, p_a.z);
     runes_msg_.pw.position.x = ps.pose.position.x;
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
@@ -497,7 +493,7 @@ void RuneTrackerNode::CalSmallSpeed() {
     } else {
         angles.PushForcibly(leaf_angle);
     }
-    // radius.Push(cv::norm(leaf_dir)); //计算半径
+    RCLCPP_INFO(this->get_logger(), "(calculate based on img pixel)Rune angular speed %Lf", speed.Mean());
 }
 
 void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
@@ -506,7 +502,7 @@ void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget&
     armor_marker_.id = 0;
     armor_marker_.pose.position.x = target_msg.pc.position.x;
     armor_marker_.pose.position.y = target_msg.pc.position.y;
-    armor_marker_.pose.position.z = target_msg.pc.position.z; //可视化相机坐标系下的装甲板位置
+    armor_marker_.pose.position.z = target_msg.pc.position.z; //可视化相机坐标系下的预测的装甲板位置
     visualization_msgs::msg::MarkerArray marker_array;
     marker_array.markers.emplace_back(armor_marker_);
     armor_marker_.header.frame_id = target_frame_;

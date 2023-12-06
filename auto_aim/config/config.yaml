@@ -5,7 +5,7 @@
 
 /camera_node:
     ros__parameters:
-        videoflag: true
+        videoflag: false
         video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
 
 
@@ -48,7 +48,7 @@
 /rune_tracker_node:
     ros__parameters:
         bullet_speed: 25.0
-        count_cant_use: 0 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
+        filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
         chasedelay: 0.0
 
 /armor_shooter:

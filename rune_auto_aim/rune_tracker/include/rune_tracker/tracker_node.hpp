@@ -185,7 +185,7 @@ private:
     bool finish_fitting; //完成拟合的标志
 
     //count_cant_use用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
-    int count_cere, count_cant_use;
+    int count_cere, count_cant_use, filter_astring_threshold;
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
     double a_omega_phi_b[4];               //拟合的参数
     ceres::Solver::Options options;        //解决方案的配置
