@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Launch a talker and a listener in a component container."""
 
 import os
 import launch
@@ -28,7 +27,37 @@ def generate_launch_description():
         'config', 'config.yaml'
     )
 
-    container = ComposableNodeContainer(
+    image_transport = ComposableNodeContainer(
+        name='image_transport',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package = 'armor_detector',
+                plugin = 'armor::ArmorDetectorNode',
+                name = 'armor_detector_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            ),
+            ComposableNode(
+                package = 'rune_detector',
+                plugin = 'rune::RuneDetectorNode',
+                name = 'rune_detector_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            ),
+            ComposableNode(
+                package = 'camera',
+                plugin = 'sensor::CameraNode',
+                name = 'camera_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            )
+        ],
+    )
+
+    auto_aim = ComposableNodeContainer(
             name='auto_aim',
             namespace='',
             package='rclcpp_components',
@@ -42,24 +71,10 @@ def generate_launch_description():
                     extra_arguments = [{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(
-                    package = 'armor_detector',
-                    plugin = 'armor::ArmorDetectorNode',
-                    name = 'armor_detector_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
-                ),
-                ComposableNode(
                     package = 'armor_tracker',
                     plugin = 'armor::ArmorTrackerNode',
                     name = 'armor_tracker_node',
                     extra_arguments = [{"use_intra_process_comms": True}]
-                ),
-                ComposableNode(
-                    package = 'rune_detector',
-                    plugin = 'rune::RuneDetectorNode',
-                    name = 'rune_detector_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
                 ),
                 ComposableNode(
                     package='rune_tracker',
@@ -81,16 +96,9 @@ def generate_launch_description():
                     name = 'camera_info_node',
                     extra_arguments = [{"use_intra_process_comms": True}],
                     parameters = [config]
-                ),
-                ComposableNode(
-                    package = 'camera',
-                    plugin = 'sensor::CameraNode',
-                    name = 'camera_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
                 )
             ],
             output = 'screen',
     )
 
-    return launch.LaunchDescription([container])
+    return launch.LaunchDescription([image_transport, auto_aim])
