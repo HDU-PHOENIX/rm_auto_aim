@@ -16,7 +16,7 @@ CameraInfoNode::CameraInfoNode(const rclcpp::NodeOptions& options):
     camera_info_.d = distortion_coefficients_;
 
     auto&& temp_time = this->now();
-    while (this->now() - temp_time < rclcpp::Duration(1, 0)) {
+    while (this->now() - temp_time < rclcpp::Duration(3, 0)) {
         camera_info_pub_->publish(camera_info_);
     }
 }

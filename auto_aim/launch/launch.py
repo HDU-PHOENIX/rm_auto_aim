@@ -34,18 +34,18 @@ def generate_launch_description():
         executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
-                package = 'serial',
-                plugin = 'sensor::SerialNode',
-                name = "serial_node",
-                parameters = [config],
-                extra_arguments = [{"use_intra_process_comms": True}]
-            ),
-            ComposableNode(
                 package = 'camerainfo',
                 plugin = 'camerainfo::CameraInfoNode',
                 name = 'camera_info_node',
                 extra_arguments = [{"use_intra_process_comms": True}],
                 parameters = [config]
+            ),
+            ComposableNode(
+                package = 'serial',
+                plugin = 'sensor::SerialNode',
+                name = "serial_node",
+                parameters = [config],
+                extra_arguments = [{"use_intra_process_comms": True}]
             )
         ]
     )
