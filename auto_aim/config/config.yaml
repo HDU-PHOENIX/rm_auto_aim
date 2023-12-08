@@ -26,6 +26,7 @@
 
 /serial_node:
     ros__parameters:
+        device_name: "/dev/ttyACM0"
         default_data_recv_mode: 114 # a:97 r:114
         default_data_recv_euler: [0.2, 0.0, 0.2]
         camera2shooter_tvec: [0.0, 0.1, 0.1]
@@ -37,8 +38,8 @@
         binary_thres: 160
         gray_thres: 200
         color_thres: 120
-        detect_color: 1 # 0-红色, 1-蓝色
-        detect_mode: 1 # 0-普通二值化, 1-通道相减二值化
+        detect_color: 1 # 0-红色，1-蓝色
+        detect_mode: 1 # 0-普通二值化，1-通道相减二值化
 
 /rune_detector_node:
     ros__parameters:
@@ -48,7 +49,7 @@
 /rune_tracker_node:
     ros__parameters:
         bullet_speed: 25.0
-        filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf
+        filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
         chasedelay: 0.0
 
 /armor_shooter:

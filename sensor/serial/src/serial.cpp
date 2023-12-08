@@ -74,20 +74,16 @@ Serial::~Serial() {
 }
 
 void Serial::SendData(DataSend packet) {
-    if (Legal(packet)) {
-        try {
-            serial_driver_->port()->send(ToVector(packet));
-        } catch (const std::exception& ex) {
-            RCLCPP_ERROR(
-                rclcpp::get_logger("serial_node"),
-                "Error sending data: %s - %s",
-                device_name_.c_str(),
-                ex.what()
-            );
-            ReopenPort();
-        }
-    } else {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
+    try {
+        serial_driver_->port()->send(ToVector(packet));
+    } catch (const std::exception& ex) {
+        RCLCPP_ERROR(
+            rclcpp::get_logger("serial_node"),
+            "Error sending data: %s - %s",
+            device_name_.c_str(),
+            ex.what()
+        );
+        ReopenPort();
     }
 }
 
@@ -102,7 +98,7 @@ DataRecv Serial::ReadData() {
         std::vector<uint8_t> data(32);
         serial_driver_->port()->receive(data);
         DataRecv&& packet = FromVector(data);
-        if (Legal(packet)) {
+        if (packet.start == 's' && packet.end == 'e') {
             return packet;
         } else {
             RCLCPP_ERROR(rclcpp::get_logger("serial_node"), "Invalid packet!");
@@ -174,11 +170,6 @@ void Serial::SetDefaultDataRecv(
     this->default_data_recv_.shoot_bool = shootbool;
     this->default_data_recv_.rune_flag = runeflag;
     this->default_data_recv_.end = end;
-}
-
-template<typename DataT>
-bool Legal(DataT data) {
-    return data.start == 's' && data.end == 'e';
 }
 
 } // namespace sensor

@@ -73,15 +73,6 @@ private:
      */
     void SetDefaultDataRecv();
 
-    /**
-     * @brief 检查数据是否合法
-     * @tparam DataT 数据类型
-     * @param data 数据
-     * @return 数据是否合法
-     */
-    template<typename DataT>
-    bool Legal(DataT data);
-
     int reopen_count_;            // 重新打开串口的次数
     bool send_default_data_flag_; // 是否发送默认数据
     DataRecv default_data_recv_;  // 默认的数据包

@@ -53,7 +53,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rune_marker_.action = visualization_msgs::msg::Marker::ADD;
     rune_marker_.type = visualization_msgs::msg::Marker::CUBE;
     rune_marker_.scale.x = 0.05;
-    rune_marker_.scale.y = 0.23; //设置默认的x,y,z
+    rune_marker_.scale.y = 0.23; //设置默认的 x,y,z
     rune_marker_.scale.z = 0.125;
     rune_marker_.color.a = 1.0;
     rune_marker_.color.g = 0.5;
@@ -75,21 +75,21 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3,
-                         img_msg->data.data()); // 把图像信息转换为cv::Mat格式
+                         img_msg->data.data()); // 把图像信息转换为 cv::Mat 格式
 
-    detector_->detect(img, objects_); // 把神符识别结果放到objects_里面
+    detector_->detect(img, objects_); // 把神符识别结果放到 objects_里面
 
     runes_msg_.header = rune_marker_.header = img_msg->header;
 
     rune_marker_.id = 0;
     // RuneClass cls; // 符叶枚举类对象 用于标记符叶的种类
     bool flag1 = false, flag2 = false;     //bool flag3 = false;
-    cv::Point2f symbol;                    // 符叶R标的位置
+    cv::Point2f symbol;                    // 符叶 R 标的位置
     cv::Point2f rune_armor;                // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points_; // 未激活符叶的五个点
     ///------------------------生成扇叶对象----------------------------------------------
     for (auto object: objects_) {
-        // 遍历所有的神符识别结果，把R标和未激活的符叶的信息画出来
+        // 遍历所有的神符识别结果，把 R 标和未激活的符叶的信息画出来
         auto prob = object.prob;
         if (prob < confidence_threshold_) {
             RCLCPP_WARN(this->get_logger(),
@@ -97,16 +97,16 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             continue;
         }
 
-        auto&& detect_center = (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[3] + object.vertices[4]) / 5; // 用于计算R标位置
+        auto&& detect_center = (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[3] + object.vertices[4]) / 5; // 用于计算 R 标位置
 
         auto&& get_symbol = [](const cv::Point2f& lightbar_mid_point, const cv::Point2f& armor_center, const double& center_lightbar_ratio, const bool& flag) {
-            // get_symbol是通过符叶的坐标来计算中心R标的位置
+            // get_symbol 是通过符叶的坐标来计算中心 R 标的位置
             if (flag == 0) {
-                // flag = 0使用装甲板中心和内灯条算出标识符位置
+                // flag = 0 使用装甲板中心和内灯条算出标识符位置
                 return ((lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center);
 
             } else if (flag == 1) {
-                // flag = 1使用装甲板中心和外灯条算出标识符位置
+                // flag = 1 使用装甲板中心和外灯条算出标识符位置
                 return (-(lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center);
             }
             return cv::Point2f(0, 0);
@@ -134,7 +134,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
             auto&& armor = (tmp1 + tmp2) / 2; // 装甲板中心
             rune_armor = armor;
-            if (!flag1) // 如果yolo没有检测到R标
+            if (!flag1) // 如果 yolo 没有检测到 R 标
             {
                 // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
                 // armor, 3.5542, 0)) / 2;
@@ -158,7 +158,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
                 // armor, 3.5542, 0)) / 2;
                 symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
-            } // 如果yolo没有检测到R标
+            } // 如果 yolo 没有检测到 R 标
             flag1 = true;
             flag2 = true;
 
@@ -182,14 +182,14 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     if (debug_) {
         cv::circle(img, rune_armor, 6, Colors::Green, -1);                            //画出装甲板中心
-        cv::circle(img, symbol, 6, Colors::Green, -1);                                //画出R标中心
+        cv::circle(img, symbol, 6, Colors::Green, -1);                                //画出 R 标中心
         cv::circle(img, cv::Point2f(img.rows / 2, img.cols / 2), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);
     } else {
         cv::destroyAllWindows();
     }
-    if (flag1 && flag2) // 有R标数据和符叶数据，则认为识别完成
+    if (flag1 && flag2) // 有 R 标数据和符叶数据，则认为识别完成
     {
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
@@ -199,7 +199,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             return false;
         } else {
             // RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
-            //判断大小符 //0为不可激活，1为小符，2为大符
+            //判断大小符 //0 为不可激活，1 为小符，2 为大符
             if (img_msg->header.frame_id == "0") {
                 runes_msg_.motion = 0;
             } else if (img_msg->header.frame_id == "1") {
@@ -217,8 +217,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 runes_msg_.rune_points[i].x = rune_points_[i].x;
                 runes_msg_.rune_points[i].y = rune_points_[i].y;
             }
-            runes_msg_.symbol.x = symbol.x; // R标位置 图像左上角为原点
-            runes_msg_.symbol.y = symbol.y; // R标位置 图像左上角为原点
+            runes_msg_.symbol.x = symbol.x; // R 标位置 图像左上角为原点
+            runes_msg_.symbol.y = symbol.y; // R 标位置 图像左上角为原点
             runes_msg_.header.frame_id = "camera";
             runes_msg_.find = true; // 找到符叶
 
@@ -235,15 +235,15 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    // RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack !");
+    RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack start!");
 #if SEND_DEFAULT_DATA
     //发送测试数据 默认参数
     DetectRunes(img_msg);
     runes_msg_.motion = 2;
     runes_msg_.leaf_dir.x = 1;
     runes_msg_.leaf_dir.y = 1; // 符叶向量
-    runes_msg_.symbol.x = 0;   // R标位置 图像左上角为原点
-    runes_msg_.symbol.y = 0;   // R标位置 图像左上角为原点
+    runes_msg_.symbol.x = 0;   // R 标位置 图像左上角为原点
+    runes_msg_.symbol.y = 0;   // R 标位置 图像左上角为原点
     runes_msg_.header.frame_id = "camera";
     runes_msg_.rune_points[0].x = 100;
     runes_msg_.rune_points[0].y = 100;
@@ -281,6 +281,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         }
     }
 #endif
+    RCLCPP_INFO(this->get_logger(), "Detect Runes CallBack end!");
 }
 
 void RuneDetectorNode::PublishMarkers() {

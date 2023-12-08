@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Launch a talker and a listener in a component container."""
 
 import os
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from ament_index_python.packages import get_package_share_directory
-
 
 def generate_launch_description():
     """Generate launch description with multiple components."""
@@ -27,12 +27,42 @@ def generate_launch_description():
         'config', 'config.yaml'
     )
 
-    image_transport = ComposableNodeContainer(
-        name='image_transport',
+    serial = ComposableNodeContainer(
+        name='serial',
         namespace='',
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=[
+            ComposableNode(
+                package = 'serial',
+                plugin = 'sensor::SerialNode',
+                name = "serial_node",
+                parameters = [config],
+                extra_arguments = [{"use_intra_process_comms": True}]
+            ),
+            ComposableNode(
+                package = 'camerainfo',
+                plugin = 'camerainfo::CameraInfoNode',
+                name = 'camera_info_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            )
+        ]
+    )
+
+    detctor = ComposableNodeContainer(
+        name='detector',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package = 'camera',
+                plugin = 'sensor::CameraNode',
+                name = 'camera_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            ),
             ComposableNode(
                 package = 'armor_detector',
                 plugin = 'armor::ArmorDetectorNode',
@@ -46,18 +76,53 @@ def generate_launch_description():
                 name = 'rune_detector_node',
                 extra_arguments = [{"use_intra_process_comms": True}],
                 parameters = [config]
-            ),
-            ComposableNode(
-                package = 'camera',
-                plugin = 'sensor::CameraNode',
-                name = 'camera_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
-                parameters = [config]
             )
-        ],
+        ]
     )
 
-    auto_aim = ComposableNodeContainer(
+    tracker = ComposableNodeContainer(
+        name='tracker',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package = 'armor_tracker',
+                plugin = 'armor::ArmorTrackerNode',
+                name = 'armor_tracker_node',
+                extra_arguments = [{"use_intra_process_comms": True}]
+            ),
+            ComposableNode(
+                package='rune_tracker',
+                plugin='rune::RuneTrackerNode',
+                name='rune_tracker_node',
+                extra_arguments=[{"use_intra_process_comms": True}]
+            )
+        ]
+    )
+
+    shooter = ComposableNodeContainer(
+        name='shooter',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='armor_shooter',
+                plugin='armor::ArmorShooterNode',
+                name='armor_shooter_node',
+                extra_arguments=[{"use_intra_process_comms": True}]
+            ),
+            ComposableNode(
+                package='rune_shooter',
+                plugin='rune::RuneShooterNode',
+                name='rune_shooter_node',
+                extra_arguments=[{"use_intra_process_comms": True}]
+            )
+        ]
+    )
+
+    container = ComposableNodeContainer(
             name='auto_aim',
             namespace='',
             package='rclcpp_components',
@@ -71,10 +136,24 @@ def generate_launch_description():
                     extra_arguments = [{"use_intra_process_comms": True}]
                 ),
                 ComposableNode(
+                    package = 'armor_detector',
+                    plugin = 'armor::ArmorDetectorNode',
+                    name = 'armor_detector_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
+                ),
+                ComposableNode(
                     package = 'armor_tracker',
                     plugin = 'armor::ArmorTrackerNode',
                     name = 'armor_tracker_node',
                     extra_arguments = [{"use_intra_process_comms": True}]
+                ),
+                ComposableNode(
+                    package = 'rune_detector',
+                    plugin = 'rune::RuneDetectorNode',
+                    name = 'rune_detector_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 ),
                 ComposableNode(
                     package='rune_tracker',
@@ -96,9 +175,16 @@ def generate_launch_description():
                     name = 'camera_info_node',
                     extra_arguments = [{"use_intra_process_comms": True}],
                     parameters = [config]
+                ),
+                ComposableNode(
+                    package = 'camera',
+                    plugin = 'sensor::CameraNode',
+                    name = 'camera_node',
+                    extra_arguments = [{"use_intra_process_comms": True}],
+                    parameters = [config]
                 )
             ],
             output = 'screen',
     )
 
-    return launch.LaunchDescription([image_transport, auto_aim])
+    return launch.LaunchDescription([detctor, tracker, shooter, serial])

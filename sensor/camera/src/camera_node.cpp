@@ -2,6 +2,7 @@
 #include <iostream>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
+#include <rclcpp/logging.hpp>
 
 namespace sensor {
 
@@ -35,6 +36,7 @@ CameraNode::~CameraNode() {
 }
 
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
+    RCLCPP_INFO(this->get_logger(), "get serial info");
     if (videoflag) {
         capture >> frame;
         if (frame.empty()) {
