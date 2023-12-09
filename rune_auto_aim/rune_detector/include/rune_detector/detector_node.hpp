@@ -49,6 +49,7 @@ private:
 
     // debug 模式
     bool debug_;
+    bool SEND_DEFAULT_DATA;
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
 

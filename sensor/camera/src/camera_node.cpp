@@ -1,6 +1,6 @@
 #include "camera/camera_node.hpp"
-#include <iostream>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <rclcpp/logging.hpp>
 
@@ -36,7 +36,7 @@ CameraNode::~CameraNode() {
 }
 
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
-    RCLCPP_INFO(this->get_logger(), "get serial info");
+    // RCLCPP_INFO(this->get_logger(), "get serial info");
     if (videoflag) {
         capture >> frame;
         if (frame.empty()) {
@@ -72,7 +72,6 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
                 RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
             }
         }
-        // cv::waitKey(5);
     } else {
         // 从 MindVision 摄像头获取图像
         if (!this->GetFrame(frame_)) {

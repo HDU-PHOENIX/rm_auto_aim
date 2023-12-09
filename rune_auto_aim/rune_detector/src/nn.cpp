@@ -1,5 +1,6 @@
 #include "rune_detector/nn.h"
-
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 namespace rune {
 
 // static constexpr int INPUT_W = 640;    // Width of input
@@ -53,7 +54,6 @@ inline cv::Mat scaledResize(cv::Mat& img, Eigen::Matrix<float, 3, 3>& transform_
     cv::resize(img, re, cv::Size(unpad_w, unpad_h));
     cv::Mat out;
     cv::copyMakeBorder(re, out, dh, dh, dw, dw, cv::BORDER_CONSTANT);
-
     return out;
 }
 
@@ -183,14 +183,14 @@ static void qsort_descent_inplace(std::vector<NeuralNetwork::RuneObject>& faceob
         }
     }
 
-    // #pragma omp parallel sections
+#pragma omp parallel sections
     {
-        // #pragma omp section
+#pragma omp section
         {
             if (left < j)
                 qsort_descent_inplace(faceobjects, left, j);
         }
-        // #pragma omp section
+#pragma omp section
         {
             if (i < right)
                 qsort_descent_inplace(faceobjects, i, right);

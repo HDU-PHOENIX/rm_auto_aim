@@ -250,7 +250,7 @@ bool RuneTrackerNode::CeresProcess() {
             }
             RCLCPP_INFO(this->get_logger(), "delta_angle is %f", delta_angle);
             if (delta_angle < 0.2) {
-                //误差小于0.1,则认为拟合良好
+                //误差小,则认为拟合良好
                 pred_angle = integral(
                     a_omega_phi_b[1],
                     std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
@@ -260,8 +260,20 @@ bool RuneTrackerNode::CeresProcess() {
                 runes_msg_.can_shoot = true; //可以发射
                 count_cere = 0;              //将count_cere置为0，非连续5次拟合不良
                 finish_fitting = true;
+                tracker.pred_angle = integral(
+                    a_omega_phi_b[1],
+                    std::vector<double> { a_omega_phi_b[0],
+                                          a_omega_phi_b[2],
+                                          a_omega_phi_b[3] },
+                    (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+                    delay + (this->now() - data->header.stamp).seconds()
+                );
+                tracker.timestamp = data->header.stamp;
+                tracker.pred_time =
+                    delay + (this->now() - data->header.stamp).seconds();
+                tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
             } else {
-                //误差大于0.15,则认为拟合不良
+                //误差大,则认为拟合不良
                 if (count_cere < 5) {
                     count_cere++;
                     tracker.pred_angle = integral(
@@ -415,7 +427,7 @@ RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, doub
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
     data = rune_ptr;
-    auto&& theory_delay = data->pose_c.position.z / 25;
+    auto&& theory_delay = data->pose_c.position.z / bullet_speed;
     delay = theory_delay + chasedelay;
     runes_msg_.speed = bullet_speed;
     runes_msg_.delay = delay;

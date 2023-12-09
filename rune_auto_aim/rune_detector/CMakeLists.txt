@@ -7,13 +7,14 @@ SET(CMAKE_CXX_STANDARD 20)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -march=native -O3)
-  add_compile_options(-g)
+  add_compile_options(-g -fopenmp)
 endif()
 
 # find dependencies
 # find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(OpenMP REQUIRED)
 FIND_PACKAGE(InferenceEngine CONFIG REQUIRED)
 INCLUDE_DIRECTORIES(${InferenceEngine_INCLUDE_DIRS})
 FIND_PACKAGE(Eigen3 CONFIG REQUIRED)
@@ -32,7 +33,7 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} Eigen3::Eigen ${InferenceEngine_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} Eigen3::Eigen ${InferenceEngine_LIBRARIES} OpenMP::OpenMP_CXX)
 
 rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN rune::RuneDetectorNode
