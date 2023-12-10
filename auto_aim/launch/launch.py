@@ -18,6 +18,7 @@ import os
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
+from launch_ros.descriptions import 
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
@@ -46,7 +47,7 @@ def generate_launch_description():
                 name = "serial_node",
                 parameters = [config],
                 extra_arguments = [{"use_intra_process_comms": True}]
-            )
+            ),
         ]
     )
 

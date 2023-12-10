@@ -1,5 +1,5 @@
 #include "armor_tracker/tracker_node.hpp"
-// #include "armor_tracker/extended_kalman_filter.hpp"
+#include "armor_tracker/extended_kalman_filter.hpp"
 
 // STD
 #include <memory>
@@ -154,6 +154,19 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     }
 
     last_time_ = time;
+
+    {
+        geometry_msgs::msg::PoseStamped ps;
+        ps.header = armors_msg->header;
+        ps.pose = this->tracker_->tracked_armor.pose;
+        try {
+            auto&& target_pose = tf2_buffer_->transform(ps, target_frame_).pose;
+            target_msg.position = target_pose.position;
+        } catch (const tf2::ExtrapolationException& ex) {
+            RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
+            return;
+        }
+    }
 
     target_pub_->publish(target_msg);
 
