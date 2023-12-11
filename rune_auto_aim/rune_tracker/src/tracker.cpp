@@ -15,6 +15,6 @@
 
 namespace rune {
 Tracker::Tracker() {
-    ukf = new UKF_PLUS(0, true, false, 1.5, 1.2); //ukfÂË²¨Æ÷³õÊ¼»¯ Ô­1.5  1.2
+    ukf = new UKF_PLUS(0, true, false, 1.5, 1.2); //ukfæ»¤æ³¢å™¨åˆå§‹åŒ– åŸ1.5  1.2
 }
 } // namespace rune

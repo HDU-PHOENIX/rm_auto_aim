@@ -16,9 +16,9 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
-            //ÊäÈëodom×ø±êÏµÏÂµÄ×ø±ê Êä³öyawºÍpitch
+            //è¾“å…¥odomåæ ‡ç³»ä¸‹çš„åæ ‡ è¾“å‡ºyawå’Œpitch
             auto&& YawAndPitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
-            //TODO: ÕâÀï¿ÉÄÜÒª×ö·À¶¶´¦Àí
+            //TODO: è¿™é‡Œå¯èƒ½è¦åšé˜²æŠ–å¤„ç†
             auto_aim_interfaces::msg::SerialInfo serial_info;
             serial_info.start.data = 's';
             serial_info.end.data = 'e';
@@ -27,7 +27,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             serial_info.euler[0] = YawAndPitch[0];  //yaw
             serial_info.euler[2] = -YawAndPitch[1]; //pitch
             serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->pw.position.z; //TODO: ÕâÀïµÄ¾àÀë¿ÉÄÜ»¹ÐèÐÞ¸Ä
+            serial_info.distance = msg->pw.position.z; //TODO: è¿™é‡Œçš„è·ç¦»å¯èƒ½è¿˜éœ€è¦ä¿®æ”¹
             serial_info_pub_->publish(serial_info);
         }
     );

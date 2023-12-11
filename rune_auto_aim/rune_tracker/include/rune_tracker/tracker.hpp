@@ -19,20 +19,20 @@
 #include "ukf_plus.h"
 
 namespace rune {
-// ×°¼××·×ÙÆ÷Àà
+// è£…ç”²æ¿è¿½è¸ªå™¨ç±»
 class Tracker {
 public:
     Tracker();
     using Rune = auto_aim_interfaces::msg::Rune;
 
-    double info_position_diff; // Î»ÖÃ²î
-    double info_yaw_diff;      // Æ«º½½Ç²î
+    double info_position_diff; // ä½ç½®å·®
+    double info_yaw_diff;      // åèˆªè§’å·®
 
-    Eigen::VectorXd measurement; // ²âÁ¿Öµ
+    Eigen::VectorXd measurement; // æµ‹é‡å€¼
 
-    Eigen::VectorXd target_state; // Ä¿±ê×´Ì¬
+    Eigen::VectorXd target_state; // ç›®æ ‡çŠ¶æ€
 
-    Filter* ukf; // ukfÂË²¨Æ÷
+    Filter* ukf; // ukfæ»¤æ³¢å™¨
 
 private:
 };

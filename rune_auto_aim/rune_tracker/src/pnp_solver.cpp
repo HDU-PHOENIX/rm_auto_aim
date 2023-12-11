@@ -24,10 +24,10 @@ PnPSolver::GeneratePw(double outerwidth, double insidewidth, double height) {
 }
 
 /**
-         * @brief 使用PnP根据像素坐标获取平移向量并转换成Eigen::Vector3d
+         * @brief 浣跨敤PnP鏍规嵁鍍忕礌鍧愭爣鑾峰彇骞崇Щ鍚戦噺骞惰浆鎹㈡垚Eigen::Vector3d
          *
-         * @param rune 符叶像素坐标
-         * @return tvec 平移向量，相机坐标系下的坐标
+         * @param rune 绗﹀彾鍍忕礌鍧愭爣
+         * @return tvec 骞崇Щ鍚戦噺锛岀浉鏈哄潗鏍囩郴涓嬬殑鍧愭爣
          */
 bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec) {
     // Solve pnp
