@@ -8,16 +8,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/service.hpp>
 
-// enum class LifecycleState {
-//     inactive, //0
-//     active //1
-// };
-
-// enum class LifecycleReturn {
-//     successful, //0
-//     failure //1
-// };
-
 class LifecycleNode: public rclcpp::Node {
 public:
     explicit LifecycleNode(const std::string& node_name, const rclcpp::NodeOptions& options);
