@@ -18,6 +18,7 @@
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 
+#include "LifecycleNode.hpp"
 #include "pnp_solver.hpp"
 
 #include "colors.hpp"
@@ -26,9 +27,13 @@
 
 namespace rune {
 
-class RuneDetectorNode: public rclcpp::Node {
+class RuneDetectorNode: public LifecycleNode {
 public:
     explicit RuneDetectorNode(const rclcpp::NodeOptions& options);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);

@@ -5,7 +5,7 @@
 namespace rune {
 // RuneTrackerNode类的构造函数
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
-    Node("rune_tracker", option) {
+    LifecycleNode("rune_tracker", option) {
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
     options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
@@ -50,21 +50,9 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     );
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
-
     // 订阅器和过滤器
     runes_sub_.subscribe(this, "/detector/runes", rmw_qos_profile_sensor_data);
     target_frame_ = this->declare_parameter("target_frame", "shooter");
-    tf2_filter_ = std::make_shared<tf2_filter>(
-        runes_sub_,                         // message_filters subscriber
-        *tf2_buffer_,                       // tf2 buffer
-        target_frame_,                      // frame this filter should attempt to transform to
-        10,                                 // size of the tf2 cache
-        this->get_node_logging_interface(), // node logging interface
-        this->get_node_clock_interface(),   // node clock interface
-        std::chrono::duration<int>(1)       // timeout
-    );
-    // 注册回调函数
-    tf2_filter_->registerCallback(&RuneTrackerNode::RunesCallback, this);
 
     target_pub = this->create_publisher<auto_aim_interfaces::msg::RuneTarget>(
         "/RuneTracker2Shooter",
@@ -82,6 +70,25 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     armor_marker_.color.a = 1.0;
     armor_marker_.color.r = 1.0;
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
+}
+int RuneTrackerNode::OnActivate() {
+    tf2_filter_ = std::make_shared<tf2_filter>(
+        runes_sub_,                         // message_filters subscriber
+        *tf2_buffer_,                       // tf2 buffer
+        target_frame_,                      // frame this filter should attempt to transform to
+        10,                                 // size of the tf2 cache
+        this->get_node_logging_interface(), // node logging interface
+        this->get_node_clock_interface(),   // node clock interface
+        std::chrono::duration<int>(1)       // timeout
+    );
+    // 注册回调函数
+    tf2_filter_->registerCallback(&RuneTrackerNode::RunesCallback, this);
+    return 1;
+}
+
+int RuneTrackerNode::OnDeactivate() {
+    tf2_filter_.reset();
+    return 1;
 }
 
 void RuneTrackerNode::InitRecord() {

@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "armor_tracker/LifecycleNode.hpp"
 #include "armor_tracker/tracker.hpp"
 #include "auto_aim_interfaces/msg/armors.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
@@ -27,9 +28,13 @@ namespace armor {
 
 using tf2_filter = tf2_ros::MessageFilter<auto_aim_interfaces::msg::Armors>;
 
-class ArmorTrackerNode: public rclcpp::Node {
+class ArmorTrackerNode: public LifecycleNode {
 public:
     explicit ArmorTrackerNode(const rclcpp::NodeOptions& options);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     /**

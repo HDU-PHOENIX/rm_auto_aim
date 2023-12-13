@@ -5,13 +5,16 @@
 namespace rune {
 
 RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
-    Node("rune_shooter", options) {
+    LifecycleNode("rune_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "runeShooterNode has been initialized.");
     shooter_ = InitShooter();
     serial_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
         "/shooter_info",
         rclcpp::SensorDataQoS()
     );
+}
+
+int RuneShooterNode::OnActivate() {
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::RuneTarget>(
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
@@ -31,6 +34,12 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             serial_info_pub_->publish(serial_info);
         }
     );
+    return 1;
+}
+
+int RuneShooterNode::OnDeactivate() {
+    target_sub_.reset();
+    return 1;
 }
 
 std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {

@@ -26,7 +26,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
-    rclcpp::Node("rune_detector", options) {
+    LifecycleNode("rune_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
     model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
@@ -67,8 +67,16 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
         cam_info_sub_.reset();
     });
+}
 
+int RuneDetectorNode::OnActivate() {
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_rune", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
+    return 1;
+}
+
+int RuneDetectorNode::OnDeactivate() {
+    img_sub_.reset();
+    return 1;
 }
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {

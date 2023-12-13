@@ -1,3 +1,4 @@
+#include "LifecycleNode.hpp"
 #include "auto_aim_interfaces/msg/rune_target.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -8,9 +9,13 @@
 
 namespace rune {
 
-class RuneShooterNode: public rclcpp::Node {
+class RuneShooterNode: public LifecycleNode {
 public:
     explicit RuneShooterNode(const rclcpp::NodeOptions& options);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     std::unique_ptr<Shooter> InitShooter();

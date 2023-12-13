@@ -8,7 +8,7 @@
 namespace armor {
 // ArmorTrackerNode类的构造函数
 ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
-    Node("armor_tracker", options) {
+    LifecycleNode("armor_tracker", options) {
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
 
     max_armor_distance_ = this->declare_parameter("max_armor_distance", 10.0);
@@ -53,6 +53,17 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     // 订阅器和过滤器
     armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
     target_frame_ = this->declare_parameter("target_frame", "odom");
+
+    // 跟踪信息发布器 for debug
+    info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
+
+    // 跟踪目标消息发布器
+    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>("/tracker/target", rclcpp::SensorDataQoS());
+
+    this->InitMarkers();
+}
+
+int ArmorTrackerNode::OnActivate() {
     tf2_filter_ = std::make_shared<tf2_filter>(
         armors_sub_,                        // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
@@ -64,14 +75,12 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     );
     // 注册回调函数
     tf2_filter_->registerCallback(&ArmorTrackerNode::ArmorsCallback, this);
+    return 1;
+}
 
-    // 跟踪信息发布器 for debug
-    info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
-
-    // 跟踪目标消息发布器
-    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>("/tracker/target", rclcpp::SensorDataQoS());
-
-    this->InitMarkers();
+int ArmorTrackerNode::OnDeactivate() {
+    tf2_filter_.reset();
+    return 1;
 }
 
 void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::SharedPtr armors_msg) {

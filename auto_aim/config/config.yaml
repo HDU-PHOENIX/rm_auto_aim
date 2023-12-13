@@ -6,7 +6,7 @@
 /camera_node:
     ros__parameters:
         videoflag: false
-        video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
+        video_path: "/home/nishangyumei/code/sentinal-ros2-autoshoot/12mm_blue_dark.MP4"
 
 
 /camera_info_node:

@@ -8,7 +8,9 @@
 
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
+#include "lifecycle_interfaces/srv/change_state.hpp"
 #include "serial/serial.hpp"
+#include <lifecycle_interfaces/srv/detail/change_state__struct.hpp>
 
 namespace sensor {
 
@@ -27,6 +29,13 @@ public:
      */
     void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
+    /**
+     * @brief 生命周期节点控制函数
+     *
+     * @param mode 模式
+     */
+    void LifecycleNodeControl(const char mode);
+
 private:
     /**
      * @brief 初始化下位机串口
@@ -34,6 +43,18 @@ private:
      * @return std::unique_ptr<sensor::Serial> Serial 指针
      */
     std::unique_ptr<sensor::Serial> InitSerial();
+
+    /**
+     * @brief 初始化生命周期节点客户端
+     */
+    void InitClient();
+
+    /**
+     * @brief 搜索服务器
+     *
+     * @return bool 是否全部都搜索到
+     */
+    bool SearchService();
 
     /**
      * @brief 发布坐标系转换
@@ -77,6 +98,16 @@ private:
 
     std::vector<double> camera2shooter_tvec_; // 相机坐标系到枪口坐标系的平移向量
     std::vector<double> shooter2odom_tvec_;   // 枪口坐标系到 odom 坐标系的平移向量
+
+    //生命周期节点状态
+    int state; // 0:装甲板和符都未启动 1:仅装甲板已启动 2:仅符启动
+    //生命周期节点控制客户端
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr armor_detector_client;
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr armor_shooter_client;
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr armor_tracker_client;
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr rune_detector_client;
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr rune_shooter_client;
+    rclcpp::Client<lifecycle_interfaces::srv::ChangeState>::SharedPtr rune_tracker_client;
 };
 
 } // namespace sensor

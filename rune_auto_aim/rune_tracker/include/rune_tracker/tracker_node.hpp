@@ -25,6 +25,7 @@
 #include "rune_tracker/tracker.hpp"
 #include <sensor_msgs/msg/camera_info.hpp>
 
+#include "LifecycleNode.hpp"
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "pnp_solver.hpp"
 #include "point.hpp"                 //添加Angle方法
@@ -39,9 +40,13 @@ namespace rune {
 // 使用tf2_ros::MessageFilter对自动瞄准接口的Armors消息进行过滤
 using tf2_filter = tf2_ros::MessageFilter<auto_aim_interfaces::msg::Rune>;
 
-class RuneTrackerNode: public rclcpp::Node {
+class RuneTrackerNode: public LifecycleNode {
 public:
     explicit RuneTrackerNode(const rclcpp::NodeOptions& option);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     // 处理Rune消息的回调函数

@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "armor_detector/LifecycleNode.hpp"
 #include "armor_detector/detector.hpp"
 #include "armor_detector/number_classifier.hpp"
 #include "armor_detector/pnp_solver.hpp"
@@ -23,9 +24,13 @@
 
 namespace armor {
 
-class ArmorDetectorNode: public rclcpp::Node {
+class ArmorDetectorNode: public LifecycleNode {
 public:
     explicit ArmorDetectorNode(const rclcpp::NodeOptions& options);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     /**

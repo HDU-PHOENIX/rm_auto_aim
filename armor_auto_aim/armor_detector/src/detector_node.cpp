@@ -25,7 +25,7 @@
 
 namespace armor {
 ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
-    Node("armor_detector", options) {
+    LifecycleNode("armor_detector", options) {
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
 
     // 初始化 Detector
@@ -60,9 +60,17 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
         cam_info_sub_.reset();
     });
+}
 
+int ArmorDetectorNode::OnActivate() {
     // 创建图像订阅者
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor", rclcpp::SensorDataQoS(), std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1));
+    return 1;
+}
+
+int ArmorDetectorNode::OnDeactivate() {
+    img_sub_.reset();
+    return 1;
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {

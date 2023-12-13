@@ -1,3 +1,4 @@
+#include "armor_shooter/LifecycleNode.hpp"
 #include "armor_shooter/shooter.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
@@ -10,9 +11,13 @@
 
 namespace armor {
 
-class ArmorShooterNode: public rclcpp::Node {
+class ArmorShooterNode: public LifecycleNode {
 public:
     explicit ArmorShooterNode(const rclcpp::NodeOptions& options);
+
+    int OnActivate() override;
+
+    int OnDeactivate() override;
 
 private:
     std::unique_ptr<Shooter> InitShooter();

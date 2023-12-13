@@ -19,7 +19,7 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS(),
         std::bind(&SerialNode::SerialInfoCallback, this, std::placeholders::_1)
     );
-
+    InitClient();
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
 }
 
@@ -65,7 +65,8 @@ void SerialNode::LoopForPublish() {
         serial_info_.euler[2] = package.euler[2]; //(0,1,2) = (yaw,roll,pitch)
         serial_info_.shoot_bool.data = package.shoot_bool;
         serial_info_.rune_flag.data = package.rune_flag;
-
+        std::cout << package.mode << std::endl;
+        LifecycleNodeControl(package.mode);
         // x:red y:green z:blue
         // 发布 相机 到 枪口 的坐标系转换
         SendTransform(

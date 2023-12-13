@@ -8,13 +8,16 @@
 namespace armor {
 
 ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
-    Node("armor_shooter", options) {
+    LifecycleNode("armor_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "ArmorShooterNode has been initialized.");
     shooter_ = InitShooter();
     serial_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
         "/serial_info",
         rclcpp::SensorDataQoS()
     );
+}
+
+int ArmorShooterNode::OnActivate() {
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "target",
         rclcpp::SensorDataQoS(),
@@ -32,6 +35,12 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             serial_info_pub_->publish(std::move(serial_info));
         }
     );
+    return 1;
+}
+
+int ArmorShooterNode::OnDeactivate() {
+    target_sub_.reset();
+    return 1;
 }
 
 std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
