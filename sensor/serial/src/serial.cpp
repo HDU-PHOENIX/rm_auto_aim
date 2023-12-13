@@ -98,6 +98,7 @@ DataRecv Serial::ReadData() {
         std::vector<uint8_t> data(32);
         serial_driver_->port()->receive(data);
         DataRecv&& packet = FromVector(data);
+
         if (packet.start == 's' && packet.end == 'e') {
             return packet;
         } else {

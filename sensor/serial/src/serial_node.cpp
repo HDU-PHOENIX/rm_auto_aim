@@ -1,4 +1,5 @@
 #include "serial/serial_node.hpp"
+#include <rclcpp/logging.hpp>
 
 namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options):

@@ -18,7 +18,6 @@ import os
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-from launch_ros.descriptions import 
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
@@ -121,71 +120,6 @@ def generate_launch_description():
                 extra_arguments=[{"use_intra_process_comms": True}]
             )
         ]
-    )
-
-    container = ComposableNodeContainer(
-            name='auto_aim',
-            namespace='',
-            package='rclcpp_components',
-            executable='component_container',
-            composable_node_descriptions=[
-                ComposableNode(
-                    package = 'serial',
-                    plugin = 'sensor::SerialNode',
-                    name = "serial_node",
-                    parameters = [config],
-                    extra_arguments = [{"use_intra_process_comms": True}]
-                ),
-                ComposableNode(
-                    package = 'armor_detector',
-                    plugin = 'armor::ArmorDetectorNode',
-                    name = 'armor_detector_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
-                ),
-                ComposableNode(
-                    package = 'armor_tracker',
-                    plugin = 'armor::ArmorTrackerNode',
-                    name = 'armor_tracker_node',
-                    extra_arguments = [{"use_intra_process_comms": True}]
-                ),
-                ComposableNode(
-                    package = 'rune_detector',
-                    plugin = 'rune::RuneDetectorNode',
-                    name = 'rune_detector_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
-                ),
-                ComposableNode(
-                    package='rune_tracker',
-                    plugin='rune::RuneTrackerNode',
-                    name='rune_tracker_node',
-                    extra_arguments=[{"use_intra_process_comms": True}],
-                    parameters = [config]
-                ),
-                # ComposableNode(
-                #     package='rune_shooter',
-                #     plugin='rune::RuneShooterNode',
-                #     name='rune_shooter_node',
-                #     extra_arguments=[{"use_intra_process_comms": True}],
-                #     parameters = [config]
-                # ),
-                ComposableNode(
-                    package = 'camerainfo',
-                    plugin = 'camerainfo::CameraInfoNode',
-                    name = 'camera_info_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
-                ),
-                ComposableNode(
-                    package = 'camera',
-                    plugin = 'sensor::CameraNode',
-                    name = 'camera_node',
-                    extra_arguments = [{"use_intra_process_comms": True}],
-                    parameters = [config]
-                )
-            ],
-            output = 'screen',
     )
 
     return launch.LaunchDescription([detctor, tracker, shooter, serial])
