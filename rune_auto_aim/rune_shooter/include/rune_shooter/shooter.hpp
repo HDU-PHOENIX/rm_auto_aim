@@ -31,6 +31,14 @@ public:
      */
     Eigen::Vector2d DynamicCalcCompensate(Eigen::Vector3d xyz);
 
+    /**
+     *@brief 设置手动补偿量,px,py的物理含义为相机到摩擦轮出射处的偏移量
+    */
+    void SetHandOffSet(const double& x, const double& y) {
+        correction_of_x_ = x;
+        correction_of_y_ = y;
+    }
+
 private:
     double gravity_;         //重力系数
     double kof_;             //风阻系数

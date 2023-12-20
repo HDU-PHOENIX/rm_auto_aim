@@ -45,7 +45,7 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     //TODO:根据陀螺仪安装位置调整距离求解方式
     //降维，坐标系Y轴以垂直向上为正方向
     // auto&& xyz_offset = Eigen::Vector3d{xyz[0], xyz[1] + px / 10, xyz[2] + py / 10};
-    xyz = { xyz[0], xyz[1] + correction_of_x_ / 10, xyz[2] + correction_of_y_ / 10 };
+    xyz = { xyz[0], xyz[1] + correction_of_x_, xyz[2] + correction_of_y_ };
     orin_pw_ = xyz;
     auto dist_vertical = xyz[2]; //垂直距离
 
@@ -106,7 +106,7 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     pitch_new = pitch_new / 180 * M_PI;
     double&& yaw = atan(xyz[1] / xyz[0]);
     //yaw = yaw;
-    shoot_pw_ = { xyz[0], xyz[1] - correction_of_x_ / 10, vertical_tmp - correction_of_y_ / 10 };
+    shoot_pw_ = { xyz[0], xyz[1] - correction_of_x_, vertical_tmp - correction_of_y_ };
 
     // shoot_pc = coordinate.RunePwToPc(shoot_pw);
     // shoot_pu = coordinate.RunePcToPu(shoot_pc);
