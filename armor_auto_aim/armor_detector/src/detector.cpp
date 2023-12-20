@@ -76,10 +76,10 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
         // 找出灰度图里面较亮的地方
         cv::threshold(gray_img, gray_mask, gray_thres, 255, cv::THRESH_BINARY);
         if (detect_color == RED) {
-            // 红色-蓝色 获得红色区域轮廓
+            // 红色 - 蓝色 获得红色区域轮廓
             cv::subtract(channels[2], channels[0], color_mask);
         } else if (detect_color == BLUE) {
-            // 蓝色-红色 获得蓝色区域轮廓
+            // 蓝色 - 红色 获得蓝色区域轮廓
             cv::subtract(channels[0], channels[2], color_mask);
         }
         cv::threshold(color_mask, color_mask, color_thres, 255, cv::THRESH_BINARY_INV);

@@ -166,32 +166,40 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.integer_range[0].to_value = 255;
     int color_thres = declare_parameter("color_thres", 160, param_desc);
 
-    param_desc.description = "0-RED, 1-BLUE";
-    param_desc.integer_range[0].from_value = 0;
-    param_desc.integer_range[0].to_value = 1;
-    auto detect_color = declare_parameter("detect_color", RED, param_desc);
-
-    param_desc.description = "0-普通二值化, 1-通道相减二值化";
-    param_desc.integer_range[0].from_value = 0;
-    param_desc.integer_range[0].to_value = 1;
-    auto detect_mode = declare_parameter("detect_mode", 0, param_desc);
-
-    // c++20 designated initializer
-    // Detector::LightParams l_params = { .min_ratio = declare_parameter("light.min_ratio", 0.1),
-    //                                    .max_ratio = declare_parameter("light.max_ratio", 0.4),
-    //                                    .max_angle = declare_parameter("light.max_angle", 40.0) };
-
     Detector::LightParams l_params;
-    l_params.min_ratio = declare_parameter("light.min_ratio", 0.1);
-    l_params.max_ratio = declare_parameter("light.max_ratio", 0.4);
-    l_params.max_angle = declare_parameter("light.max_angle", 40.0);
+    param_desc.integer_range.clear();
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].from_value = 0;
+    param_desc.floating_point_range[0].to_value = 1;
+    l_params.min_ratio = declare_parameter("light.min_ratio", 0.1, param_desc);
+    l_params.max_ratio = declare_parameter("light.max_ratio", 0.4, param_desc);
+    param_desc.floating_point_range.clear();
+    param_desc.integer_range.resize(1);
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 90;
+    l_params.max_angle = declare_parameter("light.max_angle", 40.0, param_desc);
 
     Detector::ArmorParams a_params;
+    param_desc.integer_range.clear();
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].from_value = 0;
+    param_desc.floating_point_range[0].to_value = 1;
     a_params.min_light_ratio = declare_parameter("armor.min_light_ratio", 0.7);
     a_params.min_small_center_distance = declare_parameter("armor.min_small_center_distance", 0.8);
-    a_params.max_small_center_distance = declare_parameter("armor.max_small_center_distance", 3.2);
-    a_params.min_large_center_distance = declare_parameter("armor.min_large_center_distance", 3.2);
-    a_params.max_large_center_distance = declare_parameter("armor.max_large_center_distance", 5.5);
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].from_value = 0;
+    param_desc.floating_point_range[0].to_value = 10;
+    a_params.max_small_center_distance = declare_parameter("armor.max_small_center_distance", 3.2, param_desc);
+    a_params.min_large_center_distance = declare_parameter("armor.min_large_center_distance", 3.2, param_desc);
+    a_params.max_large_center_distance = declare_parameter("armor.max_large_center_distance", 5.5, param_desc);
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.5;
+    param_desc.floating_point_range[0].from_value = 0;
+    param_desc.floating_point_range[0].to_value = 90;
     a_params.max_angle = declare_parameter("armor.max_angle", 35.0);
 
     default_armor_msg_.number = "3";
@@ -201,6 +209,18 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     default_armor_msg_.pose.position = geometry_msgs::msg::Point();
     default_armor_msg_.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 0));
     default_armors_msg_.armors.emplace_back(default_armor_msg_);
+
+    param_desc.description = "0-RED, 1-BLUE";
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 1;
+    auto detect_color = declare_parameter("detect_color", RED, param_desc);
+
+    param_desc.description = "0-普通二值化，1-通道相减二值化";
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 1;
+    auto detect_mode = declare_parameter("detect_mode", 0, param_desc);
 
     // 初始化 Detector
     std::unique_ptr<Detector> detector;
@@ -228,11 +248,27 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
 
     // 更新参数
-    detector_->binary_thres = get_parameter("binary_thres").as_int();
-    detector_->gray_thres = get_parameter("gray_thres").as_int();
-    detector_->color_thres = get_parameter("color_thres").as_int();
-    detector_->detect_color = get_parameter("detect_color").as_int();
-    detector_->classifier->threshold = get_parameter("classifier_threshold").as_double();
+    if (this->debug_) {
+        detector_->binary_thres = get_parameter("binary_thres").as_int();
+        detector_->gray_thres = get_parameter("gray_thres").as_int();
+        detector_->color_thres = get_parameter("color_thres").as_int();
+        detector_->detect_color = get_parameter("detect_color").as_int();
+        detector_->detect_mode = get_parameter("detect_mode").as_int();
+        detector_->light_params = {
+            get_parameter("light.min_ratio").as_double(),
+            get_parameter("light.max_angle").as_double(),
+            get_parameter("light.max_angle").as_double()
+        };
+        detector_->armor_params = {
+            get_parameter("armor.min_light_ratio").as_double(),
+            get_parameter("armor.min_small_center_distance").as_double(),
+            get_parameter("armor.max_small_center_distance").as_double(),
+            get_parameter("armor.min_large_center_distance").as_double(),
+            get_parameter("armor.max_large_center_distance").as_double(),
+            get_parameter("armor.max_angle").as_double()
+        };
+        detector_->classifier->threshold = get_parameter("classifier_threshold").as_double();
+    }
 
     // 检测装甲板
     auto armors = detector_->Detect(img);
