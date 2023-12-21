@@ -1,0 +1,34 @@
+name: Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    container:
+      image: ros:humble
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt install wget -y
+          mkdir mindvision-sdk
+          wget https://www.mindvision.com.cn/uploadfiles/SDK/linuxSDK_V2.1.0.37.tar.gz -O mindvision-sdk/sdk.tar.gz
+          tar -zxvf mindvision-sdk/sdk.tar.gz --directory=mindvision-sdk
+          sed -i 's/usr\/include/usr\/include\/mindvision/g' mindvision-sdk/install.sh
+          sed -i 17a\\"mkdir -p /usr/include/mindvision" mindvision-sdk/install.sh
+          cd mindvision-sdk && sudo bash ./install.sh && cd ..
+          sed -i 28,36d scripts/setup.bash
+          sudo bash scripts/setup.bash
+
+      - name: Build
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          target-ros2-distro: humble
+          skip-tests: true
