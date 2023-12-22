@@ -25,14 +25,20 @@ def parse():
 if __name__ == "__main__":
     options, args = parse()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    rows, cols = 6, 9          #需要比标定板的尺寸都小一
+
+    # 定义棋盘格的尺寸（棋盘格内角点）
+    rows, cols = 6, 9
     size = (rows, cols)
+
+    # 迭代终止条件（最大误差容忍度0.001 + 最大迭代次数30）
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+    # 定义 3D 点的世界坐标
     obj_p = np.zeros((rows*cols, 3), np.float32)
     obj_p[:, :2] = np.mgrid[0:rows, 0:cols].T.reshape(-1, 2)
     obj_p *= options.grid_size
-    obj_points = []
-    img_points = []
+    obj_points = []  # 存储棋盘图像 3D 点向量
+    img_points = []  # 存储棋盘图像 2D 点向量
 
     if options.save and not os.path.exists('outputs'):
         os.mkdir('outputs')
@@ -47,7 +53,9 @@ if __name__ == "__main__":
         if not options.cache:
             copy = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # 找棋盘角，若找到所需数量的角，则 ret = true
         ret, corners = cv2.findChessboardCornersSB(gray, size, None, cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_EXHAUSTIVE)
+        # 绘制并显示角
         cv2.drawChessboardCorners(frame, size, corners, ret)
         cv2.imshow('frame', frame)
         key_pressed = cv2.waitKey(0 if options.cache else 1)
@@ -56,7 +64,9 @@ if __name__ == "__main__":
             if options.save:
                 cv2.imwrite(time.strftime('outputs/%Y-%m-%d-%H-%M-%S.jpg', time.localtime()), copy)
             obj_points.append(obj_p)
-            img_points.append(corners)
+            # 细化给定二维点的像素坐标
+            corners2 = cv2.cornerSubPix(gray, corners, (11,11),(-1,-1), criteria)
+            img_points.append(corners2)
         elif key_pressed == ord('q'):
             break
     cv2.destroyAllWindows()
