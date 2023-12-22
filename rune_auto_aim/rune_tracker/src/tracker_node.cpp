@@ -1,7 +1,7 @@
 #include "rune_tracker/tracker_node.hpp"
 #include <rclcpp/logging.hpp>
-#define ORIGIN_METHOD false
 #define NEW_METHOD    true
+#define PNP_ITERATION true
 namespace rune {
 // RuneTrackerNode类的构造函数
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
@@ -194,8 +194,7 @@ void RuneTrackerNode::DataProcess() {
             omega_file << omega << std::endl;
             omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
         }
-#endif
-#if ORIGIN_METHOD
+#else
         // 用二维坐标拟合
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -466,7 +465,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         vertex = Rotate(vertex, symbol, rotate_angle);
     }
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
-    if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec)) {
+    if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec, PNP_ITERATION)) {
     } else {
         RCLCPP_INFO(this->get_logger(), "rune_tracker solve pnp failed");
     }

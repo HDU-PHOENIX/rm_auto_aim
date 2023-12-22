@@ -24,6 +24,7 @@
 
 using std::placeholders::_1;
 using std::placeholders::_2;
+#define PNP_ITERATION true
 namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
@@ -188,7 +189,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     {
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
-        bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec); // 输出旋转向量和平移向量
+        bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
         if (!success) {
             RCLCPP_WARN(this->get_logger(), "PnP failed!");
             return false;
@@ -252,7 +253,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         rune_points_.emplace_back(100, 200);
         rune_points_.emplace_back(200, 200);
         rune_points_.emplace_back(200, 100);
-        pnp_solver_->SolvePnP(rune_points_, rvec, tvec);
+        pnp_solver_->SolvePnP(rune_points_, rvec, tvec, PNP_ITERATION);
         runes_msg_.pose_c.position.x = tvec.at<double>(0);
         runes_msg_.pose_c.position.y = tvec.at<double>(1);
         runes_msg_.pose_c.position.z = tvec.at<double>(2);

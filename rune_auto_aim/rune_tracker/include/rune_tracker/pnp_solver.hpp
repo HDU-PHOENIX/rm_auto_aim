@@ -27,7 +27,7 @@ public:
      * @param tvec TODO: description
      * @return bool 
      */
-    bool SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec);
+    bool SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec, bool iterate);
 
     /**
      * @brief 计算装甲板中心到图像中心的距离

@@ -29,9 +29,9 @@ PnPSolver::GeneratePw(double outerwidth, double insidewidth, double height) {
          * @param rune 符叶像素坐标
          * @return tvec 平移向量，相机坐标系下的坐标
          */
-bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec) {
+bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat& tvec, bool iterate) {
     // Solve pnp
-    return cv::solvePnP(
+    bool ret = cv::solvePnP(
         GeneratePw(RUNE_PNP_OUTER_LIGHTBAR_WIDTH, RUNE_PNP_INSIDE_LIGHTBAR_WIDTH, RUNE_PNP_RADIUS),
         rune,
         camera_matrix_,
@@ -41,6 +41,20 @@ bool PnPSolver::SolvePnP(std::vector<cv::Point2d>& rune, cv::Mat& rvec, cv::Mat&
         false,
         cv::SOLVEPNP_IPPE
     );
+
+    if (iterate) {
+        ret = cv::solvePnP(
+        GeneratePw(RUNE_PNP_OUTER_LIGHTBAR_WIDTH, RUNE_PNP_INSIDE_LIGHTBAR_WIDTH, RUNE_PNP_RADIUS),
+        rune,
+        camera_matrix_,
+        dist_coeffs_,
+        rvec,
+        tvec,
+        true,
+        cv::SOLVEPNP_IPPE
+    );
+    }
+    return ret;
 }
 
 float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& image_point) {
