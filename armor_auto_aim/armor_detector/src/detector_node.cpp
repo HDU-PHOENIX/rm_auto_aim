@@ -53,11 +53,12 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         debug_ ? CreateDebugPublishers() : DestroyDebugPublishers();
     });
 
+    pnp_iterative = this->declare_parameter("pnp_iterative", true);
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
         cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
         cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
-        pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
+        pnp_solver_ = std::make_unique<PnPSolver>(pnp_iterative, camera_info->k, camera_info->d);
         cam_info_sub_.reset();
     });
 

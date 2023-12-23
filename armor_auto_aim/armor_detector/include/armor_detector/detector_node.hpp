@@ -109,6 +109,8 @@ private:
     std::shared_ptr<sensor_msgs::msg::CameraInfo> cam_info_;
     // PnP 解算器
     std::unique_ptr<PnPSolver> pnp_solver_;
+    // pnp 是否迭代
+    bool pnp_iterative;
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
