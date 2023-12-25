@@ -49,6 +49,27 @@ def generate_launch_description():
             ),
         ]
     )
+    serial_for_unity = ComposableNodeContainer(
+        name='serial_for_unity',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package = 'camerainfo',
+                plugin = 'camerainfo::CameraInfoNode',
+                name = 'camera_info_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            ),
+            ComposableNode(
+                package = 'serial',
+                plugin = 'sensor::SerialForUnity',
+                name = 'serial_for_unity_node',
+                parameters = [config]
+            )
+        ]
+    )
 
     detctor = ComposableNodeContainer(
         name='detector',
@@ -56,13 +77,13 @@ def generate_launch_description():
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=[
-            ComposableNode(
-                package = 'camera',
-                plugin = 'sensor::CameraNode',
-                name = 'camera_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
-                parameters = [config]
-            ),
+            # ComposableNode(
+            #     package = 'camera',
+            #     plugin = 'sensor::CameraNode',
+            #     name = 'camera_node',
+            #     extra_arguments = [{"use_intra_process_comms": True}],
+            #     parameters = [config]
+            # ),
             ComposableNode(
                 package = 'armor_detector',
                 plugin = 'armor::ArmorDetectorNode',
@@ -122,4 +143,4 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([detctor, tracker, shooter, serial])
+    return launch.LaunchDescription([detctor, tracker, shooter, serial_for_unity])

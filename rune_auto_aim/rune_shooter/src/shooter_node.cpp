@@ -2,6 +2,7 @@
 #include "Eigen/src/Core/Matrix.h"
 #include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
 
+#define UNITY_TEST true
 namespace rune {
 
 RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
@@ -12,10 +13,23 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         "/shooter_info",
         rclcpp::SensorDataQoS()
     );
+    joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
+        "/serial2unity",
+        rclcpp::SensorDataQoS()
+    );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::RuneTarget>(
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
+#if UNITY_TEST
+            shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
+            auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
+            sensor_msgs::msg::JointState joint_state;
+            joint_state.header.stamp = this->now();
+            joint_state.name = { "yaw", "pitch" };
+            joint_state.position = { yaw_and_pitch[0], yaw_and_pitch[1] };
+            joint_state_pub_->publish(joint_state);
+#else
             shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
             //输入shooter坐标系下的坐标 输出yaw和pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
@@ -30,6 +44,8 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             serial_info.origin_euler = { 0 };
             serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
             serial_info_pub_->publish(serial_info);
+
+#endif
         }
     );
 }

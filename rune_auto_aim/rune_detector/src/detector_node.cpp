@@ -1,5 +1,6 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/types.hpp>
+#include <opencv2/highgui.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -33,7 +34,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
     SEND_DEFAULT_DATA = this->declare_parameter("SEND_DEFAULT_DATA", false);
     detector_ = InitDetector(); // 初始化神符识别器
-
+    pnp_solver_ = nullptr;      // 初始化 pnp 求解器
     //创建标记发布者
     debug_ = this->declare_parameter("debug", false);
 

@@ -58,7 +58,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        10,                                 // size of the tf2 cache
+        100,                                // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::duration<int>(1)       // timeout

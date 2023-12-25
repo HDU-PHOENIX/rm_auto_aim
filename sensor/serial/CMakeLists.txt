@@ -28,6 +28,10 @@ rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN sensor::SerialNode
     EXECUTABLE serial_node
 )
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN sensor::SerialForUnity
+    EXECUTABLE serial_for_unity_node
+)
 
 ament_auto_package(
     INSTALL_TO_SHARE
