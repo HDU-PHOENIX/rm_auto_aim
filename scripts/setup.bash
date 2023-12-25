@@ -1,4 +1,4 @@
-#!bash
+#!/bin/bash
 
 echo ">>> APT update" && sleep 1
 sudo apt update
@@ -50,4 +50,4 @@ else
     sudo pip3 install rosdepc
     sudo rosdepc init
 fi
-sudo rosdep update && rosdep install --from-paths ./ --ignore-src -r -y
+rosdep update && rosdep install --from-paths ./ --ignore-src -r -y
