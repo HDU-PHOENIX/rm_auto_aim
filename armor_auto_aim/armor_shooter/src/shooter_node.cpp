@@ -12,7 +12,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "ArmorShooterNode has been initialized.");
     shooter_ = InitShooter();
     serial_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-        "/serial_info",
+        "/shooter_info",
         rclcpp::SensorDataQoS()
     );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
