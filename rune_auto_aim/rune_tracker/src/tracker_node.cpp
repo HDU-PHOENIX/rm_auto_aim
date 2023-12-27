@@ -250,51 +250,51 @@ bool RuneTrackerNode::CeresProcess() {
             RCLCPP_INFO(this->get_logger(), "delta_angle is %f", delta_angle);
             if (delta_angle < 0.2) {
                 //误差小,则认为拟合良好
+                // pred_angle = integral(
+                //     a_omega_phi_b[1],
+                //     std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+                //     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+                //     delay + (this->now() - data->header.stamp).seconds()
+                // );
                 pred_angle = integral(
                     a_omega_phi_b[1],
                     std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
                     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                    delay + (this->now() - data->header.stamp).seconds()
+                    delay
                 );
                 runes_msg_.can_shoot = true; //可以发射
                 count_cere = 0;              //将count_cere置为0，非连续5次拟合不良
                 finish_fitting = true;
-                tracker.pred_angle = integral(
-                    a_omega_phi_b[1],
-                    std::vector<double> { a_omega_phi_b[0],
-                                          a_omega_phi_b[2],
-                                          a_omega_phi_b[3] },
-                    (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                    delay + (this->now() - data->header.stamp).seconds()
-                );
+                tracker.pred_angle = pred_angle;
                 tracker.timestamp = data->header.stamp;
-                tracker.pred_time =
-                    delay + (this->now() - data->header.stamp).seconds();
+                // tracker.pred_time =
+                //     delay + (this->now() - data->header.stamp).seconds();
+                tracker.pred_time = delay;
                 tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
             } else {
                 //误差大,则认为拟合不良
                 if (count_cere < 5) {
                     count_cere++;
-                    tracker.pred_angle = integral(
-                        a_omega_phi_b[1],
-                        std::vector<double> { a_omega_phi_b[0],
-                                              a_omega_phi_b[2],
-                                              a_omega_phi_b[3] },
-                        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                        delay + (this->now() - data->header.stamp).seconds()
-                    );
-                    tracker.timestamp = data->header.stamp;
-                    tracker.pred_time =
-                        delay + (this->now() - data->header.stamp).seconds();
-                    tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
+                    // pred_angle = integral(
+                    //     a_omega_phi_b[1],
+                    //     std::vector<double> { a_omega_phi_b[0],
+                    //                           a_omega_phi_b[2],
+                    //                           a_omega_phi_b[3] },
+                    //     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+                    //     delay + (this->now() - data->header.stamp).seconds()
+                    // );
                     pred_angle = integral(
                         a_omega_phi_b[1],
-                        std::vector<double> { a_omega_phi_b[0],
-                                              a_omega_phi_b[2],
-                                              a_omega_phi_b[3] },
+                        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
                         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                        delay + (this->now() - data->header.stamp).seconds()
+                        delay
                     );
+                    tracker.pred_angle = pred_angle;
+                    tracker.timestamp = data->header.stamp;
+                    // tracker.pred_time =
+                    //     delay + (this->now() - data->header.stamp).seconds();
+                    tracker.pred_time = delay;
+                    tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
                     return false;
                 }
                 finish_fitting = false; //连续五次误差超过0.1，则认为需要重新拟合
@@ -308,8 +308,14 @@ bool RuneTrackerNode::CeresProcess() {
                 a_omega_phi_b[1],
                 std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
                 (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                (delay + (this->now() - data->header.stamp).seconds())
+                delay
             );
+            // pred_angle = integral(
+            //     a_omega_phi_b[1],
+            //     std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+            //     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+            //     (delay + (this->now() - data->header.stamp).seconds())
+            // );
             runes_msg_.can_shoot = false;
             return false;
         }
@@ -319,13 +325,13 @@ bool RuneTrackerNode::CeresProcess() {
 
 void RuneTrackerNode::Refitting() {
     ceres::Problem problem;
-    for (unsigned long i = 0; i < cere_param_list.size(); i++) {
+    for (auto& i: cere_param_list) {
         //将数据添加入问题
         problem.AddResidualBlock(
             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
                 new CURVE_FITTING_COST(
-                    cere_param_list[i].time,
-                    cere_param_list[i].omega
+                    i.time,
+                    i.omega
                 )
             ),
             new ceres::CauchyLoss(0.1),
@@ -351,21 +357,23 @@ void RuneTrackerNode::Refitting() {
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
     //输出拟合的信息
     RCLCPP_INFO(this->get_logger(), "fitting params is a : %f omega : %f phi : %f ,b : %f", a_omega_phi_b[0], a_omega_phi_b[1], a_omega_phi_b[2], a_omega_phi_b[3]);
-    tracker.pred_time = delay
-        + (this->now() - rclcpp::Time(data->header.stamp))
-              .seconds(); //更新下一次重新判断拟合的时间
-    tracker.pred_angle = integral(
-        a_omega_phi_b[1],
-        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
-        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-        delay + (this->now() - data->header.stamp).seconds()
-    );
+    // pred_angle = integral(
+    //     a_omega_phi_b[1],
+    //     std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+    //     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+    //     (delay + (this->now() - data->header.stamp).seconds())
+    // );
     pred_angle = integral(
         a_omega_phi_b[1],
         std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-        (delay + (this->now() - data->header.stamp).seconds())
+        delay
     );
+    // tracker.pred_time = delay
+    //     + (this->now() - rclcpp::Time(data->header.stamp))
+    //           .seconds(); //更新下一次重新判断拟合的时间
+    tracker.pred_time = delay;
+    tracker.pred_angle = pred_angle;
     tracker.angle = leaf_angle;
     tracker.timestamp = data->header.stamp;
     runes_msg_.can_shoot = true;
@@ -441,7 +449,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     //     SetState(MotionState::Big);
     // }//从下位机来的数据，判断是静止还是小符还是大符
 
-    SetState(MotionState::Small); //缺省设置为大符
+    SetState(MotionState::Big); //缺省设置为大符
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
 

@@ -4,7 +4,7 @@
 //这是存放具体的尺寸的地方
 namespace rune {
 
-constexpr int MAT_WIDTH = 1280; //图片宽度
+constexpr int MAT_WIDTH = 1280;  //图片宽度
 constexpr int MAT_HEIGHT = 1024; //图片高度
 
 constexpr double SMALL_ARMOR_WIDTH = 135_mm;
@@ -14,8 +14,8 @@ constexpr double BIG_ARMOR_HEIGHT = 55_mm;
 constexpr double RUNE_ARMOR_WIDTH = 160_mm;
 constexpr double RUNE_ARMOR_HEIGHT = 154_mm;
 
-constexpr double RUNE_ARMOR_RADIUS = 150_mm; //待测,装甲板半径
-constexpr double RUNE_ARMOR_OUTER_LIGHTBAR_WIDTH = 170_mm; //待测，装甲板灯条外接四边形宽度
+constexpr double RUNE_ARMOR_RADIUS = 150_mm;                //待测,装甲板半径
+constexpr double RUNE_ARMOR_OUTER_LIGHTBAR_WIDTH = 170_mm;  //待测，装甲板灯条外接四边形宽度
 constexpr double RUNE_ARMOR_OUTER_LIGHTBAR_LENGTH = 372_mm; //待测，装甲板灯条外接四边形长度
 constexpr double RUNE_ARMOR_INSIDE_LIGHTBAR_LENGTH = 510_mm;
 constexpr double RUNE_ARMOR_INSIDE_LIGHTBAR_WIDTH = 372_mm;
@@ -123,10 +123,14 @@ constexpr double RUNE_ARMOR_SYMBOL_RATIO_MIN =
 // constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 372_mm;  //官方符的尺寸参数
 // constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 320_mm;
 // constexpr double RUNE_PNP_RADIUS = 308_mm;
-constexpr double RUNE_ARMOR_TO_SYMBOL = 703.205_mm;
+// constexpr double RUNE_ARMOR_TO_SYMBOL = 703.205_mm;
 
-constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 365_mm; //实验室符的尺寸参数
-constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 310_mm;
-constexpr double RUNE_PNP_RADIUS = 325_mm;
+// constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 365_mm; //实验室符的尺寸参数
+// constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 310_mm;
+// constexpr double RUNE_PNP_RADIUS = 325_mm;
+constexpr double RUNE_ARMOR_TO_SYMBOL = 578.065_mm;
+constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 304.2_mm;
+constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 255.5_mm;
+constexpr double RUNE_PNP_RADIUS = 266.8_mm;
 
 } // namespace rune

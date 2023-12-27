@@ -2,7 +2,7 @@
 
 namespace sensor {
 SerialForUnity::SerialForUnity(const rclcpp::NodeOptions& options):
-    Node("serial_node", options) {
+    Node("serial_for_unity_node", options) {
     broadcaster_camera2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     broadcaster_shooter2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
@@ -54,7 +54,7 @@ void SerialForUnity::SerialInfoCallback(const sensor_msgs::msg::JointState::Shar
             return q;
         }(),
         //TODO::平移向量要看xj发的参数
-        tf2::Vector3(0, 0.05, 0),
+        tf2::Vector3(0, 0.05, 0.14),
         joint_state->header.stamp
     );
     // 发布 枪口 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）

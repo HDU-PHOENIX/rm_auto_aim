@@ -24,8 +24,7 @@
 #include "rune_detector/colors.hpp"
 
 using std::placeholders::_1;
-using std::placeholders::_2;
-#define PNP_ITERATION true
+#define PNP_ITERATION false
 namespace rune {
 RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     rclcpp::Node("rune_detector", options) {
@@ -81,11 +80,11 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     rune_marker_.id = 0;
     // RuneClass cls; // 符叶枚举类对象 用于标记符叶的种类
-    bool flag1 = false, flag2 = false;     //bool flag3 = false;
-    cv::Point2f symbol;                    // 符叶 R 标的位置
-    cv::Point2f rune_armor;                // 符叶未激活装甲板中心
-    std::vector<cv::Point2d> rune_points_; // 未激活符叶的五个点
-                                           ///------------------------生成扇叶对象----------------------------------------------
+    bool flag1 = false, flag2 = false;    //bool flag3 = false;
+    cv::Point2f symbol;                   // 符叶 R 标的位置
+    cv::Point2f rune_armor;               // 符叶未激活装甲板中心
+    std::vector<cv::Point2d> rune_points; // 未激活符叶的五个点
+                                          ///------------------------生成扇叶对象----------------------------------------------
     for (auto object: objects_) {
         // 遍历所有的神符识别结果，把 R 标和未激活的符叶的信息画出来
         auto prob = object.prob;
@@ -122,12 +121,12 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
         } else if (object.color == 0 && object.cls == 1) {
             // cls = RuneClass::BlueUnActivated;
-            rune_points_.clear();
+            rune_points.clear();
 
-            rune_points_.push_back(object.vertices[1]);
-            rune_points_.push_back(object.vertices[2]);
-            rune_points_.push_back(object.vertices[4]);
-            rune_points_.push_back(object.vertices[0]);
+            rune_points.push_back(object.vertices[1]);
+            rune_points.push_back(object.vertices[2]);
+            rune_points.push_back(object.vertices[4]);
+            rune_points.push_back(object.vertices[0]);
             auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
             auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
             auto&& armor = (tmp1 + tmp2) / 2; // 装甲板中心
@@ -142,12 +141,12 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             flag2 = true;
         } else if (object.color == 1 && object.cls == 1) {
             // cls = RuneClass::RedUnActivated;
-            rune_points_.clear();
+            rune_points.clear();
 
-            rune_points_.push_back(object.vertices[1]);
-            rune_points_.push_back(object.vertices[2]);
-            rune_points_.push_back(object.vertices[4]);
-            rune_points_.push_back(object.vertices[0]);
+            rune_points.push_back(object.vertices[1]);
+            rune_points.push_back(object.vertices[2]);
+            rune_points.push_back(object.vertices[4]);
+            rune_points.push_back(object.vertices[0]);
             auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
             auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
             auto&& armor = (tmp1 + tmp2) / 2;
@@ -190,7 +189,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     {
         RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
-        bool success = pnp_solver_->SolvePnP(rune_points_, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
+        bool success = pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
         if (!success) {
             RCLCPP_WARN(this->get_logger(), "PnP failed!");
             return false;
@@ -211,8 +210,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             runes_msg_.leaf_dir.y = (rune_armor - symbol).y; // 符叶向量
 
             for (int i = 0; i < 4; i++) {
-                runes_msg_.rune_points[i].x = rune_points_[i].x;
-                runes_msg_.rune_points[i].y = rune_points_[i].y;
+                runes_msg_.rune_points[i].x = rune_points[i].x;
+                runes_msg_.rune_points[i].y = rune_points[i].y;
             }
             runes_msg_.symbol.x = symbol.x; // R 标位置 图像左上角为原点
             runes_msg_.symbol.y = symbol.y; // R 标位置 图像左上角为原点
@@ -249,12 +248,12 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         runes_msg_.rune_points[3].x = 200;
         runes_msg_.rune_points[3].y = 100;
         cv::Mat rvec, tvec;
-        std::vector<cv::Point2d> rune_points_;
-        rune_points_.emplace_back(100, 100);
-        rune_points_.emplace_back(100, 200);
-        rune_points_.emplace_back(200, 200);
-        rune_points_.emplace_back(200, 100);
-        pnp_solver_->SolvePnP(rune_points_, rvec, tvec, PNP_ITERATION);
+        std::vector<cv::Point2d> rune_points;
+        rune_points.emplace_back(100, 100);
+        rune_points.emplace_back(100, 200);
+        rune_points.emplace_back(200, 200);
+        rune_points.emplace_back(200, 100);
+        pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION);
         runes_msg_.pose_c.position.x = tvec.at<double>(0);
         runes_msg_.pose_c.position.y = tvec.at<double>(1);
         runes_msg_.pose_c.position.z = tvec.at<double>(2);

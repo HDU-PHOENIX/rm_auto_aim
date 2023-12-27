@@ -49,7 +49,7 @@ private:
 
     // debug 模式
     bool debug_;
-    bool SEND_DEFAULT_DATA;
+    bool SEND_DEFAULT_DATA; //是否发送默认数据
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
 
@@ -94,7 +94,6 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
-    // std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
 };
 
 } // namespace rune
