@@ -1,27 +1,25 @@
 
 ```
 .
-├── armor_auto_aim
-│   ├── armor_detector
-│   ├── armor_shooter
-│   └── armor_tracker
-│
-├── auto_aim
-│   ├── config
-│   └── launch
-│
-├── auto_aim_interfaces
-│   └── msg
-│
-├── rune_auto_aim
-│   ├── rune_detector
-│   ├── rune_shooter
-│   └── rune_tracker
-│
-└── sensor
-    ├── camera
-    ├── camerainfo
-    └── serial
+├──armor_auto_aim
+│  ├──armor_detector
+│  ├──armor_shooter
+│  └──armor_tracker
+├──auto_aim
+│  ├──config
+│  └──launch
+├──auto_aim_interfaces
+│  └──msg
+├──rune_auto_aim
+│  ├──rune_detector
+│  ├──rune_shooter
+│  └──rune_tracker
+├──scripts
+├──sensor
+│  ├──camera
+│  ├──camerainfo
+│  └──serial
+└──tools
 
 ```
 
