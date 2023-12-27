@@ -64,7 +64,7 @@ def generate_launch_description():
         ]
     )
 
-    detctor = ComposableNodeContainer(
+    detector = ComposableNodeContainer(
         name='detector',
         namespace='',
         package='rclcpp_components',
@@ -136,4 +136,4 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([detctor, tracker, shooter, serial_for_unity])
+    return launch.LaunchDescription([detector, tracker, shooter, serial_for_unity])

@@ -98,29 +98,23 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
         auto&& get_symbol = [](const cv::Point2f& lightbar_mid_point, const cv::Point2f& armor_center, const double& center_lightbar_ratio, const bool& flag) {
             // get_symbol 是通过符叶的坐标来计算中心 R 标的位置
-            if (flag == 0) {
+            if (!flag) {
                 // flag = 0 使用装甲板中心和内灯条算出标识符位置
                 return ((lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center);
 
-            } else if (flag == 1) {
+            } else {
                 // flag = 1 使用装甲板中心和外灯条算出标识符位置
                 return (-(lightbar_mid_point - armor_center) * center_lightbar_ratio + armor_center);
             }
-            return cv::Point2f(0, 0);
         };
 
-        if (object.color == 0 && object.cls == 0) {
-            // cls = RuneClass::Blue;
+        if (object.cls == 0) {
+            // cls = RuneClass::Blue / Red ( object.color == 0 / 1 )
             flag1 = true;
             symbol = detect_center;
 
-        } else if (object.color == 1 && object.cls == 0) {
-            // cls = RuneClass::Red;
-            flag1 = true;
-            symbol = detect_center;
-
-        } else if (object.color == 0 && object.cls == 1) {
-            // cls = RuneClass::BlueUnActivated;
+        } else if (object.cls == 1) {
+            // cls = RuneClass::BlueUnActivated / RedUnActivated;
             rune_points.clear();
 
             rune_points.push_back(object.vertices[1]);
@@ -135,45 +129,19 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             {
                 // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
                 // armor, 3.5542, 0)) / 2;
-                symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2, armor, 4.0542, 0)) / 2;
+                symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
             }
             flag1 = true;
             flag2 = true;
-        } else if (object.color == 1 && object.cls == 1) {
-            // cls = RuneClass::RedUnActivated;
-            rune_points.clear();
-
-            rune_points.push_back(object.vertices[1]);
-            rune_points.push_back(object.vertices[2]);
-            rune_points.push_back(object.vertices[4]);
-            rune_points.push_back(object.vertices[0]);
-            auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
-            auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
-            auto&& armor = (tmp1 + tmp2) / 2;
-            rune_armor = armor;
-            if (!flag1) {
-                // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
-                // armor, 3.5542, 0)) / 2;
-                symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
-            } // 如果 yolo 没有检测到 R 标
-            flag1 = true;
-            flag2 = true;
-
-        } else if (object.color == 0 && object.cls == 2) {
+        } else if (object.cls == 2) {
             // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
-            // cls = RuneClass::BlueActivated;
-            //flag3 = true;
-            continue;
-
-        } else if (object.color == 1 && object.cls == 2) {
-            // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
-            // cls = RuneClass::RedActivated;
+            // cls = RuneClass::BlueActivated / RedActivated;
             //flag3 = true;
             continue;
         }
-
-        for (int i = 0; i < 5; i++) { // 画出五个关键点
-            cv::circle(img, object.vertices[i], 5, Colors::Green, -1);
+        
+        for (auto vertice : object.vertices) { // 画出五个关键点
+            cv::circle(img, vertice, 5, Colors::Green, -1);
         }
     }
     if (debug_) {

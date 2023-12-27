@@ -41,23 +41,23 @@ void SerialForUnity::SerialInfoCallback(const sensor_msgs::msg::JointState::Shar
     float yaw = joint_state->position[0];
     float pitch = joint_state->position[1];
     // x:red y:green z:blue
-    // ·¢²¼ Ïà»ú µ½ Ç¹¿Ú µÄ×ø±êÏµ×ª»»
+    // å‘å¸ƒ ç›¸æœº åˆ° æªå£ çš„åæ ‡ç³»è½¬æ¢
     SendTransform(
         broadcaster_camera2shooter_,
         tfs_camera2shooter_,
         "camera",
         "shooter",
-        // ËÄÔªÊı×ÖºÍÅ·À­½Ç×ª»» https://quaternions.online
+        // å››å…ƒæ•°å’Œæ¬§æ‹‰è§’è½¬æ¢ https://quaternions.online
         []() {
             tf2::Quaternion q;
             q.setRPY(M_PI_2, -M_PI_2, 0);
             return q;
         }(),
-        //TODO::Æ½ÒÆÏòÁ¿Òª¿´xj·¢µÄ²ÎÊı
+        //TODO::å¹³ç§»å‘é‡è¦çœ‹xjçš„å‚æ•°
         tf2::Vector3(0, 0.05, 0.14),
         joint_state->header.stamp
     );
-    // ·¢²¼ Ç¹¿Ú µ½ odom µÄ×ø±êÏµ×ª»»£¨²¹³¥ yaw pitch ÖáµÄÔÆÌ¨×ª¶¯£©
+    // å‘å¸ƒ æªå£ åˆ° odom çš„åæ ‡ç³»è½¬æ¢ï¼ˆè¡¥å¿ yaw pitch è½´çš„äº‘å°è½¬åŠ¨ï¼‰
     SendTransform(
         broadcaster_shooter2odom_,
         tfs_shooter2odom_,
@@ -68,7 +68,7 @@ void SerialForUnity::SerialInfoCallback(const sensor_msgs::msg::JointState::Shar
             q.setRPY(0, -pitch, -yaw);
             return q;
         }(),
-        //TODO::Æ½ÒÆÏòÁ¿Òª¿´xj·¢µÄ²ÎÊı
+        //TODO::å¹³ç§»å‘é‡è¦çœ‹xjçš„å‚æ•°
         tf2::Vector3(-0.2, 0.1, -0.1),
         joint_state->header.stamp
     );
