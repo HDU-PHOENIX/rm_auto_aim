@@ -5,16 +5,24 @@ namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options):
     Node("serial_node", options) {
     this->serial_ = InitSerial();
-    this->camera2shooter_tvec_ = declare_parameter("camera2shooter_tvec", std::vector<double> { 0.0, 0.0, 0.0 });
-    this->shooter2odom_tvec_ = declare_parameter("shooter2odom_tvec", std::vector<double> { 0.0, 0.0, 0.0 });
+    this->camera2shooter_tvec_ = declare_parameter(
+        "camera2shooter_tvec",
+        std::vector<double> { 0.0, 0.0, 0.0 }
+    );
+    this->shooter2odom_tvec_ = declare_parameter(
+        "shooter2odom_tvec",
+        std::vector<double> { 0.0, 0.0, 0.0 }
+    );
 
     broadcaster_camera2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     broadcaster_shooter2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
     tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
-    this->serial_info_pub_ =
-        create_publisher<auto_aim_interfaces::msg::SerialInfo>("/serial_info", rclcpp::SensorDataQoS());
+    this->serial_info_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>(
+        "/serial_info",
+        rclcpp::SensorDataQoS()
+    );
     this->serial_info_sub_ = create_subscription<auto_aim_interfaces::msg::SerialInfo>(
         "/shooter_info",
         rclcpp::SensorDataQoS(),
@@ -52,9 +60,6 @@ void SerialNode::LoopForPublish() {
     while (rclcpp::ok() && !canceled_.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-        // 保证节点的回调函数被调用
-        // rclcpp::spin_some(this->get_node_base_interface());
-
         auto&& package = serial_->ReadData();
         serial_info_.start.data = package.start;
         serial_info_.end.data = package.end;
@@ -72,6 +77,7 @@ void SerialNode::LoopForPublish() {
         SendTransform(
             broadcaster_camera2shooter_,
             tfs_camera2shooter_,
+            this->now(),
             "camera",
             "shooter",
             // 四元数字和欧拉角转换 https://quaternions.online
@@ -86,6 +92,7 @@ void SerialNode::LoopForPublish() {
         SendTransform(
             broadcaster_shooter2odom_,
             tfs_shooter2odom_,
+            this->now(),
             "shooter",
             "odom",
             [this]() {
@@ -137,12 +144,13 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
 void SerialNode::SendTransform(
     const std::unique_ptr<tf2_ros::TransformBroadcaster>& broadcaster,
     const std::unique_ptr<geometry_msgs::msg::TransformStamped>& tfs,
+    const rclcpp::Time& timestamp,
     const std::string& frame_id,
     const std::string& child_frame_id,
     const tf2::Quaternion& q,
     const tf2::Vector3& v
 ) {
-    tfs->header.stamp = this->now();
+    tfs->header.stamp = timestamp;
     tfs->header.frame_id = frame_id;
     tfs->child_frame_id = child_frame_id;
     tfs->transform.rotation.x = q.getX();

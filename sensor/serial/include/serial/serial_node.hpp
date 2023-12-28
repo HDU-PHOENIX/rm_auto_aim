@@ -46,6 +46,7 @@ private:
     void SendTransform(
         const std::unique_ptr<tf2_ros::TransformBroadcaster>& broadcaster,
         const std::unique_ptr<geometry_msgs::msg::TransformStamped>& tfs,
+        const rclcpp::Time& timestamp,
         const std::string& frame_id,
         const std::string& child_frame_id,
         const tf2::Quaternion& q,
