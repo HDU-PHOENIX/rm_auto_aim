@@ -43,11 +43,6 @@ else
 fi
 
 echo "\n\n>>> rosdep" && sleep 1
-if [ -d /etc/ros/rosdep/sources.list.d ]; then
-    echo "rosdep already init"
-else
-    sudo rosdep init
-    sudo pip3 install rosdepc
-    sudo rosdepc init
-fi
-rosdep update && rosdep install --from-paths ./ --ignore-src -r -y
+sudo pip3 install rosdepc
+sudo rosdepc init # 小鱼的 rosdepc init 会自动 update
+rosdepc install --from-paths ./ --ignore-src -r -y
