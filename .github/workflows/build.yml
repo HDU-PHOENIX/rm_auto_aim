@@ -13,7 +13,11 @@ jobs:
         uses: actions/checkout@master
 
       - name: Install dependencies
-        run: . ./scripts/setup.bash
+        shell: bash
+        run: |
+          sed -i 36,48d ./scripts/setup.bash ./scripts/setup.bash
+          sed -i 35a\\"rosdep update && rosdep install --from-paths ./ --ignore-src -r -y" ./scripts/setup.bash
+          . ./scripts/setup.bash
 
       - name: Build
         shell: bash
