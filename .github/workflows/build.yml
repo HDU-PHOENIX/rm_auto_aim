@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Install dependencies
-        run: sed -i 36,52d scripts/setup.bash && . ./scripts/setup.bash
+        run: . ./scripts/setup.bash
 
       - name: Build
         shell: bash
