@@ -31,7 +31,6 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options):
 
     thread_for_publish_ = std::thread(std::bind(&SerialNode::LoopForPublish, this));
 }
-
 void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
     sensor::DataSend packet;
     packet.start = msg->start.data;
@@ -110,7 +109,7 @@ void SerialNode::LoopForPublish() {
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     uint32_t baud_rate = declare_parameter("baud_rate", 115200);
     std::string device_name = declare_parameter("device_name", "/dev/ttyUSB0");
-
+    // 默认的串口通信协议
     char default_data_recv_start = declare_parameter("default_data_recv_start", 's');
     char default_data_recv_color = declare_parameter("default_data_recv_color", 'r');
     char default_data_recv_mode = declare_parameter("default_data_recv_mode", 'a');
@@ -119,7 +118,15 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     char default_data_recv_shootbool = declare_parameter("default_data_recv_shootbool", 0);
     char default_data_recv_runeflag = declare_parameter("default_data_recv_runeflag", 0);
     char default_data_recv_end = declare_parameter("default_data_recv_end", 'e');
-
+    
+    /*
+     * baud_rate 波特率
+     * device_name 串口设备名
+     * flow_control 流控制
+     * parity 奇偶校验
+     * stop_bits 停止位
+     * 
+     */
     auto serial = std::make_unique<sensor::Serial>(
         baud_rate,
         device_name,
@@ -141,6 +148,16 @@ std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     return serial;
 }
 
+/**
+ * @brief 发布坐标系转换
+ * @param broadcaster 
+ * @param tfs 
+ * @param timestamp 
+ * @param frame_id 
+ * @param child_frame_id 
+ * @param q 
+ * @param v 
+ */
 void SerialNode::SendTransform(
     const std::unique_ptr<tf2_ros::TransformBroadcaster>& broadcaster,
     const std::unique_ptr<geometry_msgs::msg::TransformStamped>& tfs,
