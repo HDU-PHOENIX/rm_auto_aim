@@ -5,3 +5,4 @@ log
 Camera
 .vscode
 record/*.txt
+__pycache__
