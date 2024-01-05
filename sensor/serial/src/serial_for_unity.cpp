@@ -55,7 +55,7 @@ void SerialForUnity::SerialInfoCallback(const sensor_msgs::msg::JointState::Shar
         }(),
         //TODO::平移向量要看xj的参数
         tf2::Vector3(0, 0.05, 0.14),
-        joint_state->header.stamp
+        this->now()
     );
     // 发布 枪口 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
     SendTransform(
@@ -70,7 +70,7 @@ void SerialForUnity::SerialInfoCallback(const sensor_msgs::msg::JointState::Shar
         }(),
         //TODO::平移向量要看xj的参数
         tf2::Vector3(-0.2, 0.1, -0.1),
-        joint_state->header.stamp
+        this->now()
     );
 }
 } // namespace sensor
