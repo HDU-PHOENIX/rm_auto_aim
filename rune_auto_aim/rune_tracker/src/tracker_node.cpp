@@ -239,14 +239,11 @@ bool RuneTrackerNode::CeresProcess() {
             // 计算误差
             double delta_angle = 0;
             if (this->rotation_direction == RotationDirection::Anticlockwise
-                && tracker.pred_angle > 0)
-            {
+                && tracker.pred_angle > 0) {
                 tracker.pred_angle *= -1;
             }
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
-            if (delta_angle > M_PI) {
-                delta_angle = fabs(2 * M_PI - delta_angle);
-            }
+            delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
             RCLCPP_INFO(this->get_logger(), "delta_angle is %f", delta_angle);
             if (delta_angle < 0.2) {
                 //误差小,则认为拟合良好
@@ -261,8 +258,7 @@ bool RuneTrackerNode::CeresProcess() {
                 finish_fitting = true;
                 tracker.pred_angle = pred_angle;
                 tracker.timestamp = data->header.stamp;
-                tracker.pred_time =
-                    delay + (this->now() - data->header.stamp).seconds();
+                tracker.pred_time = delay + (this->now() - data->header.stamp).seconds();
                 tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
             } else {
                 //误差大,则认为拟合不良
@@ -278,8 +274,7 @@ bool RuneTrackerNode::CeresProcess() {
                     );
                     tracker.pred_angle = pred_angle;
                     tracker.timestamp = data->header.stamp;
-                    tracker.pred_time =
-                        delay + (this->now() - data->header.stamp).seconds();
+                    tracker.pred_time = delay + (this->now() - data->header.stamp).seconds();
                     tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
                     return false;
                 }
@@ -428,7 +423,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
 
     leaf_angle = Angle(leaf_dir); //返回弧度制的角度
-    CalSmallSpeed();              //计算小符角速度
+    CalSmallRune();               //计算小符角速度
     Judge();                      //判断顺时针还是逆时针
     FittingBig();                 //拟合大符
     Fitting();                    //计算预测角度
@@ -466,10 +461,10 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
     target_pub->publish(runes_msg_);
-    publishMarkers(runes_msg_);
+    PublishMarkers(runes_msg_);
 }
 
-void RuneTrackerNode::CalSmallSpeed() {
+void RuneTrackerNode::CalSmallRune() {
     if (angles.Any()) {
         leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
         auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
@@ -487,7 +482,7 @@ void RuneTrackerNode::CalSmallSpeed() {
     RCLCPP_INFO(this->get_logger(), "(calculate based on img pixel)Rune angular speed %Lf", speed.Mean());
 }
 
-void RuneTrackerNode::publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
+void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
     armor_marker_.header = target_msg.header;
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.id = 0;

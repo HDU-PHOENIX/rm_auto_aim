@@ -121,7 +121,7 @@ private:
         return true;
     }
     //用于计算小符角速度
-    void CalSmallSpeed();
+    void CalSmallRune();
 
     //判断顺时针还是逆时针
     bool Judge();
@@ -150,7 +150,7 @@ private:
     void DataProcess();
 
     // 发布标记点函数
-    void publishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
+    void PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
 
     // 相机信息订阅者
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
@@ -211,13 +211,6 @@ private:
     rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr
         target_pub;                                  //向shooter节点发送数据
     auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
-
-    //   // 上次接收消息的时间
-    //   rclcpp::Time last_time_;
-    //   double dt_;
-
-    //   // 追踪器信息发布器
-    //   rclcpp::Publisher<auto_aim_interfaces::msg::TrackerInfo>::SharedPtr info_pub_;
 
     // 可视化标记发布器
     // visualization_msgs::msg::Marker position_marker_;
