@@ -2,7 +2,7 @@
 #include "Eigen/src/Core/Matrix.h"
 #include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
 
-#define UNITY_TEST true
+#define UNITY_TEST false
 namespace rune {
 
 RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
