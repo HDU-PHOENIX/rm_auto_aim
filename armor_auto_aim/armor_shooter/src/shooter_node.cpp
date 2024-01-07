@@ -16,7 +16,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
-        "target",
+        "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
             shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
