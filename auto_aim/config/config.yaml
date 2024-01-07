@@ -52,6 +52,7 @@
         bullet_speed: 25.0
         filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
         chasedelay: 0.0
+        phase_offset: 0.0 #//相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
 
 /armor_shooter:
     ros__parameters:

@@ -1,4 +1,5 @@
 #include "rune_tracker/tracker_node.hpp"
+#include <memory>
 #include <rclcpp/logging.hpp>
 #define NEW_METHOD    true
 #define PNP_ITERATION true
@@ -24,10 +25,16 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     bullet_speed = this->declare_parameter("bullet_speed", 25.0);
     filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0);
 
-    this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值
+    this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值0.0
     chasedelay_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
     chasedelay_cb_handle_ = chasedelay_param_sub_->add_parameter_callback("chasedelay", [this](const rclcpp::Parameter& p) {
         chasedelay = p.as_double();
+    });
+
+    this->declare_parameter("phase_offset", 0.0); //设置phaseoffset的默认值0.0
+    phase_offset_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
+    phase_offset_handle_ = phase_offset_sub_->add_parameter_callback("phase_offset", [this](const rclcpp::Parameter& p) {
+        phase_offset = p.as_double();
     });
 
     tracker_ = std::make_unique<Tracker>(); //tracker中的ukf滤波器初始化
@@ -153,10 +160,9 @@ bool RuneTrackerNode::FittingBig() {
     if (abs(leaf_angle - leaf_angle_last) > 0.4) {
         //上一帧与这一帧的角度差值超过0.4，则判断为可激活的符叶已转换
         cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
-        if (cere_rotated_angle > M_PI)
-            cere_rotated_angle -= 2 * M_PI;
-        else if (cere_rotated_angle < -M_PI)
-            cere_rotated_angle += 2 * M_PI;
+        //角度变换后，需要矫正角度
+        cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
+        cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
         RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
     }
     CeresProcess();
@@ -183,8 +189,7 @@ void RuneTrackerNode::DataProcess() {
         );
         //直接输入角速度，然后进行滤波
         tracker_->ukf->ProcessMeasurement(package); //估计当前真实的状态
-        double&& omega =
-            1.0 * abs(tracker_->ukf->x_(0));
+        double&& omega = 1.0 * abs(tracker_->ukf->x_(0));
 
         if (count_cant_use <= 0) {
             cere_param_list.push_back(CereParam {
@@ -205,9 +210,8 @@ void RuneTrackerNode::DataProcess() {
         //将传感器的坐标数据丢入UKF
         //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
 
-        tracker_->ukf->ProcessMeasurement(package); //估计当前真实的状态
-        double&& omega =
-            1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
+        tracker_->ukf->ProcessMeasurement(package);                              //估计当前真实的状态
+        double&& omega = 1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
 #endif
     }
 }
@@ -238,8 +242,7 @@ bool RuneTrackerNode::CeresProcess() {
             RCLCPP_INFO(this->get_logger(), "varify predict");
             // 计算误差
             double delta_angle = 0;
-            if (this->rotation_direction == RotationDirection::Anticlockwise
-                && tracker.pred_angle > 0) {
+            if (this->rotation_direction == RotationDirection::Anticlockwise && tracker.pred_angle > 0) {
                 tracker.pred_angle *= -1;
             }
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
@@ -249,7 +252,9 @@ bool RuneTrackerNode::CeresProcess() {
                 //误差小,则认为拟合良好
                 pred_angle = integral(
                     a_omega_phi_b[1],
-                    std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+                    std::vector<double> { a_omega_phi_b[0],
+                                          a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
+                                          a_omega_phi_b[3] },
                     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                     delay + (this->now() - data->header.stamp).seconds()
                 );
@@ -267,7 +272,7 @@ bool RuneTrackerNode::CeresProcess() {
                     pred_angle = integral(
                         a_omega_phi_b[1],
                         std::vector<double> { a_omega_phi_b[0],
-                                              a_omega_phi_b[2],
+                                              a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
                                               a_omega_phi_b[3] },
                         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                         delay + (this->now() - data->header.stamp).seconds()
@@ -287,7 +292,7 @@ bool RuneTrackerNode::CeresProcess() {
             //还没有到达预测的时间
             pred_angle = integral(
                 a_omega_phi_b[1],
-                std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+                std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
                 (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                 (delay + (this->now() - data->header.stamp).seconds())
             );
@@ -313,33 +318,31 @@ void RuneTrackerNode::Refitting() {
             a_omega_phi_b
         );
     }
-    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
-    problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
-    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884); // 数据是官方的
-    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2);
-    // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
-    // problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
-    // problem.SetParameterLowerBound(a_omega_phi_b, 1,1.6);
-    // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
+    // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
+    // problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
+    // problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
+    // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // 数据是官方的
+
+    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
+    problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
+    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.6);
+    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
 
     problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
     problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
     problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
     problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
-    // problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.59);
-    // problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.19);
 
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
     //输出拟合的信息
     RCLCPP_INFO(this->get_logger(), "fitting params is a : %f omega : %f phi : %f ,b : %f", a_omega_phi_b[0], a_omega_phi_b[1], a_omega_phi_b[2], a_omega_phi_b[3]);
     pred_angle = integral(
         a_omega_phi_b[1],
-        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2], a_omega_phi_b[3] },
+        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
         (delay + (this->now() - data->header.stamp).seconds())
     );
-    tracker.pred_time = delay
-        + (this->now() - rclcpp::Time(data->header.stamp)).seconds(); //更新下一次重新判断拟合的时间
+    tracker.pred_time = delay + (this->now() - rclcpp::Time(data->header.stamp)).seconds();
     tracker.pred_angle = pred_angle;
     tracker.angle = leaf_angle;
     tracker.timestamp = data->header.stamp;
@@ -389,7 +392,6 @@ bool RuneTrackerNode::Fitting() {
 
 double
 RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, double pred_time) {
-    // std::cout << "in integral" << std::endl;
     double a = params[0];
     double phi = params[1];
     double t_e = t_s + pred_time;

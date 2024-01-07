@@ -4,15 +4,14 @@
 // ROS
 #include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
 #include <message_filters/subscriber.h>
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time.hpp>
+#include <std_srvs/srv/trigger.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/create_timer_ros.h>
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
-// #include <eigen_conversions/eigen_msg.h>
-#include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/trigger.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // STD
@@ -126,12 +125,16 @@ private:
     //判断顺时针还是逆时针
     bool Judge();
 
+    //拟合大符参数并计算预测角度
     bool FittingBig();
 
+    //predict_angle计算
     bool Fitting();
+
     //ceres求解器求解 获得大符角速度参数 A omega phi b 并且验证预测参数是否正确
     bool CeresProcess();
 
+    //积分,用于大符预测角度计算
     double integral(double w, std::vector<double> params, double t_s, double pred_time);
 
     void Reset() {
@@ -188,8 +191,11 @@ private:
     int count_cere, count_cant_use, filter_astring_threshold;
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
     double a_omega_phi_b[4];               //拟合的参数
-    ceres::Solver::Options options;        //解决方案的配置
-    ceres::Solver::Summary summary;        //拟合的信息
+    double phase_offset;                   //相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
+    std::shared_ptr<rclcpp::ParameterEventHandler> phase_offset_sub_;
+    std::shared_ptr<rclcpp::ParameterCallbackHandle> phase_offset_handle_;
+    ceres::Solver::Options options; //解决方案的配置
+    ceres::Solver::Summary summary; //拟合的信息
 
     double pred_angle; //预测角度
 
