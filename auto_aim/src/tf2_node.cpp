@@ -1,5 +1,6 @@
 #include "auto_aim/tf2_node.hpp"
 #include <rclcpp/qos.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 namespace auto_aim {
 
@@ -19,11 +20,10 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
     tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
-    // TODO: std_msgs::msg::Float32MultiArray 没有 Header，考虑用自定义消息
-    euler_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+    euler_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
         "/communicate/euler",
         rclcpp::SensorDataQoS(),
-        [this](const std_msgs::msg::Float32MultiArray::SharedPtr msg) {
+        [this](const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
             // 四元数字和欧拉角转换 https://quaternions.online
             // foxglove x:red y:green z:blue
 
@@ -31,7 +31,7 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
             SendTransform(
                 broadcaster_camera2shooter_,
                 tfs_camera2shooter_,
-                this->now(),
+                msg->header.stamp,
                 "camera",
                 "shooter",
                 []() {
@@ -45,15 +45,10 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
             SendTransform(
                 broadcaster_shooter2odom_,
                 tfs_shooter2odom_,
-                this->now(),
+                msg->header.stamp,
                 "shooter",
                 "odom",
-                [this, &msg]() {
-                    tf2::Quaternion q;
-                    // TODO: 具体看 communicate/euler 发过来的顺序
-                    q.setRPY(0, -msg->data[0], -msg->data[1]);
-                    return q;
-                }(),
+                tf2::Quaternion(msg->quaternion.x, msg->quaternion.y, msg->quaternion.z, msg->quaternion.w),
                 tf2::Vector3(shooter2odom_tvec_[0], shooter2odom_tvec_[1], shooter2odom_tvec_[2])
             );
         }
