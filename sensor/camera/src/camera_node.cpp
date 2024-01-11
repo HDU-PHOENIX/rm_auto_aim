@@ -14,7 +14,9 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     videoflag = this->declare_parameter("videoflag", false);
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
 
-    capture.open(video_path);
+    if (this->videoflag) {
+        capture.open(video_path);
+    }
     // 创建发布者
     image_publisher_for_armor_ = this->create_publisher<sensor_msgs::msg::Image>(
         "/image_for_armor",
@@ -59,7 +61,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
                 image_publisher_for_armor_->publish(std::move(image_msg));
             } else if (msg->mode.data == 'r') {
                 // RCLCPP_INFO(this->get_logger(), "publish image for rune");
-                //0为不可激活，1为小符，2为大符 将图片的frame_id临时设置为大小符模式，接收端要再改回来
+                //0 为不可激活，1 为小符，2 为大符 将图片的 frame_id 临时设置为大小符模式，接收端要再改回来
                 if (msg->rune_flag.data == 0) {
                     image_msg->header.frame_id = "0";
                 } else if (msg->rune_flag.data == 1) {
@@ -96,7 +98,7 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
             image_publisher_for_armor_->publish(std::move(image_msg));
         } else if (msg->mode.data == 'r') {
             // RCLCPP_INFO(this->get_logger(), "publish image for rune");
-            //0为不可激活，1为小符，2为大符 将图片的frame_id临时设置为大小符模式，接收端要再改回来
+            //0 为不可激活，1 为小符，2 为大符 将图片的 frame_id 临时设置为大小符模式，接收端要再改回来
             if (msg->rune_flag.data == 0) {
                 image_msg->header.frame_id = "0";
             } else if (msg->rune_flag.data == 1) {

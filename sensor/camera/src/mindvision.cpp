@@ -1,6 +1,9 @@
 #include "camera/mindvision.hpp"
 
+#include "rclcpp/logger.hpp"
+#include "rclcpp/logging.hpp"
 #include <opencv2/core/types_c.h>
+#include <rclcpp/utilities.hpp>
 
 #define MAX_CAMERA_COUNT 4
 
@@ -12,23 +15,55 @@ MindVision::MindVision():
     // 相机 SDK 初始化
     CameraSdkInit(1);
 
-    //枚举设备，并建立设备列表
-    i_status = CameraEnumerateDevice(&t_camera_enum_list, &i_camera_counts);
-    printf("state = %d\n", i_status);
+    auto logger = rclcpp::get_logger("camera_node");
 
-    printf("count = %d\n", i_camera_counts);
-    //没有连接设备
+    // 枚举设备，并建立设备列表
+    i_status = CameraEnumerateDevice(&t_camera_enum_list, &i_camera_counts);
+    // 没有连接设备
     if (i_camera_counts == 0) {
-        printf("No device connect.");
+        RCLCPP_WARN(logger, "No device connect.");
+        int reconnect_times = 5;
+        while ((reconnect_times--) != 0) {
+            i_status = CameraEnumerateDevice(&t_camera_enum_list, &i_camera_counts);
+            if (i_camera_counts == 0) {
+                RCLCPP_WARN(logger, "No device connect.");
+            } else {
+                break;
+            }
+            rclcpp::sleep_for(std::chrono::seconds(1));
+        }
+
+        if (i_camera_counts == 0) {
+            RCLCPP_ERROR(logger, "Reconnect failed. State = %d", i_status);
+            exit(-1);
+        } else {
+            RCLCPP_INFO(logger, "Reconnect success.");
+        }
     }
 
-    //相机初始化。初始化成功后，才能调用任何其他相机相关的操作接口
+    // 相机初始化。初始化成功后，才能调用任何其他相机相关的操作接口
     i_status = CameraInit(&t_camera_enum_list, -1, -1, &h_camera);
-
-    //初始化失败
-    printf("state = %d\n", i_status);
+    // 初始化失败
     if (i_status != CAMERA_STATUS_SUCCESS) {
-        printf("Camera init failed.");
+        RCLCPP_WARN(logger, "Camera init failed.");
+
+        int reinit_times = 5;
+        while ((reinit_times--) != 0) {
+            i_status = CameraInit(&t_camera_enum_list, -1, -1, &h_camera);
+            if (i_status == CAMERA_STATUS_SUCCESS) {
+                break;
+            } else {
+                RCLCPP_WARN(logger, "Camera Init failed.");
+            }
+            rclcpp::sleep_for(std::chrono::seconds(1));
+        }
+
+        if (i_status == CAMERA_STATUS_SUCCESS) {
+            RCLCPP_INFO(logger, "Camera reinit success.");
+        } else {
+            RCLCPP_ERROR(logger, "Camera reinit failed. State = %d", i_status);
+            exit(-1);
+        }
     }
 
     //获得相机的特性描述结构体。该结构体中包含了相机可设置的各种参数的范围信息。决定了相关函数的参数
@@ -39,7 +74,7 @@ MindVision::MindVision():
         t_capability.sResolutionRange.iHeightMax * t_capability.sResolutionRange.iWidthMax * 3
     );
 
-    // 让SDK进入工作模式，开始接收来自相机发送的图像数据。如果当前相机是触发模式，则需要接收到触发帧以后才会更新图像。
+    // 让 SDK 进入工作模式，开始接收来自相机发送的图像数据。如果当前相机是触发模式，则需要接收到触发帧以后才会更新图像。
 
     CameraPlay(h_camera);
 
@@ -49,7 +84,7 @@ MindVision::MindVision():
         其他的相机参数设置
         例如 CameraSetExposureTime   CameraGetExposureTime  设置/读取曝光时间
             CameraSetImageResolution  CameraGetImageResolution 设置/读取分辨率
-            CameraSetGamma、CameraSetConrast、CameraSetGain等设置图像伽马、对比度、RGB数字增益等等。
+            CameraSetGamma、CameraSetConrast、CameraSetGain 等设置图像伽马、对比度、RGB 数字增益等等。
     */
     CameraSetAeState(h_camera, 0);
     CameraSetExposureTime(h_camera, 5000);
@@ -82,8 +117,8 @@ bool MindVision::GetFrame(cv::Mat& frame) {
     )
         .copyTo(frame);
 
-    //在成功调用CameraGetImageBuffer后，必须调用CameraReleaseImageBuffer来释放获得的buffer。
-    //否则再次调用CameraGetImageBuffer时，程序将被挂起一直阻塞，直到其他线程中调用CameraReleaseImageBuffer来释放了buffer
+    //在成功调用 CameraGetImageBuffer 后，必须调用 CameraReleaseImageBuffer 来释放获得的 buffer。
+    //否则再次调用 CameraGetImageBuffer 时，程序将被挂起一直阻塞，直到其他线程中调用 CameraReleaseImageBuffer 来释放了 buffer
     CameraReleaseImageBuffer(h_camera, pby_buffer);
     return true;
 }
@@ -112,7 +147,7 @@ bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
 
 MindVision::~MindVision() {
     CameraUnInit(h_camera);
-    //注意，现反初始化后再free
+    //注意，现反初始化后再 free
     free(g_p_rgb_buffer);
 }
 
