@@ -9,7 +9,7 @@
 #include <opencv4/opencv2/core/types.hpp>
 #include <vector>
 
-#include "rune_tracker/sizes.hpp"
+#include "rune_detector/sizes.hpp"
 
 namespace rune {
 class PnPSolver {

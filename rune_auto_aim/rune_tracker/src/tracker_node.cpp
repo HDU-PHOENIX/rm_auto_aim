@@ -1,6 +1,4 @@
 #include "rune_tracker/tracker_node.hpp"
-#include <memory>
-#include <rclcpp/logging.hpp>
 #define NEW_METHOD    true
 #define PNP_ITERATION true
 namespace rune {
@@ -10,7 +8,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
     options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
-    // options.linear_solver_type = ceres::ITERATIVE_SCHUR;
     finish_fitting = false;
     tracker.pred_time = 0;
     tracker.pred_angle = 0;
@@ -121,13 +118,11 @@ void RuneTrackerNode::InitRecord() {
 bool RuneTrackerNode::Judge() {
     constexpr double delta = 1e-2;
     if (rotation_direction == RotationDirection::Anticlockwise ? leaf_angle_diff < delta
-                                                               : leaf_angle_diff < -delta)
-    {
+                                                               : leaf_angle_diff < -delta) {
         if (SetRotate(RotationDirection::Anticlockwise)) {
             return false;
         }
-    } else if (rotation_direction == RotationDirection::Clockwise ? leaf_angle_diff > -delta : leaf_angle_diff > delta)
-    {
+    } else if (rotation_direction == RotationDirection::Clockwise ? leaf_angle_diff > -delta : leaf_angle_diff > delta) {
         if (SetRotate(RotationDirection::Clockwise)) {
             return false;
         }
@@ -170,18 +165,17 @@ bool RuneTrackerNode::FittingBig() {
 }
 
 void RuneTrackerNode::DataProcess() {
-    // auto&& theta = leaf_angle;
     if (leaf_angular_velocity < 4) {
         origin_omega_file << leaf_angular_velocity << std::endl;
         origin_omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
-#if NEW_METHOD
-        //如果这一帧和上一针时间差大于0.2s，则认为这一帧的数据不可用
+        //如果这一帧和上一针时间差大于0.15s，则认为这一帧的数据不可用
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
             > 0.15) {
             count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
         }
         count_cant_use--;
+#if NEW_METHOD
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
             MeasurementPackage::SensorType::LASER,
@@ -190,17 +184,9 @@ void RuneTrackerNode::DataProcess() {
         //直接输入角速度，然后进行滤波
         tracker_->ukf->ProcessMeasurement(package); //估计当前真实的状态
         double&& omega = 1.0 * abs(tracker_->ukf->x_(0));
-
-        if (count_cant_use <= 0) {
-            cere_param_list.push_back(CereParam {
-                .omega = omega,
-                .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() });
-
-            omega_file << omega << std::endl;
-            omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
-        }
 #else
         // 用二维坐标拟合
+        auto&& theta = leaf_angle;
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
             MeasurementPackage::SensorType::LASER,
@@ -213,6 +199,14 @@ void RuneTrackerNode::DataProcess() {
         tracker_->ukf->ProcessMeasurement(package);                              //估计当前真实的状态
         double&& omega = 1.0 * abs(tracker_->ukf->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
 #endif
+        if (count_cant_use <= 0) {
+            cere_param_list.push_back(CereParam {
+                .omega = omega,
+                .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() });
+
+            omega_file << omega << std::endl;
+            omega_time << (rclcpp::Time(data->header.stamp) - t_zero).seconds() << std::endl;
+        }
     }
 }
 

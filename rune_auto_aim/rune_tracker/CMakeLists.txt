@@ -17,6 +17,7 @@ find_package(ament_cmake_auto REQUIRED)
 find_package(OpenCV REQUIRED)
 FIND_PACKAGE(Eigen3 CONFIG REQUIRED)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIRS})
+include_directories(rune_detector/include)
 # Ceres-solver
 find_package(Ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})

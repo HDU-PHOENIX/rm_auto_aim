@@ -123,14 +123,15 @@ constexpr double RUNE_ARMOR_SYMBOL_RATIO_MIN =
 // constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 372_mm;  //官方符的尺寸参数
 // constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 320_mm;
 // constexpr double RUNE_PNP_RADIUS = 308_mm;
-// constexpr double RUNE_ARMOR_TO_SYMBOL = 703.205_mm;
+constexpr double RUNE_ARMOR_TO_SYMBOL = 703.205_mm;
 
-// constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 365_mm; //实验室符的尺寸参数
-// constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 310_mm;
-// constexpr double RUNE_PNP_RADIUS = 325_mm;
-constexpr double RUNE_ARMOR_TO_SYMBOL = 578.065_mm;
-constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 304.2_mm;
-constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 255.5_mm;
-constexpr double RUNE_PNP_RADIUS = 266.8_mm;
+constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 365_mm; //实验室符的尺寸参数
+constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 310_mm;
+constexpr double RUNE_PNP_RADIUS = 325_mm;
+
+// constexpr double RUNE_ARMOR_TO_SYMBOL = 578.065_mm; //仿真符的尺寸参数
+// constexpr double RUNE_PNP_OUTER_LIGHTBAR_WIDTH = 304.2_mm;
+// constexpr double RUNE_PNP_INSIDE_LIGHTBAR_WIDTH = 255.5_mm;
+// constexpr double RUNE_PNP_RADIUS = 266.8_mm;
 
 } // namespace rune

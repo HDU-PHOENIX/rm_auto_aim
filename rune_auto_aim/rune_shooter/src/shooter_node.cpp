@@ -44,7 +44,6 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             serial_info.origin_euler = { 0 };
             serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
             serial_info_pub_->publish(serial_info);
-
 #endif
         }
     );

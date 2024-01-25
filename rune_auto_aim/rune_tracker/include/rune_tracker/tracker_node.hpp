@@ -24,13 +24,10 @@
 #include "rune_tracker/tracker.hpp"
 #include <sensor_msgs/msg/camera_info.hpp>
 
-#include "auto_aim_interfaces/msg/rune.hpp"
 #include "pnp_solver.hpp"
 #include "point.hpp"                 //添加Angle方法
 #include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
-#include "tracker.hpp"
-#include "ukf_plus.h"             //添加UKF_PLUS类
-#include <opencv2/core/types.hpp> //提供Point Point2d/2f
+#include <opencv2/core/types.hpp>    //提供Point Point2d/2f
 //  Ceres-solver
 #include <ceres/ceres.h>
 
@@ -78,7 +75,8 @@ private:
         const double _x, _y;
     };
 
-    struct rune_tracker { //记录符叶的状态，主要用于计算当前参数的拟合误差
+    struct RuneTracker {
+        //记录符叶的状态，主要用于计算当前参数的拟合误差
         double angle;
         rclcpp::Time timestamp;
         double angle_speed;
