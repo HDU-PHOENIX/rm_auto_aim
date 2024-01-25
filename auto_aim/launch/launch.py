@@ -158,4 +158,4 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([detector, tracker, shooter, serial_for_unity])
+    return launch.LaunchDescription([detector, tracker, shooter, serial])
