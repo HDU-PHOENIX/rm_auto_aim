@@ -44,4 +44,7 @@ fi
 echo -e "\n\n>>> rosdep" && sleep 1
 sudo pip3 install rosdepc
 sudo rosdepc init # 小鱼的 rosdepc init 会自动 update
-rosdepc install --from-paths ./ --ignore-src -r -y
+rosdep install --from-paths ./ --ignore-src -r -y
+
+git submodule init
+git submodule update
