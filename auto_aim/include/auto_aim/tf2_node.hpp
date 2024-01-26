@@ -1,5 +1,5 @@
-#include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "rclcpp/node.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Vector3.h"
 #include "tf2_ros/transform_broadcaster.h"
@@ -30,7 +30,7 @@ private:
     );
 
     // 下位机欧拉角订阅
-    rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr euler_sub_;
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr euler_sub_;
 
     // 用于发布 相机坐标系 到 枪口坐标系 的转换的广播器
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_camera2shooter_;

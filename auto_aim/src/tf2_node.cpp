@@ -1,8 +1,8 @@
 #include "auto_aim/tf2_node.hpp"
 #include <memory>
 #include <rclcpp/qos.hpp>
-#include <std_msgs/msg/detail/float32_multi_array__struct.hpp>
-#include <std_msgs/msg/detail/header__struct.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/header.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 
 namespace auto_aim {
@@ -23,7 +23,7 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
     tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
-    euler_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
+    euler_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
         "/communicate/gyro/left",
         rclcpp::SensorDataQoS(),
         [this](const std_msgs::msg::Float32MultiArray::SharedPtr msg) {
