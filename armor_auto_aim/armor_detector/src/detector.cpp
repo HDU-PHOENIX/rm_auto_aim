@@ -242,7 +242,7 @@ ArmorType Detector::IsArmor(const Light& light_1, const Light& light_2) {
         || (armor_params.min_large_center_distance <= center_distance
             && armor_params.max_large_center_distance > center_distance);
 
-    // 灯条倾斜角度
+    // 装甲板倾斜角度
     cv::Point2f diff = light_1.center - light_2.center;
     float angle = std::abs(std::atan(diff.y / diff.x)) / CV_PI * 180;
     bool angle_ok = angle < armor_params.max_angle;
