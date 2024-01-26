@@ -28,3 +28,7 @@ rosdep install --from-paths ./ --ignore-src -r -y
 ```
 
 > .clang-format 文件搭配 clang-format 插件进行代码格式化
+
+## Readme传送门
+- [能量机关](./rune_auto_aim/README.md)
+- [装甲板](./armor_auto_aim/armor_tracker/README.md)
