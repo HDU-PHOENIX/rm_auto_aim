@@ -41,7 +41,7 @@ CameraNode::~CameraNode() {
 
 void CameraNode::SerialInfoCallback(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
     // TODO: 通过 img 将 enemy_team_color 传递给 detector
-    auto&& enemy_team_color = msg->data[0];
+    // auto&& enemy_team_color = msg->data[0];
     auto&& mode = msg->data[1];
     auto&& rune_flag = msg->data[2];
     // RCLCPP_INFO(this->get_logger(), "get serial info");
