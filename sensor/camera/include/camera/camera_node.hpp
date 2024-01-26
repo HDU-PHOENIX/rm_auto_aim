@@ -3,11 +3,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "std_msgs/msg/int32_multi_array.hpp"
 
-#include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
 #include <opencv2/videoio.hpp>
-#include <std_msgs/msg/detail/int32_multi_array__struct.hpp>
 #include <string>
 
 namespace sensor {
