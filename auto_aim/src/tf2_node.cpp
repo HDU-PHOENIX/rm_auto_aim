@@ -1,5 +1,8 @@
 #include "auto_aim/tf2_node.hpp"
+#include <memory>
 #include <rclcpp/qos.hpp>
+#include <std_msgs/msg/detail/float32_multi_array__struct.hpp>
+#include <std_msgs/msg/detail/header__struct.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 
 namespace auto_aim {
@@ -23,7 +26,11 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     euler_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
         "/communicate/gyro/left",
         rclcpp::SensorDataQoS(),
-        [this](const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
+        [this](const std_msgs::msg::Float32MultiArray::SharedPtr msg) {
+            builtin_interfaces::msg::Time stamp;
+            stamp.set__sec(msg->data[0]);
+            stamp.set__nanosec(msg->data[1]);
+
             // 四元数字和欧拉角转换 https://quaternions.online
             // foxglove x:red y:green z:blue
 
@@ -31,7 +38,7 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
             SendTransform(
                 broadcaster_camera2shooter_,
                 tfs_camera2shooter_,
-                msg->header.stamp,
+                stamp,
                 "camera",
                 "shooter",
                 []() {
@@ -45,10 +52,14 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
             SendTransform(
                 broadcaster_shooter2odom_,
                 tfs_shooter2odom_,
-                msg->header.stamp,
+                stamp,
                 "shooter",
                 "odom",
-                tf2::Quaternion(msg->quaternion.x, msg->quaternion.y, msg->quaternion.z, msg->quaternion.w),
+                [msg]() {
+                    tf2::Quaternion q;
+                    q.setRPY(M_PI_2, -msg->data[3], -msg->data[2]);
+                    return q;
+                }(),
                 tf2::Vector3(shooter2odom_tvec_[0], shooter2odom_tvec_[1], shooter2odom_tvec_[2])
             );
         }
