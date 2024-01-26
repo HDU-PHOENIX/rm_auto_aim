@@ -1,4 +1,3 @@
-// Copyright 2023 wangchi
 
 #ifndef ARMOR_PROCESSOR__TRACKER_HPP_
 #define ARMOR_PROCESSOR__TRACKER_HPP_
@@ -11,10 +10,6 @@
 #include <geometry_msgs/msg/quaternion.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 
-// STD
-#include <memory>
-#include <string>
-
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "ukf_plus.h"
 
@@ -22,7 +17,7 @@ namespace rune {
 // 装甲板追踪器类
 class Tracker {
 public:
-    Tracker();
+    Tracker(double&& std_a_, double&& std_yawdd_);
     using Rune = auto_aim_interfaces::msg::Rune;
 
     double info_position_diff; // 位置差

@@ -9,7 +9,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace rune {
-Tracker::Tracker() {
-    ukf = new UKF_PLUS(false, true, false, 1.5, 1.2); //ukf滤波器初始化 原1.5  1.2
+Tracker::Tracker(double&& std_a_, double&& std_yawdd_) {
+    ukf = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
 }
 } // namespace rune

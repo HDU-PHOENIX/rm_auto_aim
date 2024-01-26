@@ -21,13 +21,12 @@
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune_target.hpp"
-#include "rune_tracker/tracker.hpp"
-#include <sensor_msgs/msg/camera_info.hpp>
-
 #include "pnp_solver.hpp"
 #include "point.hpp"                 //添加Angle方法
 #include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
+#include "tracker.hpp"               //添加Tracker类
 #include <opencv2/core/types.hpp>    //提供Point Point2d/2f
+#include <sensor_msgs/msg/camera_info.hpp>
 //  Ceres-solver
 #include <ceres/ceres.h>
 

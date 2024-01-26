@@ -33,8 +33,8 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     phase_offset_handle_ = phase_offset_sub_->add_parameter_callback("phase_offset", [this](const rclcpp::Parameter& p) {
         phase_offset = p.as_double();
     });
-
-    tracker_ = std::make_unique<Tracker>(); //tracker中的ukf滤波器初始化
+    //ukf滤波器初始化 1.5  1.2
+    tracker_ = std::make_unique<Tracker>(1.5, 1.2); //tracker中的ukf滤波器初始化
 
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
@@ -404,15 +404,15 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.header = data->header; //时间戳赋值
     RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
 
-    // if (data->motion == 0) {
-    //     SetState(MotionState::Static);
-    // } else if (data->motion == 1) {
-    //     SetState(MotionState::Small);
-    // } else if (data->motion == 2) {
-    //     SetState(MotionState::Big);
-    // }//从下位机来的数据，判断是静止还是小符还是大符
+    if (data->motion == 0) {
+        SetState(MotionState::Static);
+    } else if (data->motion == 1) {
+        SetState(MotionState::Small);
+    } else if (data->motion == 2) {
+        SetState(MotionState::Big);
+    } //从下位机来的数据，判断是静止还是小符还是大符
 
-    SetState(MotionState::Big); //缺省设置为大符
+    // SetState(MotionState::Big); //缺省设置为大符
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
 

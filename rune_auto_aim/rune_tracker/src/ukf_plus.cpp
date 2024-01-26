@@ -56,10 +56,10 @@ void UKF_PLUS::Init(bool verbose, bool use_laser, bool use_radar, double std_a, 
 
     // DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
     //  Laser measurement noise standard deviation position1 in m
-    std_laspx_ = 0.05;
+    std_laspx_ = 0.15;
 
     // Laser measurement noise standard deviation position2 in m
-    std_laspy_ = 0.05;
+    std_laspy_ = 0.15;
 
     // Radar measurement noise standard deviation radius in m
     std_radr_ = 0.3;
