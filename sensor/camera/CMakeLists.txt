@@ -29,6 +29,22 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE camera_node
 )
 
+#############
+## Testing ##
+######### ####
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest)
+  ament_add_gtest(${PROJECT_NAME}-test test/camera_test.cpp)
+  target_include_directories(${PROJECT_NAME}-test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(${PROJECT_NAME}-test ${OpenCV_LIBS} ${PROJECT_NAME})
+
+endif()
+
 ament_auto_package(
     INSTALL_TO_SHARE
 )
