@@ -1,9 +1,11 @@
 #include "armor_shooter/shooter.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
-#include "rclcpp/rclcpp.hpp"
+#include "communicate/msg/control.hpp"
+#include "rclcpp/node.hpp"
 #include <auto_aim_interfaces/msg/detail/serial_info__struct.hpp>
 #include <auto_aim_interfaces/msg/detail/target__struct.hpp>
+#include <communicate/msg/detail/control__struct.hpp>
 #include <memory>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
@@ -18,7 +20,7 @@ private:
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;
     rclcpp::Subscription<auto_aim_interfaces::msg::Target>::SharedPtr target_sub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
+    rclcpp::Publisher<communicate::msg::Control>::SharedPtr shooter_info_pub_;
 };
 
 } // namespace armor

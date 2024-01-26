@@ -19,6 +19,7 @@ CameraInfoNode::CameraInfoNode(const rclcpp::NodeOptions& options):
     while (this->now() - temp_time < rclcpp::Duration(2, 0)) {
         camera_info_pub_->publish(camera_info_);
     }
+    camera_info_pub_.reset();
 }
 } // namespace camerainfo
 

@@ -34,7 +34,6 @@
 
 /armor_detector_node:
     ros__parameters:
-        send_default_armor: True
         binary_thres: 160
         gray_thres: 200
         color_thres: 120

@@ -15,6 +15,7 @@
     <depend>rclcpp_components</depend>
     <depend>auto_aim_interfaces</depend>
     <depend>eigen</depend>
+    <depend>communicate</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

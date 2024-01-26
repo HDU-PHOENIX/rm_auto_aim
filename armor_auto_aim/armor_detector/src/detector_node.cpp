@@ -132,18 +132,17 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             }
         }
 
-        if (debug_ && send_default_armor_ && armors_msg_.armors.empty()) {
-            default_armors_msg_.header = img_msg->header;
-            armors_pub_->publish(default_armors_msg_);
-        } else if (armors_msg_.armors.size() > 0) {
-            RCLCPP_INFO(this->get_logger(), "Find %zu armors!", armors_msg_.armors.size());
+        if (armors_msg_.armors.size() > 0) {
+            RCLCPP_DEBUG_STREAM(this->get_logger(), "Find " << armors_msg_.armors.size() << " armors!");
             armors_pub_->publish(armors_msg_);
+        } else {
+            RCLCPP_DEBUG(this->get_logger(), "No armor found!");
         }
 
         // Publishing marker
         PublishMarkers();
     } else {
-        std::cout << "pnp_solver null_ptr" << std::endl;
+        RCLCPP_ERROR(this->get_logger(), "PnP solver not initialized!");
     }
 }
 
@@ -202,14 +201,6 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.floating_point_range[0].from_value = 0;
     param_desc.floating_point_range[0].to_value = 90;
     a_params.max_angle = declare_parameter("armor.max_angle", 35.0);
-
-    default_armor_msg_.number = "3";
-    default_armor_msg_.type = "small";
-    default_armor_msg_.distance_to_image_center = 0;
-    default_armor_msg_.euler = { 0, 0, 0 };
-    default_armor_msg_.pose.position = geometry_msgs::msg::Point();
-    default_armor_msg_.pose.orientation = tf2::toMsg(tf2::Quaternion(0, 0, 0, 0));
-    default_armors_msg_.armors.emplace_back(default_armor_msg_);
 
     param_desc.description = "0-RED, 1-BLUE";
     param_desc.integer_range[0].step = 1;

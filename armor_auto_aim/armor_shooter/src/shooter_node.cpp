@@ -1,9 +1,5 @@
 #include "armor_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
-#include <algorithm>
-#include <auto_aim_interfaces/msg/detail/serial_info__struct.hpp>
-#include <memory>
-#include <random>
 
 namespace armor {
 
@@ -11,7 +7,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
     Node("armor_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "ArmorShooterNode has been initialized.");
     shooter_ = InitShooter();
-    serial_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
+    shooter_info_pub_ = this->create_publisher<communicate::msg::Control>(
         "/shooter_info",
         rclcpp::SensorDataQoS()
     );
@@ -19,18 +15,20 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
-            shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
-            auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z));
+            // TODO: 补偿考虑移到回调函数外
+            shooter_->SetHandOffSet(
+                this->get_parameter("correction_of_x").as_double(),
+                this->get_parameter("correction_of_y").as_double()
+            );
+            auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(
+                Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
+            );
             //TODO: 考虑做防抖处理
-            auto_aim_interfaces::msg::SerialInfo serial_info;
-            serial_info.start.data = 's';
-            serial_info.end.data = 'e';
-            serial_info.is_find.data = 1;
-            serial_info.euler[3] = yaw_and_pitch[0];
-            serial_info.euler[0] = yaw_and_pitch[1];
-            serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->position.z;
-            serial_info_pub_->publish(std::move(serial_info));
+            communicate::msg::Control control_info;
+            control_info.yaw = yaw_and_pitch[0];
+            control_info.pitch = yaw_and_pitch[1];
+            control_info.shoot_bool.data = '1';
+            shooter_info_pub_->publish(std::move(control_info));
         }
     );
 }

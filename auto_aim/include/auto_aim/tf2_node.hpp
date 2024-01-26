@@ -1,26 +1,14 @@
-#pragma once
-
-#include "rclcpp/rclcpp.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
+#include "rclcpp/node.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Vector3.h"
 #include "tf2_ros/transform_broadcaster.h"
 
-#include "auto_aim_interfaces/msg/serial_info.hpp"
-#include "auto_aim_interfaces/msg/target.hpp"
+namespace auto_aim {
 
-#include "sensor_msgs/msg/joint_state.hpp"
-#include "serial/serial.hpp"
-
-namespace sensor {
-
-class SerialForUnity: public rclcpp::Node {
+class TF2Node: public rclcpp::Node {
 public:
-    explicit SerialForUnity(const rclcpp::NodeOptions& options);
-
-    /**
-     * @brief 接受到仿真的回调函数
-     */
-    void SerialInfoCallback(const sensor_msgs::msg::JointState::SharedPtr joint_state);
+    explicit TF2Node(const rclcpp::NodeOptions& options);
 
 private:
     /**
@@ -34,30 +22,26 @@ private:
     void SendTransform(
         const std::unique_ptr<tf2_ros::TransformBroadcaster>& broadcaster,
         const std::unique_ptr<geometry_msgs::msg::TransformStamped>& tfs,
+        const rclcpp::Time& timestamp,
         const std::string& frame_id,
         const std::string& child_frame_id,
         const tf2::Quaternion& q,
-        const tf2::Vector3& v,
-        const rclcpp::Time& timestamp
+        const tf2::Vector3& v
     );
 
-    // 串口信息
-    auto_aim_interfaces::msg::SerialInfo serial_info_;
+    // 下位机欧拉角订阅
+    rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr euler_sub_;
 
-    // 串口信息订阅（数据来自仿真）
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr serial_info_sub_;
-
-    // 用于发布 相机坐标系 到 云台坐标系 的转换的广播器
+    // 用于发布 相机坐标系 到 枪口坐标系 的转换的广播器
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_camera2shooter_;
-    // 用于发布 云台坐标系 到 odom 的转换的广播器
+    // 用于发布 枪口坐标系 到 odom 的转换的广播器
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2odom_;
-    // 从相机坐标系到云台中心的转换
+    // 从相机坐标系到枪口中心的转换
     std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_camera2shooter_;
-    // 从云台中心到 odom 坐标系的转换（补偿 yaw pitch 轴的转动以保证 odom 系静止）
+    // 从枪口中心到 odom 坐标系的转换（补偿 yaw pitch 轴的转动以保证 odom 系静止）
     std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_shooter2odom_;
 
     std::vector<double> camera2shooter_tvec_; // 相机坐标系到枪口坐标系的平移向量
     std::vector<double> shooter2odom_tvec_;   // 枪口坐标系到 odom 坐标系的平移向量
 };
-
-} // namespace sensor
+} // namespace auto_aim
