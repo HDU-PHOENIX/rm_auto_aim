@@ -1,12 +1,12 @@
 # rune_auto_aim
 - [rune\_auto\_aim](#rune_auto_aim)
-  - [Summary](#summary)
+  - [Brief](#brief)
   - [rune\_detector](#rune_detector)
   - [rune\_tracker](#rune_tracker)
     - [UKF无迹卡尔曼滤波器](#ukf无迹卡尔曼滤波器)
     - [Ceres-solver](#ceres-solver)
   
-## Summary
+## Brief
 ```
  .
  ├──rune_detector
