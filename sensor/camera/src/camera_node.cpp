@@ -22,12 +22,14 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
         "/image_for_armor",
         rclcpp::SensorDataQoS()
     );
-    image_publisher_for_rune_ =
-        this->create_publisher<sensor_msgs::msg::Image>("/image_for_rune", rclcpp::SensorDataQoS());
+    image_publisher_for_rune_ = this->create_publisher<sensor_msgs::msg::Image>(
+        "/image_for_rune",
+        rclcpp::SensorDataQoS()
+    );
 
     // 创建订阅者
-    serial_info_subscriber_ = this->create_subscription<auto_aim_interfaces::msg::SerialInfo>(
-        "/serial_info",
+    serial_info_subscriber_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        "/communicate/gyro/left",
         rclcpp::SensorDataQoS(),
         std::bind(&CameraNode::SerialInfoCallback, this, std::placeholders::_1)
     );
@@ -37,7 +39,11 @@ CameraNode::~CameraNode() {
     RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
 }
 
-void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
+void CameraNode::SerialInfoCallback(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
+    // TODO: 通过 img 将 enemy_team_color 传递给 detector
+    auto&& enemy_team_color = msg->data[0];
+    auto&& mode = msg->data[1];
+    auto&& rune_flag = msg->data[2];
     // RCLCPP_INFO(this->get_logger(), "get serial info");
     if (videoflag) {
         capture >> frame;
@@ -56,22 +62,22 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
             image_msg->data.assign(frame.datastart, frame.dataend);
 
             // 根据 msg->mode.data 的值，选择发布到哪个话题
-            if (msg->mode.data == 'a') {
+            if (mode == 'a') {
                 // RCLCPP_INFO(this->get_logger(), "publish image for armor");
                 image_publisher_for_armor_->publish(std::move(image_msg));
-            } else if (msg->mode.data == 'r') {
+            } else if (mode == 'r') {
                 // RCLCPP_INFO(this->get_logger(), "publish image for rune");
                 //0 为不可激活，1 为小符，2 为大符 将图片的 frame_id 临时设置为大小符模式，接收端要再改回来
-                if (msg->rune_flag.data == 0) {
+                if (rune_flag == 0) {
                     image_msg->header.frame_id = "0";
-                } else if (msg->rune_flag.data == 1) {
+                } else if (rune_flag == 1) {
                     image_msg->header.frame_id = "1";
-                } else if (msg->rune_flag.data == 2) {
+                } else if (rune_flag == 2) {
                     image_msg->header.frame_id = "2";
                 }
                 image_publisher_for_rune_->publish(std::move(image_msg));
             } else {
-                RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
+                RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", mode);
             }
         }
     } else {
@@ -93,22 +99,22 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
         image_msg->data.assign(frame_->datastart, frame_->dataend);
 
         // 根据 msg->mode.data 的值，选择发布到哪个话题
-        if (msg->mode.data == 'a') {
+        if (mode == 'a') {
             // RCLCPP_INFO(this->get_logger(), "publish image for armor");
             image_publisher_for_armor_->publish(std::move(image_msg));
-        } else if (msg->mode.data == 'r') {
+        } else if (mode == 'r') {
             // RCLCPP_INFO(this->get_logger(), "publish image for rune");
             //0 为不可激活，1 为小符，2 为大符 将图片的 frame_id 临时设置为大小符模式，接收端要再改回来
-            if (msg->rune_flag.data == 0) {
+            if (rune_flag == 0) {
                 image_msg->header.frame_id = "0";
-            } else if (msg->rune_flag.data == 1) {
+            } else if (rune_flag == 1) {
                 image_msg->header.frame_id = "1";
-            } else if (msg->rune_flag.data == 2) {
+            } else if (rune_flag == 2) {
                 image_msg->header.frame_id = "2";
             }
             image_publisher_for_rune_->publish(std::move(image_msg));
         } else {
-            RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %c", msg->mode.data);
+            RCLCPP_ERROR(this->get_logger(), "mode should be a or r but got %d", mode);
         }
     }
 }

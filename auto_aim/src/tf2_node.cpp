@@ -21,7 +21,7 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
     euler_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
-        "/communicate/euler",
+        "/communicate/gyro/left",
         rclcpp::SensorDataQoS(),
         [this](const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
             // 四元数字和欧拉角转换 https://quaternions.online
