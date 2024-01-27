@@ -7,6 +7,10 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
     Node("rune_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "runeShooterNode has been initialized.");
     shooter_ = InitShooter();
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+        "/rune_shooter/marker",
+        rclcpp::SensorDataQoS()
+    );
     shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
         //向下位机发送数据，使用哨兵的话题left来当做步兵英雄的向下的话题
         "/shoot_info/left",
@@ -20,6 +24,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
+    //接收shooter坐标系下的坐标
 #if UNITY_TEST
             shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
@@ -37,9 +42,37 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             yaw_and_pitch_msg.data[0] = yaw_and_pitch[0];
             yaw_and_pitch_msg.data[1] = -yaw_and_pitch[1];
             shooter_info_pub_->publish(yaw_and_pitch_msg);
+            PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
 #endif
         }
     );
+}
+
+void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
+    visualization_msgs::msg::MarkerArray marker_array;
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = "rune_shooter";
+    marker.header.stamp = stamp;
+    marker.ns = "rune_shooter";
+    marker.id = 0;
+    marker.type = visualization_msgs::msg::Marker::SPHERE;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.position.x = shoot_pw[0];
+    marker.pose.position.y = shoot_pw[1];
+    marker.pose.position.z = shoot_pw[2];
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.a = 1.0; // Don't forget to set the alpha!
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker_array.markers.push_back(marker);
+    marker_pub_->publish(marker_array);
 }
 
 std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {

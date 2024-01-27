@@ -1,4 +1,3 @@
-#include "map"
 #include <Eigen/Dense>
 
 #define SMALL 0
@@ -37,6 +36,9 @@ public:
     void SetHandOffSet(const double& x, const double& y) {
         correction_of_x_ = x;
         correction_of_y_ = y;
+    }
+    Eigen::Vector3d& GetShootPw() {
+        return shoot_pw_;
     }
 
 private:

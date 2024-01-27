@@ -30,15 +30,12 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
 
     //TODO:根据陀螺仪安装位置调整距离求解方式
     //降维，坐标系Y轴以垂直向上为正方向
-    // auto&& xyz_offset = Eigen::Vector3d{xyz[0], xyz[1] + px / 10, xyz[2] + py / 10};
     xyz = { xyz[0], xyz[1] + correction_of_x_, xyz[2] + correction_of_y_ };
     orin_pw_ = xyz;
     auto dist_vertical = xyz[2]; //垂直距离
 
     auto vertical_tmp = dist_vertical;
     auto dist_horizonal = sqrt(xyz.squaredNorm() - dist_vertical * dist_vertical);
-    //std::cout << "dist_vertical :" << dist_vertical << std::endl;
-    //std::cout << "dist_horizonal" << dist_horizonal << std::endl;
     auto pitch = atan(dist_vertical / dist_horizonal) * 180 / M_PI;
     auto pitch_new = pitch;
     // auto pitch_offset = 0.0;
@@ -79,27 +76,17 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
         //评估迭代结果,若小于迭代精度需求则停止迭代
         auto error = dist_vertical - y;
         if (abs(error) <= stop_error_) {
-            //Log::Info("error <= stop_error the error is {}", error);
             break;
         } else {
-            //Log::Info("error > stop_error the error is {}", error);
             vertical_tmp += error;
             // xyz_tmp[1] -= error;
             pitch_new = atan(vertical_tmp / dist_horizonal) * 180 / M_PI;
         }
     }
-    //Log::Info("the fit is over");
     pitch_new = pitch_new / 180 * M_PI;
     double&& yaw = atan(xyz[1] / xyz[0]);
-    //yaw = yaw;
     shoot_pw_ = { xyz[0], xyz[1] - correction_of_x_, vertical_tmp - correction_of_y_ };
-
-    // shoot_pc = coordinate.RunePwToPc(shoot_pw);
-    // shoot_pu = coordinate.RunePcToPu(shoot_pc);
-    //Log::Debug("orin_pw:{}", orin_pw);
-    //Log::Debug("shoot_pw:{}", shoot_pw);
     return Eigen::Vector2d(yaw, pitch_new * -1); //pitch向上为负
-    // return Eigen::Vector2d(yaw + coordinate->yaw, (pitch_new + coordinate->pitch) * -1);  //pitch向上为负
 }
 
 } // namespace rune
