@@ -42,6 +42,8 @@ CameraNode::~CameraNode() {
 void CameraNode::SerialInfoCallback(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
     // TODO: 通过 img 将 enemy_team_color 传递给 detector
     // auto&& enemy_team_color = msg->data[0];
+    sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
+    image_msg->header.stamp = this->now();
     auto&& mode = msg->data[1];
     auto&& rune_flag = msg->data[2];
     // RCLCPP_INFO(this->get_logger(), "get serial info");
@@ -51,8 +53,6 @@ void CameraNode::SerialInfoCallback(const std_msgs::msg::Int32MultiArray::Shared
             RCLCPP_INFO(this->get_logger(), "video end");
             exit(-1);
         } else {
-            sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
-            image_msg->header.stamp = this->now();
             image_msg->header.frame_id = "camera";
             image_msg->height = frame.rows;
             image_msg->width = frame.cols;
@@ -85,11 +85,6 @@ void CameraNode::SerialInfoCallback(const std_msgs::msg::Int32MultiArray::Shared
         if (!this->GetFrame(frame_)) {
             RCLCPP_ERROR(this->get_logger(), "get image failed");
         }
-
-        // 创建 Image 消息的 UniquePtr msg
-        // 向 msg 中填充图像数据
-        sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
-        image_msg->header.stamp = this->now();
         image_msg->header.frame_id = "camera";
         image_msg->height = frame_->rows;
         image_msg->width = frame_->cols;
