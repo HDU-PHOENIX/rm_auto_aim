@@ -3,8 +3,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "std_msgs/msg/int32_multi_array.hpp"
 
+#include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
 #include <opencv2/videoio.hpp>
 #include <string>
@@ -15,7 +15,7 @@ class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
     ~CameraNode() override;
-    void SerialInfoCallback(const std_msgs::msg::Int32MultiArray::SharedPtr msg);
+    void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
 private:
     // 保存从摄像头获取的图像
@@ -30,7 +30,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_armor_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_rune_;
     // 串口数据接收者
-    rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr serial_info_subscriber_;
+    rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_subscriber_;
 
     //是否外部输入视频流标志位
     bool videoflag;

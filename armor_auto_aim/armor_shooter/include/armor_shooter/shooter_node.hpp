@@ -5,7 +5,6 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include <auto_aim_interfaces/msg/detail/serial_info__struct.hpp>
 #include <auto_aim_interfaces/msg/detail/target__struct.hpp>
-#include <communicate/msg/detail/control__struct.hpp>
 #include <memory>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>

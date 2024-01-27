@@ -27,8 +27,8 @@ def generate_launch_description():
         'config', 'config.yaml'
     )
 
-    camerainfo = ComposableNodeContainer(
-        name='camerainfo',
+    serial = ComposableNodeContainer(
+        name='serial',
         namespace='',
         package='rclcpp_components',
         executable='component_container',
@@ -39,7 +39,14 @@ def generate_launch_description():
                 name = 'camera_info_node',
                 extra_arguments = [{"use_intra_process_comms": True}],
                 parameters = [config]
-            )
+            ),
+            ComposableNode(
+                package = 'serial',
+                plugin = 'sensor::SerialNode',
+                name = "serial_node",
+                parameters = [config],
+                extra_arguments = [{"use_intra_process_comms": True}]
+            ),
         ]
     )
     serial_for_unity = ComposableNodeContainer(
@@ -151,4 +158,4 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([detector, tracker, shooter, camerainfo])
+    return launch.LaunchDescription([detector, tracker, shooter, serial])
