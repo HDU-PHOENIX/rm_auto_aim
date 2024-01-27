@@ -39,6 +39,9 @@ public:
     // 更新追踪器
     void Update(const Armors::SharedPtr& armors_msg);
 
+    // 从状态中获取装甲位置
+    Eigen::Vector3d GetArmorPositionFromState(const Eigen::VectorXd& x);
+
     ExtendedKalmanFilter ekf; // 扩展卡尔曼滤波器
 
     int tracking_thres; // 追踪帧数阈值
@@ -82,9 +85,6 @@ private:
 
     // 将方向转换为偏航角
     double OrientationToYaw(const geometry_msgs::msg::Quaternion& q);
-
-    // 从状态中获取装甲位置
-    Eigen::Vector3d GetArmorPositionFromState(const Eigen::VectorXd& x);
 
     double max_match_distance_; // 最大匹配距离
     double max_match_yaw_diff_; // 最大匹配偏航角差

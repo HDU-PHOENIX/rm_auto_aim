@@ -55,6 +55,9 @@ private:
      */
     void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
+    // 子弹速度
+    double bullet_speed_;
+
     // 装甲板距离车中心（ odom 中心 ）的水平最大距离
     double max_armor_distance_;
 

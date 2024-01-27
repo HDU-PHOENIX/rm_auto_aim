@@ -1,5 +1,6 @@
 #include "armor_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
+#include <opencv4/opencv2/core/matx.hpp>
 
 namespace armor {
 
@@ -26,7 +27,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             //TODO: 考虑做防抖处理
             std_msgs::msg::Float32MultiArray control_info;
             control_info.data[0] = yaw_and_pitch[0];
-            //TODO: pitch角度上下正负号得确认
+            //TODO: pitch 角度上下正负号得确认
             control_info.data[1] = yaw_and_pitch[1];
             shooter_info_pub_->publish(std::move(control_info));
         }

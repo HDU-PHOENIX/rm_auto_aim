@@ -6,14 +6,15 @@
 #include <vector>
 
 namespace armor {
-// ArmorTrackerNode类的构造函数
+// ArmorTrackerNode 类的构造函数
 ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     Node("armor_tracker", options) {
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
 
     max_armor_distance_ = this->declare_parameter("max_armor_distance", 10.0);
+    bullet_speed_ = declare_parameter("bullet_speed", 25.0);
 
-    // Tracker参数设置
+    // Tracker 参数设置
     double max_match_distance = this->declare_parameter("tracker.max_match_distance", 0.15);
     double max_match_yaw_diff = this->declare_parameter("tracker.max_match_yaw_diff", 1.0);
     tracker_ = std::make_unique<Tracker>(max_match_distance, max_match_yaw_diff);
@@ -39,7 +40,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         }
     );
 
-    // tf2相关
+    // tf2 相关
 
     // tf2 buffer & listener 相关
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -168,7 +169,15 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         }
     }
 
-    target_pub_->publish(target_msg);
+    {
+        auto&& flytime = target_msg.position.z / bullet_speed_;
+        target_msg.position.x += target_msg.velocity.x * flytime;
+        target_msg.position.y += target_msg.velocity.y * flytime;
+        target_msg.position.z += target_msg.velocity.z * flytime;
+        target_msg.yaw += target_msg.v_yaw * flytime;
+        tracker_->GetArmorPositionFromState(Eigen::Vector3d(target_msg.position.x, target_msg.position.y, target_msg.position.z));
+        target_pub_->publish(target_msg);
+    }
 
     PublishMarkers(target_msg);
 }
@@ -203,9 +212,9 @@ void ArmorTrackerNode::InitMarkers() {
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracker/marker", 10);
 }
 ExtendedKalmanFilter ArmorTrackerNode::CreateEKF() {
-    // EKF参数设置
-    // 状态: robot_center_x, v_xc, yc, v_yc, armor_z, v_za, yaw, v_yaw, r
-    // 测量: armor_x, armor_y, armor_z, yaw
+    // EKF 参数设置
+    // 状态：robot_center_x, v_xc, yc, v_yc, armor_z, v_za, yaw, v_yaw, r
+    // 测量：armor_x, armor_y, armor_z, yaw
     // f - 过程函数（运动关系）
     auto f = [this](const Eigen::VectorXd& x) {
         /* 
@@ -347,7 +356,7 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
         double r = 0;
         for (size_t i = 0; i < a_n; i++) {
             double tmp_yaw = yaw + i * (2 * M_PI / a_n);
-            // 只有4个装甲板有2个半径和高度
+            // 只有 4 个装甲板有 2 个半径和高度
             if (a_n == 4) {
                 r = is_current_pair ? r1 : r2;
                 p_a.z = armor_z + (is_current_pair ? 0 : dz);
