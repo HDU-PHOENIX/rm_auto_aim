@@ -1,7 +1,5 @@
 #include "rune_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
-#include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
-
 #define UNITY_TEST false
 namespace rune {
 
@@ -9,8 +7,9 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
     Node("rune_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "runeShooterNode has been initialized.");
     shooter_ = InitShooter();
-    serial_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-        "/shooter_info",
+    shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
+        //向下位机发送数据，使用哨兵的话题left来当做步兵英雄的向下的话题
+        "/shoot_info/left",
         rclcpp::SensorDataQoS()
     );
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
@@ -34,16 +33,10 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             //输入shooter坐标系下的坐标 输出yaw和pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             //TODO: 这里可能要做防抖处理
-            auto_aim_interfaces::msg::SerialInfo serial_info;
-            serial_info.start.data = 's';
-            serial_info.end.data = 'e';
-            serial_info.is_find.data = '1';
-            serial_info.can_shoot.data = '1';
-            serial_info.euler[0] = yaw_and_pitch[0];  //yaw
-            serial_info.euler[2] = -yaw_and_pitch[1]; //pitch
-            serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
-            serial_info_pub_->publish(serial_info);
+            std_msgs::msg::Float32MultiArray yaw_and_pitch_msg;
+            yaw_and_pitch_msg.data[0] = yaw_and_pitch[0];
+            yaw_and_pitch_msg.data[1] = -yaw_and_pitch[1];
+            shooter_info_pub_->publish(yaw_and_pitch_msg);
 #endif
         }
     );

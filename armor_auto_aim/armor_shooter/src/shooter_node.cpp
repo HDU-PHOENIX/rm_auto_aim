@@ -7,8 +7,8 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
     Node("armor_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "ArmorShooterNode has been initialized.");
     shooter_ = InitShooter();
-    shooter_info_pub_ = this->create_publisher<communicate::msg::Control>(
-        "/shooter_info",
+    shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
+        "/shoot_info/left",
         rclcpp::SensorDataQoS()
     );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
@@ -24,10 +24,10 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
                 Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
             );
             //TODO: 考虑做防抖处理
-            communicate::msg::Control control_info;
-            control_info.yaw = yaw_and_pitch[0];
-            control_info.pitch = yaw_and_pitch[1];
-            control_info.shoot_bool.data = '1';
+            std_msgs::msg::Float32MultiArray control_info;
+            control_info.data[0] = yaw_and_pitch[0];
+            //TODO: pitch角度上下正负号得确认
+            control_info.data[1] = yaw_and_pitch[1];
             shooter_info_pub_->publish(std::move(control_info));
         }
     );

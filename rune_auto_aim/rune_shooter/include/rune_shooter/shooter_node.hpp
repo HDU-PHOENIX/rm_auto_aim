@@ -1,8 +1,8 @@
 #include "auto_aim_interfaces/msg/rune_target.hpp"
-#include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rune_shooter/shooter.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 #include <memory>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
@@ -16,7 +16,7 @@ private:
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;
     rclcpp::Subscription<auto_aim_interfaces::msg::RuneTarget>::SharedPtr target_sub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr shooter_info_pub_;
     //仿真用 发给unity的下位机
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
 };
