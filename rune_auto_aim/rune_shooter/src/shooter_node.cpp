@@ -12,7 +12,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
     shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
-        //向下位机发送数据，使用哨兵的话题left来当做步兵英雄的向下的话题
+        //向下位机发送数据，使用哨兵的话题 left 来当做步兵英雄的向下的话题
         "/shoot_info/left",
         rclcpp::SensorDataQoS()
     );
@@ -24,7 +24,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
-    //接收shooter坐标系下的坐标
+    //接收 shooter 坐标系下的坐标
 #if UNITY_TEST
             shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
@@ -35,7 +35,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             joint_state_pub_->publish(joint_state);
 #else
             shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
-            //输入shooter坐标系下的坐标 输出yaw和pitch
+            //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             //TODO: 这里可能要做防抖处理
             std_msgs::msg::Float32MultiArray yaw_and_pitch_msg;
@@ -51,7 +51,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
 void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
     visualization_msgs::msg::MarkerArray marker_array;
     visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "rune_shooter";
+    marker.header.frame_id = "shooter";
     marker.header.stamp = stamp;
     marker.ns = "rune_shooter";
     marker.id = 0;

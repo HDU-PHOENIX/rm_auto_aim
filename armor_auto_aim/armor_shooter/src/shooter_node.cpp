@@ -8,15 +8,14 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
     Node("armor_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "ArmorShooterNode has been initialized.");
     shooter_ = InitShooter();
-    shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
-        "/shoot_info/left",
+    shooter_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
+        "/shooter_info",
         rclcpp::SensorDataQoS()
     );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
-            // TODO: 补偿考虑移到回调函数外
             shooter_->SetHandOffSet(
                 this->get_parameter("correction_of_x").as_double(),
                 this->get_parameter("correction_of_y").as_double()
@@ -25,11 +24,12 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
                 Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
             );
             //TODO: 考虑做防抖处理
-            std_msgs::msg::Float32MultiArray control_info;
-            control_info.data[0] = yaw_and_pitch[0];
+            auto_aim_interfaces::msg::SerialInfo serial_info;
+            serial_info.speed = msg->v_yaw;
             //TODO: pitch 角度上下正负号得确认
-            control_info.data[1] = yaw_and_pitch[1];
-            shooter_info_pub_->publish(std::move(control_info));
+            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
+            PublishMarkers(shooter_->shoot_pw_, msg->header.stamp);
+            shooter_info_pub_->publish(std::move(serial_info));
         }
     );
 }
@@ -62,6 +62,33 @@ std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
         r_k_iter,
         velocity
     );
+}
+
+void ArmorShooterNode::PublishMarkers(const Eigen::Vector3d& position, const builtin_interfaces::msg::Time& stamp) {
+    visualization_msgs::msg::MarkerArray marker_array;
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = "shooter";
+    marker.header.stamp = stamp;
+    marker.ns = "armor_shooter";
+    marker.id = 0;
+    marker.type = visualization_msgs::msg::Marker::SPHERE;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.position.x = position[0];
+    marker.pose.position.y = position[1];
+    marker.pose.position.z = position[2];
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    marker.scale.z = 0.1;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker_array.markers.push_back(marker);
+    marker_pub_->publish(marker_array);
 }
 
 } // namespace armor
