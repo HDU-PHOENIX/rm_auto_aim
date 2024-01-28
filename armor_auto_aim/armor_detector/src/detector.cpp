@@ -27,7 +27,7 @@ Detector::Detector(
     binary_thres(0),
     gray_thres(gray_thres),
     color_thres(color_thres),
-    detect_color(color),
+    enemy_color(color),
     light_params(light_params),
     armor_params(armor_params),
     detect_mode(detect_mode) {}
@@ -42,7 +42,7 @@ Detector::Detector(
     binary_thres(bin_thres),
     gray_thres(0),
     color_thres(0),
-    detect_color(color),
+    enemy_color(color),
     light_params(light_params),
     armor_params(armor_params),
     detect_mode(detect_mode) {}
@@ -75,10 +75,10 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
         split(rgb_img, channels);
         // 找出灰度图里面较亮的地方
         cv::threshold(gray_img, gray_mask, gray_thres, 255, cv::THRESH_BINARY);
-        if (detect_color == RED) {
+        if (enemy_color == RED) {
             // 红色 - 蓝色 获得红色区域轮廓
             cv::subtract(channels[2], channels[0], color_mask);
-        } else if (detect_color == BLUE) {
+        } else if (enemy_color == BLUE) {
             // 蓝色 - 红色 获得蓝色区域轮廓
             cv::subtract(channels[0], channels[2], color_mask);
         }
@@ -114,7 +114,7 @@ std::vector<Light> Detector::FindLights(const cv::Mat& rbg_img, const cv::Mat& b
         if (IsLight(light)) {
             if (detect_mode == '1') {
                 // 通道相减模式下，直接判断颜色
-                light.color = detect_color;
+                light.color = enemy_color;
                 lights.emplace_back(light);
             } else {
                 // 获取包含灯条的最小直立矩形
@@ -181,7 +181,7 @@ std::vector<Armor> Detector::MatchLights(const std::vector<Light>& lights) {
     for (auto light_1 = lights.begin(); light_1 != lights.end(); light_1++) {
         for (auto light_2 = light_1 + 1; light_2 != lights.end(); light_2++) {
             // 跳过己方灯条
-            if (light_1->color != detect_color || light_2->color != detect_color) {
+            if (light_1->color != enemy_color || light_2->color != enemy_color) {
                 continue;
             }
 

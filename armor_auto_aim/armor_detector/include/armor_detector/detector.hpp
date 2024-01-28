@@ -105,7 +105,7 @@ public:
     int binary_thres;         // 二值化阈值
     int gray_thres;           // 灰度二值化阈值
     int color_thres;          // 通道相减二值化阈值
-    int detect_color;         // 识别到的颜色
+    int enemy_color;          // 识别到的颜色
     LightParams light_params; // 灯条参数
     ArmorParams armor_params; // 装甲板参数
     char detect_mode;         // 检测模式 0: 默认 1: 通道相减二值化

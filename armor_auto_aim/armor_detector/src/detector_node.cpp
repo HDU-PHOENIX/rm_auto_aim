@@ -206,7 +206,7 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.integer_range[0].step = 1;
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 1;
-    auto detect_color = declare_parameter("detect_color", RED, param_desc);
+    auto enemy_color = declare_parameter("enemy_color", RED, param_desc);
 
     param_desc.description = "0-普通二值化，1-通道相减二值化";
     param_desc.integer_range[0].step = 1;
@@ -217,9 +217,9 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     // 初始化 Detector
     std::unique_ptr<Detector> detector;
     if (detect_mode == 0) {
-        detector = std::make_unique<Detector>(binary_thres, detect_color, l_params, a_params, detect_mode);
+        detector = std::make_unique<Detector>(binary_thres, enemy_color, l_params, a_params, detect_mode);
     } else if (detect_mode == 1) {
-        detector = std::make_unique<Detector>(gray_thres, color_thres, detect_color, l_params, a_params, detect_mode);
+        detector = std::make_unique<Detector>(gray_thres, color_thres, enemy_color, l_params, a_params, detect_mode);
     } else {
         RCLCPP_ERROR(this->get_logger(), "Invalid detect_mode!");
     }
@@ -239,12 +239,12 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
     // 通过 img_msg 指针构造图像
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3, img_msg->data.data());
 
-    // 更新参数
+    // 实时更新识别器参数
     if (this->debug_) {
         detector_->binary_thres = get_parameter("binary_thres").as_int();
         detector_->gray_thres = get_parameter("gray_thres").as_int();
         detector_->color_thres = get_parameter("color_thres").as_int();
-        detector_->detect_color = get_parameter("detect_color").as_int();
+        detector_->enemy_color = get_parameter("enemy_color").as_int();
         detector_->detect_mode = get_parameter("detect_mode").as_int();
         detector_->light_params = {
             get_parameter("light.min_ratio").as_double(),
