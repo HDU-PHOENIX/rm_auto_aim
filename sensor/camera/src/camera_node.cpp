@@ -42,12 +42,11 @@ CameraNode::~CameraNode() {
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
     sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
     image_msg->header.stamp = this->now();
-    // RCLCPP_INFO(this->get_logger(), "get serial info");
     if (videoflag) {
         capture >> frame;
         if (frame.empty()) {
             RCLCPP_INFO(this->get_logger(), "video end");
-            exit(-1);
+            capture.set(cv::CAP_PROP_POS_FRAMES, 0);
         } else {
             image_msg->header.frame_id = "camera";
             image_msg->height = frame.rows;
