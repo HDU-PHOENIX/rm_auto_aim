@@ -137,7 +137,7 @@ private:
     bool CeresProcess();
 
     //积分,用于大符预测角度计算
-    double integral(double w, std::vector<double> params, double t_s, double pred_time);
+    double Integral(double w, std::vector<double> params, double t_s, double pred_time);
 
     void Reset() {
         speed.Clear();
@@ -169,10 +169,7 @@ private:
     double delay;      //理论延迟和追踪延迟之和
     double chasedelay; //追踪延迟 从launch参数给定
     double bullet_speed;
-    std::shared_ptr<rclcpp::ParameterEventHandler> chasedelay_param_sub_;
-    std::shared_ptr<rclcpp::ParameterCallbackHandle> chasedelay_cb_handle_;
 
-    // rclcpp::Time delay;//理论延迟和追踪延迟之和
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差
     double leaf_angular_velocity;                        //符叶角速度
     double rotate_angle;                                 //预测符叶旋转角度
@@ -194,8 +191,7 @@ private:
     std::deque<CereParam> cere_param_list; //时域拟合的数据队列
     double a_omega_phi_b[4];               //拟合的参数
     double phase_offset;                   //相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
-    std::shared_ptr<rclcpp::ParameterEventHandler> phase_offset_sub_;
-    std::shared_ptr<rclcpp::ParameterCallbackHandle> phase_offset_handle_;
+
     ceres::Solver::Options options; //解决方案的配置
     ceres::Solver::Summary summary; //拟合的信息
 
@@ -211,14 +207,13 @@ private:
 
     //使用tf2_ros::MessageFilter对自动瞄准接口的Rune消息进行过滤
     message_filters::Subscriber<auto_aim_interfaces::msg::Rune> runes_sub_;
-    std::string target_frame_;                                 // TODO: ???
+    std::string target_frame_;                                 //目标坐标系
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;              // tf2 缓冲区
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
     std::shared_ptr<tf2_filter> tf2_filter_;
 
-    rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr
-        target_pub;                                  //向shooter节点发送数据
-    auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
+    rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr target_pub_; //向shooter节点发送数据
+    auto_aim_interfaces::msg::RuneTarget runes_msg_;                                //自定义的神符信息
 
     // 可视化标记发布器
     visualization_msgs::msg::Marker armor_marker_;

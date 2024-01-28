@@ -23,16 +23,9 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0);
 
     this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值0.0
-    chasedelay_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-    chasedelay_cb_handle_ = chasedelay_param_sub_->add_parameter_callback("chasedelay", [this](const rclcpp::Parameter& p) {
-        chasedelay = p.as_double();
-    });
 
     this->declare_parameter("phase_offset", 0.0); //设置phaseoffset的默认值0.0
-    phase_offset_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-    phase_offset_handle_ = phase_offset_sub_->add_parameter_callback("phase_offset", [this](const rclcpp::Parameter& p) {
-        phase_offset = p.as_double();
-    });
+
     CreateDebugPublisher(); //创建Debug发布器
     //ukf滤波器初始化 1.5  1.2
     tracker_ = std::make_unique<Tracker>(1.5, 1.2); //tracker中的ukf滤波器初始化
@@ -71,7 +64,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     // 注册回调函数
     tf2_filter_->registerCallback(&RuneTrackerNode::RunesCallback, this);
 
-    target_pub = this->create_publisher<auto_aim_interfaces::msg::RuneTarget>(
+    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::RuneTarget>(
         "/RuneTracker2Shooter",
         rclcpp::SensorDataQoS()
     );
@@ -243,7 +236,7 @@ bool RuneTrackerNode::CeresProcess() {
             debug_msg_.delta_angle = delta_angle;
             if (delta_angle < 0.2) {
                 //误差小,则认为拟合良好
-                pred_angle = integral(
+                pred_angle = Integral(
                     a_omega_phi_b[1],
                     std::vector<double> { a_omega_phi_b[0],
                                           a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
@@ -262,7 +255,7 @@ bool RuneTrackerNode::CeresProcess() {
                 //误差大,则认为拟合不良
                 if (count_cere < 5) {
                     count_cere++;
-                    pred_angle = integral(
+                    pred_angle = Integral(
                         a_omega_phi_b[1],
                         std::vector<double> { a_omega_phi_b[0],
                                               a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
@@ -283,7 +276,7 @@ bool RuneTrackerNode::CeresProcess() {
             }
         } else {
             //还没有到达预测的时间
-            pred_angle = integral(
+            pred_angle = Integral(
                 a_omega_phi_b[1],
                 std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
                 (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -327,7 +320,7 @@ void RuneTrackerNode::Refitting() {
     problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
 
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
-    pred_angle = integral(
+    pred_angle = Integral(
         a_omega_phi_b[1],
         std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -382,7 +375,7 @@ bool RuneTrackerNode::Fitting() {
 }
 
 double
-RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, double pred_time) {
+RuneTrackerNode::Integral(double w, std::vector<double> params, double t_s, double pred_time) {
     double a = params[0];
     double phi = params[1];
     double t_e = t_s + pred_time;
@@ -395,11 +388,12 @@ RuneTrackerNode::integral(double w, std::vector<double> params, double t_s, doub
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
     data = rune_ptr;
     auto&& theory_delay = data->pose_c.position.z / bullet_speed;
+    chasedelay = this->get_parameter("chasedelay").as_double();
     delay = theory_delay + chasedelay;
     runes_msg_.speed = bullet_speed;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
-
+    phase_offset = this->get_parameter("phase_offset").as_double();
     // if (data->motion == 0) {
     //     SetState(MotionState::Static);
     // } else if (data->motion == 1) {
@@ -451,7 +445,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.x = ps.pose.position.x;
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
-    target_pub->publish(runes_msg_);
+    target_pub_->publish(runes_msg_);
     PublishMarkers(runes_msg_);
     PublishDebugInfo();
 }
