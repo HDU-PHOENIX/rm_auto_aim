@@ -2,6 +2,8 @@
 #define ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
 
 // ROS
+#include "auto_aim_interfaces/msg/debug_rune.hpp"
+#include "auto_aim_interfaces/msg/rune_target.hpp"
 #include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
 #include <message_filters/subscriber.h>
 #include <rclcpp/rclcpp.hpp>
@@ -20,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "auto_aim_interfaces/msg/rune_target.hpp"
 #include "pnp_solver.hpp"
 #include "point.hpp"                 //添加Angle方法
 #include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
@@ -41,6 +42,10 @@ public:
 private:
     // 处理Rune消息的回调函数
     void RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr);
+
+    void CreateDebugPublisher(); //创建debug信息发布器
+
+    void PublishDebugInfo(); //发布debug信息
 
     enum class MotionState {
         Unknown,
@@ -216,11 +221,12 @@ private:
     auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
 
     // 可视化标记发布器
-    // visualization_msgs::msg::Marker position_marker_;
-    // visualization_msgs::msg::Marker linear_v_marker_;
-    // visualization_msgs::msg::Marker angular_v_marker_;
     visualization_msgs::msg::Marker armor_marker_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+    //debug信息发布器
+    rclcpp::Publisher<auto_aim_interfaces::msg::DebugRune>::SharedPtr debug_pub_;
+    //debug信息
+    auto_aim_interfaces::msg::DebugRune debug_msg_;
 };
 
 } // namespace rune

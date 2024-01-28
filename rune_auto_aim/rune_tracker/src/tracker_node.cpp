@@ -33,6 +33,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     phase_offset_handle_ = phase_offset_sub_->add_parameter_callback("phase_offset", [this](const rclcpp::Parameter& p) {
         phase_offset = p.as_double();
     });
+    CreateDebugPublisher(); //创建Debug发布器
     //ukf滤波器初始化 1.5  1.2
     tracker_ = std::make_unique<Tracker>(1.5, 1.2); //tracker中的ukf滤波器初始化
 
@@ -232,8 +233,6 @@ bool RuneTrackerNode::CeresProcess() {
         //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(tracker.timestamp)).seconds()
             >= tracker.pred_time) {
-            //开始判断拟合参数的误差
-            RCLCPP_INFO(this->get_logger(), "varify predict");
             // 计算误差
             double delta_angle = 0;
             if (this->rotation_direction == RotationDirection::Anticlockwise && tracker.pred_angle > 0) {
@@ -241,7 +240,7 @@ bool RuneTrackerNode::CeresProcess() {
             }
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
             delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
-            RCLCPP_INFO(this->get_logger(), "delta_angle is %f", delta_angle);
+            debug_msg_.delta_angle = delta_angle;
             if (delta_angle < 0.2) {
                 //误差小,则认为拟合良好
                 pred_angle = integral(
@@ -328,8 +327,6 @@ void RuneTrackerNode::Refitting() {
     problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
 
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
-    //输出拟合的信息
-    RCLCPP_INFO(this->get_logger(), "fitting params is a : %f omega : %f phi : %f ,b : %f", a_omega_phi_b[0], a_omega_phi_b[1], a_omega_phi_b[2], a_omega_phi_b[3]);
     pred_angle = integral(
         a_omega_phi_b[1],
         std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
@@ -402,28 +399,26 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.speed = bullet_speed;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
-    RCLCPP_INFO(this->get_logger(), "delay: %f", delay);
 
-    if (data->motion == 0) {
-        SetState(MotionState::Static);
-    } else if (data->motion == 1) {
-        SetState(MotionState::Small);
-    } else if (data->motion == 2) {
-        SetState(MotionState::Big);
-    } //从下位机来的数据，判断是静止还是小符还是大符
+    // if (data->motion == 0) {
+    //     SetState(MotionState::Static);
+    // } else if (data->motion == 1) {
+    //     SetState(MotionState::Small);
+    // } else if (data->motion == 2) {
+    //     SetState(MotionState::Big);
+    // } //从下位机来的数据，判断是静止还是小符还是大符
 
-    // SetState(MotionState::Big); //缺省设置为大符
+    SetState(MotionState::Small);
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
 
     this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
 
-    leaf_angle = Angle(leaf_dir); //返回弧度制的角度
-    CalSmallRune();               //计算小符角速度
-    Judge();                      //判断顺时针还是逆时针
-    FittingBig();                 //拟合大符
-    Fitting();                    //计算预测角度
-    RCLCPP_INFO(this->get_logger(), "rotate_angle is %f", rotate_angle);
+    leaf_angle = Angle(leaf_dir);                       //返回弧度制的角度
+    CalSmallRune();                                     //计算小符角速度
+    Judge();                                            //判断顺时针还是逆时针
+    FittingBig();                                       //拟合大符
+    Fitting();                                          //计算预测角度
     data_last = data;                                   //记录上一帧的数据
     leaf_angle_last = leaf_angle;                       //记录上一帧的角度
     std::vector<cv::Point2d> rotate_armors;             //旋转后的装甲板坐标
@@ -458,6 +453,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.z = ps.pose.position.z;
     target_pub->publish(runes_msg_);
     PublishMarkers(runes_msg_);
+    PublishDebugInfo();
 }
 
 void RuneTrackerNode::CalSmallRune() {
@@ -475,7 +471,7 @@ void RuneTrackerNode::CalSmallRune() {
     } else {
         angles.PushForcibly(leaf_angle);
     }
-    RCLCPP_INFO(this->get_logger(), "(calculate based on img pixel)Rune angular speed %Lf", speed.Mean());
+    debug_msg_.small_rune_speed = speed.Mean();
 }
 
 void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
@@ -496,6 +492,21 @@ void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::RuneTarget&
     marker_pub_->publish(marker_array);
 }
 
+void RuneTrackerNode::CreateDebugPublisher() {
+    debug_pub_ = this->create_publisher<auto_aim_interfaces::msg::DebugRune>(
+        "/rune_tracker/debug",
+        rclcpp::SensorDataQoS()
+    );
+}
+void RuneTrackerNode::PublishDebugInfo() {
+    debug_msg_.delay = delay;
+    debug_msg_.rotate_angle = rotate_angle;
+    debug_msg_.a_omega_phi_b[0] = a_omega_phi_b[0];
+    debug_msg_.a_omega_phi_b[1] = a_omega_phi_b[1];
+    debug_msg_.a_omega_phi_b[2] = a_omega_phi_b[2];
+    debug_msg_.a_omega_phi_b[3] = a_omega_phi_b[3];
+    debug_pub_->publish(debug_msg_);
+}
 } // namespace rune
 
 #include "rclcpp_components/register_node_macro.hpp"

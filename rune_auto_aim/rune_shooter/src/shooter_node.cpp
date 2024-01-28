@@ -1,5 +1,6 @@
 #include "rune_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
+#include <rclcpp/logging.hpp>
 #define UNITY_TEST false
 namespace rune {
 
@@ -7,13 +8,13 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
     Node("rune_shooter", options) {
     RCLCPP_INFO(this->get_logger(), "runeShooterNode has been initialized.");
     shooter_ = InitShooter();
+    InitMarker();
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "/rune_shooter/marker",
         rclcpp::SensorDataQoS()
     );
-    shooter_info_pub_ = this->create_publisher<std_msgs::msg::Float32MultiArray>(
-        //向下位机发送数据，使用哨兵的话题 left 来当做步兵英雄的向下的话题
-        "/shoot_info/left",
+    shooter_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
+        "/shooter_info",
         rclcpp::SensorDataQoS()
     );
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
@@ -38,10 +39,16 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             //TODO: 这里可能要做防抖处理
-            std_msgs::msg::Float32MultiArray yaw_and_pitch_msg;
-            yaw_and_pitch_msg.data[0] = yaw_and_pitch[0];
-            yaw_and_pitch_msg.data[1] = -yaw_and_pitch[1];
-            shooter_info_pub_->publish(yaw_and_pitch_msg);
+            auto_aim_interfaces::msg::SerialInfo serial_info;
+            serial_info.start.data = 's';
+            serial_info.end.data = 'e';
+            serial_info.is_find.data = '1';
+            serial_info.can_shoot.data = '1';
+            serial_info.euler[0] = yaw_and_pitch[0];  //yaw
+            serial_info.euler[2] = -yaw_and_pitch[1]; //pitch
+            serial_info.origin_euler = { 0 };
+            serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
+            // shooter_info_pub_->publish(serial_info);
             PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
 #endif
         }
@@ -50,16 +57,20 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
 
 void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
     visualization_msgs::msg::MarkerArray marker_array;
-    visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "shooter";
     marker.header.stamp = stamp;
+    marker.pose.position.x = shoot_pw[0];
+    marker.pose.position.y = shoot_pw[1];
+    marker.pose.position.z = shoot_pw[2];
+    marker_array.markers.push_back(marker);
+    marker_pub_->publish(marker_array);
+}
+
+void RuneShooterNode::InitMarker() {
+    marker.header.frame_id = "shooter";
     marker.ns = "rune_shooter";
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::SPHERE;
     marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.pose.position.x = shoot_pw[0];
-    marker.pose.position.y = shoot_pw[1];
-    marker.pose.position.z = shoot_pw[2];
     marker.pose.orientation.x = 0;
     marker.pose.orientation.y = 0;
     marker.pose.orientation.z = 0;
@@ -68,11 +79,9 @@ void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const buil
     marker.scale.y = 0.1;
     marker.scale.z = 0.1;
     marker.color.a = 1.0; // Don't forget to set the alpha!
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
     marker.color.b = 0.0;
-    marker_array.markers.push_back(marker);
-    marker_pub_->publish(marker_array);
 }
 
 std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {

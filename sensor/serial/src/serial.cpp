@@ -90,7 +90,7 @@ void Serial::SendData(DataSend packet) {
 DataRecv Serial::ReadData() {
     // 没连下位机时发送默认数据
     if (this->send_default_data_flag_) {
-        RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Sending default data");
+        // RCLCPP_INFO(rclcpp::get_logger("serial_node"), "Sending default data");
         return this->default_data_recv_;
     }
 

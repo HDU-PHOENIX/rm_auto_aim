@@ -139,8 +139,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             //flag3 = true;
             continue;
         }
-        
-        for (auto vertice : object.vertices) { // 画出五个关键点
+
+        for (auto vertice: object.vertices) { // 画出五个关键点
             cv::circle(img, vertice, 5, Colors::Green, -1);
         }
     }
@@ -155,7 +155,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     }
     if (flag1 && flag2) // 有 R 标数据和符叶数据，则认为识别完成
     {
-        RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
+        // RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
         bool success = pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
         if (!success) {
@@ -240,7 +240,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
                 PublishMarkers();                // 发布标记
                 runes_pub_->publish(runes_msg_); // 发布神符信息
             } else {
-                RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
+                // RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
             }
         }
     }

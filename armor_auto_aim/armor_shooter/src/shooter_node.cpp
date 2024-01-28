@@ -1,7 +1,6 @@
 #include "armor_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
 
-
 namespace armor {
 
 ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
