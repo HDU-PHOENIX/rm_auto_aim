@@ -160,22 +160,25 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         geometry_msgs::msg::PoseStamped ps;
         ps.header = armors_msg->header;
         ps.pose = this->tracker_->tracked_armor.pose;
+        geometry_msgs::msg::Pose target_pose;
         try {
-            auto&& target_pose = tf2_buffer_->transform(ps, target_frame_).pose;
-            target_msg.position = target_pose.position;
+            target_pose = tf2_buffer_->transform(ps, target_frame_).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
             return;
         }
-    }
 
-    {
         auto&& flytime = target_msg.position.z / bullet_speed_;
-        target_msg.position.x += target_msg.velocity.x * flytime;
-        target_msg.position.y += target_msg.velocity.y * flytime;
-        target_msg.position.z += target_msg.velocity.z * flytime;
+        auto pre_car_position = Eigen::Vector3d {
+            target_pose.position.x + target_msg.velocity.x * flytime,
+            target_pose.position.y + target_msg.velocity.y * flytime,
+            target_pose.position.z + target_msg.velocity.z * flytime
+        };
+        auto pre_armor_position = tracker_->GetArmorPositionFromState(pre_car_position);
+        target_msg.position.x = pre_armor_position.x();
+        target_msg.position.y = pre_armor_position.y();
+        target_msg.position.z = pre_armor_position.z();
         target_msg.yaw += target_msg.v_yaw * flytime;
-        tracker_->GetArmorPositionFromState(Eigen::Vector3d(target_msg.position.x, target_msg.position.y, target_msg.position.z));
         target_pub_->publish(target_msg);
     }
 
