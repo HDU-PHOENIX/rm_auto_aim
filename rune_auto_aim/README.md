@@ -16,6 +16,7 @@
  外层工作目录下的record用于记录能量机关角速度曲线
  ```
  能量机关角速度函数:
+ 
 $$  w = A * cos (\omega * t + \phi) + b  $$
 
 ## rune_detector
