@@ -1,14 +1,14 @@
 /**:
   ros__parameters:
-    debug: false
+    debug: true
 
 
 /camera_node:
     ros__parameters:
-        videoflag: true
+        videoflag: false
         video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
         inner_shot_flag: false
-        
+
 /camera_info_node:
     ros__parameters:
         camera_matrix: [
@@ -37,8 +37,8 @@
         binary_thres: 160
         gray_thres: 200
         color_thres: 120
-        enemy_color: 1 # 0-红色，1-蓝色
-        detect_mode: 1 # 0-普通二值化，1-通道相减二值化
+        enemy_color: 0 # 0-红色，1-蓝色 
+        detect_mode: 0 # 0-普通二值化，1-通道相减二值化 (int)
 
 /rune_detector_node:
     ros__parameters:

@@ -44,14 +44,14 @@ public:
         const int& color,
         const LightParams& light_params,
         const ArmorParams& armor_params,
-        const char& detect_mode
+        const int& detect_mode
     );
     Detector(
         const int& bin_thres,
         const int& color,
         const LightParams& light_params,
         const ArmorParams& armor_params,
-        const char& detect_mode
+        const int& detect_mode
     );
 
     /**
@@ -108,7 +108,7 @@ public:
     int enemy_color;          // 识别到的颜色
     LightParams light_params; // 灯条参数
     ArmorParams armor_params; // 装甲板参数
-    char detect_mode;         // 检测模式 0: 默认 1: 通道相减二值化
+    int detect_mode;          // 检测模式 0: 默认 1: 通道相减二值化
 
     // 数字分类器
     std::unique_ptr<NumberClassifier> classifier;

@@ -206,13 +206,13 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.integer_range[0].step = 1;
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 1;
-    auto enemy_color = declare_parameter("enemy_color", RED, param_desc);
+    int enemy_color = declare_parameter("enemy_color", RED, param_desc);
 
     param_desc.description = "0-普通二值化，1-通道相减二值化";
     param_desc.integer_range[0].step = 1;
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 1;
-    auto detect_mode = declare_parameter("detect_mode", 0, param_desc);
+    int detect_mode = declare_parameter("detect_mode", 0, param_desc);
 
     // 初始化 Detector
     std::unique_ptr<Detector> detector;

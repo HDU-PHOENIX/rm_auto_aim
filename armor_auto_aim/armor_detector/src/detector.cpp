@@ -9,6 +9,8 @@
 // STD
 #include <algorithm>
 #include <cmath>
+#include <rclcpp/logger.hpp>
+#include <rclcpp/logging.hpp>
 #include <vector>
 
 #include "armor_detector/detector.hpp"
@@ -22,7 +24,7 @@ Detector::Detector(
     const int& color,
     const LightParams& light_params,
     const ArmorParams& armor_params,
-    const char& detect_mode
+    const int& detect_mode
 ):
     binary_thres(0),
     gray_thres(gray_thres),
@@ -37,7 +39,7 @@ Detector::Detector(
     const int& color,
     const LightParams& light_params,
     const ArmorParams& armor_params,
-    const char& detect_mode
+    const int& detect_mode
 ):
     binary_thres(bin_thres),
     gray_thres(0),
@@ -68,7 +70,7 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
 
     // 二值化
     cv::Mat binary_img;
-    if (detect_mode == '0') {
+    if (detect_mode == 0) {
         cv::threshold(gray_img, binary_img, binary_thres, 255, cv::THRESH_BINARY);
     } else {
         std::vector<cv::Mat> channels;
