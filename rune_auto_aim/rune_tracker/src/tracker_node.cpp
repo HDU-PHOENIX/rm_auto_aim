@@ -304,15 +304,10 @@ void RuneTrackerNode::Refitting() {
             a_omega_phi_b
         );
     }
-    // problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
-    // problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
-    // problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
-    // problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // 数据是官方的
-
-    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.5); //实验室符参数
-    problem.SetParameterUpperBound(a_omega_phi_b, 0, 0.9);
-    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.6);
-    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2.0);
+    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
+    problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
+    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
+    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // 数据是官方的
 
     problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
     problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
