@@ -7,8 +7,8 @@
     ros__parameters:
         videoflag: true
         video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
-
-
+        inner_shot_flag: false
+        
 /camera_info_node:
     ros__parameters:
         camera_matrix: [

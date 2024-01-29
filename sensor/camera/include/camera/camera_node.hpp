@@ -20,6 +20,7 @@ public:
 private:
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
+    std::shared_ptr<cv::VideoWriter> video_writer_;
 
     // debug 时间数据
     rclcpp::Time start_time;
@@ -34,6 +35,7 @@ private:
 
     //是否外部输入视频流标志位
     bool videoflag;
+    bool inner_shot_flag;
     std::string video_path;
     cv::VideoCapture capture;
     cv::Mat frame;

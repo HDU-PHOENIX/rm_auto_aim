@@ -13,6 +13,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     //是否使用视频流标志位
     videoflag = this->declare_parameter("videoflag", false);
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
+    inner_shot_flag = this->declare_parameter("inner_shot_flag", false);
 
     if (this->videoflag) {
         capture.open(video_path);
@@ -33,13 +34,20 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS(),
         std::bind(&CameraNode::SerialInfoCallback, this, std::placeholders::_1)
     );
+
+    video_writer_ = std::make_shared<cv::VideoWriter>();
+    if (inner_shot_flag) {
+        video_writer_->open("./Camera/inner_shot.mp4", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 100, cv::Size(1280, 1024));
+    }
 }
 
 CameraNode::~CameraNode() {
+    video_writer_->release();
     RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
 }
 
 void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg) {
+    // RCLCPP_INFO(this->get_logger(), "isopened %d", video_writer_->isOpened());
     sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
     image_msg->header.stamp = this->now();
     if (videoflag) {
@@ -80,6 +88,14 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
         if (!this->GetFrame(frame_)) {
             RCLCPP_ERROR(this->get_logger(), "get image failed");
         }
+        cv::imshow("src", *frame_);
+        cv::waitKey(1);
+
+        if (inner_shot_flag) {
+            video_writer_->write(*frame_);
+        }
+
+        // RCLCPP_ERROR(this->get_logger(), "get image success");
         image_msg->header.frame_id = "camera";
         image_msg->height = frame_->rows;
         image_msg->width = frame_->cols;

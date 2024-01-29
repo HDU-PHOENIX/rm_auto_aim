@@ -131,7 +131,7 @@ bool Serial::ReopenPort() {
     } catch (const std::exception& ex) {
         RCLCPP_WARN(rclcpp::get_logger("serial_node"), "Error while reopening port: %s", ex.what());
         if (rclcpp::ok()) {
-            rclcpp::sleep_for(std::chrono::seconds(1));
+            // rclcpp::sleep_for(std::chrono::seconds(1));
             return ReopenPort();
         }
     }
