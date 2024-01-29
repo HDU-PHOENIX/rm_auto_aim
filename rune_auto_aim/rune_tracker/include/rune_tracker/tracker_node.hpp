@@ -151,6 +151,10 @@ private:
     //初始化txt的读取，用于记录原始角速度曲线和卡尔曼滤波曲线
     void InitRecord();
 
+    void InitCeres(); //初始化ceres求解器
+
+    void InitParams(); //初始化ROS2的declare参数
+
     //数据处理，判断角速度是否正常，正常则记录数据并且丢入ukf，传入的参数为符叶角度
     void DataProcess();
 

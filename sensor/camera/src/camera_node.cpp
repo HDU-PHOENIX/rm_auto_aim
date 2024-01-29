@@ -88,8 +88,6 @@ void CameraNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
         if (!this->GetFrame(frame_)) {
             RCLCPP_ERROR(this->get_logger(), "get image failed");
         }
-        cv::waitKey(1);
-
         if (inner_shot_flag) {
             video_writer_->write(*frame_);
         }

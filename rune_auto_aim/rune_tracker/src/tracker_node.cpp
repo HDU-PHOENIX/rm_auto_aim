@@ -7,25 +7,8 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     Node("rune_tracker", option) {
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
-    options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
-    finish_fitting = false;
-    tracker.pred_time = 0;
-    tracker.pred_angle = 0;
-    tracker.angle = 0;
-    options.minimizer_progress_to_stdout = false; //选择不打印拟合信息
-    options.num_threads = 4;                      //使用4个线程进行拟合
-    a_omega_phi_b[0] = RUNE_ROTATE_A_MIN;
-    a_omega_phi_b[1] = RUNE_ROTATE_O_MIN;
-    a_omega_phi_b[2] = 0;
-    a_omega_phi_b[3] = 0;
-    count_cere = 0;
-    bullet_speed = this->declare_parameter("bullet_speed", 25.0);
-    filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0);
-
-    this->declare_parameter("chasedelay", 0.0); //设置chasedelay的默认值0.0
-
-    this->declare_parameter("phase_offset", 0.0); //设置phaseoffset的默认值0.0
-
+    InitCeres(); //初始化ceres
+    InitParams();
     CreateDebugPublisher(); //创建Debug发布器
     //ukf滤波器初始化 1.5  1.2
     tracker_ = std::make_unique<Tracker>(1.5, 1.2); //tracker中的ukf滤波器初始化
@@ -82,31 +65,70 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
 }
 
-void RuneTrackerNode::InitRecord() {
-    omega_file.open("./record/omega.txt"); //用于记录曲线
-    if (!omega_file.is_open()) {
-        while (true) {
-            std::cout << "cannot open the omega.txt" << std::endl;
-        }
+// runeCallback函数实现 接收rune_detector发布的rune消息
+void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
+    data = rune_ptr;
+    auto&& theory_delay = data->pose_c.position.z / bullet_speed;
+    chasedelay = this->get_parameter("chasedelay").as_double();
+    delay = theory_delay + chasedelay;
+    runes_msg_.speed = bullet_speed;
+    runes_msg_.delay = delay;
+    runes_msg_.header = data->header; //时间戳赋值
+    phase_offset = this->get_parameter("phase_offset").as_double();
+    // if (data->motion == 0) {
+    //     SetState(MotionState::Static);
+    // } else if (data->motion == 1) {
+    //     SetState(MotionState::Small);
+    // } else if (data->motion == 2) {
+    //     SetState(MotionState::Big);
+    // } //从下位机来的数据，判断是静止还是小符还是大符
+
+    SetState(MotionState::Small);
+
+    cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
+
+    this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
+
+    leaf_angle = Angle(leaf_dir);                       //返回弧度制的角度
+    CalSmallRune();                                     //计算小符角速度
+    Judge();                                            //判断顺时针还是逆时针
+    FittingBig();                                       //拟合大符
+    Fitting();                                          //计算预测角度
+    data_last = data;                                   //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                       //记录上一帧的角度
+    std::vector<cv::Point2d> rotate_armors;             //旋转后的装甲板坐标
+    cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
+    for (int i = 0; i < 4; i++) {
+        rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
     }
-    omega_time.open("./record/omegatime.txt");
-    if (!omega_time.is_open()) {
-        while (true) {
-            std::cout << "cannot open the omegatime.txt" << std::endl;
-        }
+    for (auto&& vertex: rotate_armors) {
+        //将关键点以圆心旋转rotate_angle 得到预测点
+        vertex = Rotate(vertex, symbol, rotate_angle);
     }
-    origin_omega_time.open("./record/origin_omegatime.txt");
-    if (!origin_omega_time.is_open()) {
-        while (true) {
-            std::cout << "cannot open the origin_omegatime.txt" << std::endl;
-        }
+    cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
+    if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec, PNP_ITERATION)) {
+    } else {
+        RCLCPP_INFO(this->get_logger(), "rune_tracker solve pnp failed");
     }
-    origin_omega_file.open("./record/origin_omega.txt");
-    if (!origin_omega_file.is_open()) {
-        while (true) {
-            std::cout << "cannot open the origin_omega.txt" << std::endl;
-        }
+    geometry_msgs::msg::PoseStamped ps;
+    ps.header = data->header;
+    ps.pose.position.x = runes_msg_.pc.position.x = tvec.at<double>(0);
+    ps.pose.position.y = runes_msg_.pc.position.y = tvec.at<double>(1);
+    ps.pose.position.z = runes_msg_.pc.position.z = tvec.at<double>(2);
+    try {
+        // 将装甲板位置从 相机坐标系 转换到 shooter（目标坐标系）
+        // 此后装甲板信息中的 armor.pose 为装甲板在 shooter 系中的位置
+        ps.pose = tf2_buffer_->transform(ps, target_frame_).pose;
+    } catch (const tf2::ExtrapolationException& ex) {
+        RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
+        return;
     }
+    runes_msg_.pw.position.x = ps.pose.position.x;
+    runes_msg_.pw.position.y = ps.pose.position.y;
+    runes_msg_.pw.position.z = ps.pose.position.z;
+    target_pub_->publish(runes_msg_);
+    PublishMarkers(runes_msg_);
+    PublishDebugInfo();
 }
 
 bool RuneTrackerNode::Judge() {
@@ -379,72 +401,6 @@ RuneTrackerNode::Integral(double w, std::vector<double> params, double t_s, doub
     return theta2 - theta1;
 } //积分 用于预测下个时刻的位置
 
-// runeCallback函数实现 接收rune_detector发布的rune消息
-void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
-    data = rune_ptr;
-    auto&& theory_delay = data->pose_c.position.z / bullet_speed;
-    chasedelay = this->get_parameter("chasedelay").as_double();
-    delay = theory_delay + chasedelay;
-    runes_msg_.speed = bullet_speed;
-    runes_msg_.delay = delay;
-    runes_msg_.header = data->header; //时间戳赋值
-    phase_offset = this->get_parameter("phase_offset").as_double();
-    // if (data->motion == 0) {
-    //     SetState(MotionState::Static);
-    // } else if (data->motion == 1) {
-    //     SetState(MotionState::Small);
-    // } else if (data->motion == 2) {
-    //     SetState(MotionState::Big);
-    // } //从下位机来的数据，判断是静止还是小符还是大符
-
-    SetState(MotionState::Small);
-
-    cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
-
-    this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
-
-    leaf_angle = Angle(leaf_dir);                       //返回弧度制的角度
-    CalSmallRune();                                     //计算小符角速度
-    Judge();                                            //判断顺时针还是逆时针
-    FittingBig();                                       //拟合大符
-    Fitting();                                          //计算预测角度
-    data_last = data;                                   //记录上一帧的数据
-    leaf_angle_last = leaf_angle;                       //记录上一帧的角度
-    std::vector<cv::Point2d> rotate_armors;             //旋转后的装甲板坐标
-    cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
-    for (int i = 0; i < 4; i++) {
-        rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
-    }
-    for (auto&& vertex: rotate_armors) {
-        //将关键点以圆心旋转rotate_angle 得到预测点
-        vertex = Rotate(vertex, symbol, rotate_angle);
-    }
-    cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
-    if (pnp_solver_->SolvePnP(rotate_armors, rvec, tvec, PNP_ITERATION)) {
-    } else {
-        RCLCPP_INFO(this->get_logger(), "rune_tracker solve pnp failed");
-    }
-    geometry_msgs::msg::PoseStamped ps;
-    ps.header = data->header;
-    ps.pose.position.x = runes_msg_.pc.position.x = tvec.at<double>(0);
-    ps.pose.position.y = runes_msg_.pc.position.y = tvec.at<double>(1);
-    ps.pose.position.z = runes_msg_.pc.position.z = tvec.at<double>(2);
-    try {
-        // 将装甲板位置从 相机坐标系 转换到 shooter（目标坐标系）
-        // 此后装甲板信息中的 armor.pose 为装甲板在 shooter 系中的位置
-        ps.pose = tf2_buffer_->transform(ps, target_frame_).pose;
-    } catch (const tf2::ExtrapolationException& ex) {
-        RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
-        return;
-    }
-    runes_msg_.pw.position.x = ps.pose.position.x;
-    runes_msg_.pw.position.y = ps.pose.position.y;
-    runes_msg_.pw.position.z = ps.pose.position.z;
-    target_pub_->publish(runes_msg_);
-    PublishMarkers(runes_msg_);
-    PublishDebugInfo();
-}
-
 void RuneTrackerNode::CalSmallRune() {
     if (angles.Any()) {
         leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
@@ -490,12 +446,81 @@ void RuneTrackerNode::CreateDebugPublisher() {
 void RuneTrackerNode::PublishDebugInfo() {
     debug_msg_.delay = delay;
     debug_msg_.rotate_angle = rotate_angle;
+    debug_msg_.phase_offset = phase_offset;
     debug_msg_.a_omega_phi_b[0] = a_omega_phi_b[0];
     debug_msg_.a_omega_phi_b[1] = a_omega_phi_b[1];
     debug_msg_.a_omega_phi_b[2] = a_omega_phi_b[2];
     debug_msg_.a_omega_phi_b[3] = a_omega_phi_b[3];
     debug_pub_->publish(debug_msg_);
 }
+
+void RuneTrackerNode::InitCeres() {
+    finish_fitting = false;
+    tracker.pred_time = 0;
+    tracker.pred_angle = 0;
+    tracker.angle = 0;
+    options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
+    options.minimizer_progress_to_stdout = false;              //选择不打印拟合信息
+    options.num_threads = 4;                                   //使用4个线程进行拟合
+    a_omega_phi_b[0] = RUNE_ROTATE_A_MIN;
+    a_omega_phi_b[1] = RUNE_ROTATE_O_MIN;
+    a_omega_phi_b[2] = 0;
+    a_omega_phi_b[3] = 0;
+    count_cere = 0;
+}
+
+void RuneTrackerNode::InitParams() {
+    rcl_interfaces::msg::ParameterDescriptor param_desc;
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].from_value = 20;
+    param_desc.floating_point_range[0].to_value = 30;
+    bullet_speed = this->declare_parameter("bullet_speed", 25.0, param_desc);
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.01;
+    param_desc.floating_point_range[0].from_value = 0;
+    param_desc.floating_point_range[0].to_value = 1;
+    chasedelay = this->declare_parameter("chasedelay", 0.0, param_desc); //设置chasedelay的默认值0.0
+    param_desc.floating_point_range.resize(1);
+    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].from_value = -3.0;
+    param_desc.floating_point_range[0].to_value = 3.0;
+    phase_offset = this->declare_parameter("phase_offset", 0.0, param_desc); //设置phaseoffset的默认值0.0
+    param_desc.floating_point_range.clear();
+    param_desc.integer_range.resize(1);
+    param_desc.integer_range[0].step = 1;
+    param_desc.integer_range[0].from_value = 0;
+    param_desc.integer_range[0].to_value = 30;
+    filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0, param_desc);
+}
+
+void RuneTrackerNode::InitRecord() {
+    omega_file.open("./record/omega.txt"); //用于记录曲线
+    if (!omega_file.is_open()) {
+        while (true) {
+            RCLCPP_INFO(this->get_logger(), "cannot open the omega.txt");
+        }
+    }
+    omega_time.open("./record/omegatime.txt");
+    if (!omega_time.is_open()) {
+        while (true) {
+            RCLCPP_INFO(this->get_logger(), "cannot open the omegatime.txt");
+        }
+    }
+    origin_omega_time.open("./record/origin_omegatime.txt");
+    if (!origin_omega_time.is_open()) {
+        while (true) {
+            RCLCPP_INFO(this->get_logger(), "cannot open the origin_omegatime.txt");
+        }
+    }
+    origin_omega_file.open("./record/origin_omega.txt");
+    if (!origin_omega_file.is_open()) {
+        while (true) {
+            RCLCPP_INFO(this->get_logger(), "cannot open the origin_omega.txt");
+        }
+    }
+}
+
 } // namespace rune
 
 #include "rclcpp_components/register_node_macro.hpp"
