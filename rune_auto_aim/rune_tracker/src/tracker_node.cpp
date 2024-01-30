@@ -39,7 +39,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        100,                                // size of the tf2 cache
+        10,                                 // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::duration<int>(1)       // timeout
@@ -227,13 +227,12 @@ void RuneTrackerNode::DataProcess() {
 }
 
 bool RuneTrackerNode::CeresProcess() {
-    if (cere_param_list.size() < 100) {
-        //数据队列设为100个，数据队列未满
+    if (cere_param_list.size() < 50) {
         leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess();
         runes_msg_.can_shoot = false;
         return false;
-    } else if (cere_param_list.size() == 100) {
+    } else if (cere_param_list.size() == 50) {
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
         //TODO:这里可能会有问题后续逻辑得仔细考虑一下

@@ -6,7 +6,7 @@
 /camera_node:
     ros__parameters:
         videoflag: false
-        video_path: "/home/pantao/tradition_rune_method_test/examples/4_12mm_blue_dark/12mm_blue_dark.MP4"
+        video_path: "./Camera/new.mp4"
         inner_shot_flag: false
 
 /camera_info_node:
@@ -42,7 +42,7 @@
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.85 #神经网络置信度阈值
+        confidence_threshold: 0.95 #神经网络置信度阈值
         model_path: "/model/yolox_fp16.onnx" #这里的路径是相对路径
         SEND_DEFAULT_DATA: false
 
