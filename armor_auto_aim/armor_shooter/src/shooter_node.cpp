@@ -27,7 +27,11 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             serial_info.speed = msg->v_yaw;
             //TODO: pitch 角度上下正负号得确认
             serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
-            PublishMarkers(shooter_->shoot_pw_, msg->header.stamp);
+            // PublishMarkers(shooter_->shoot_pw_, msg->header.stamp);
+
+            serial_info.start.set__data('s');
+            serial_info.end.set__data('e');
+            serial_info.is_find.set__data('1');
             shooter_info_pub_->publish(std::move(serial_info));
         }
     );

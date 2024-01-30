@@ -37,7 +37,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
 
     video_writer_ = std::make_shared<cv::VideoWriter>();
     if (inner_shot_flag) {
-        video_writer_->open("./Camera/inner_shot.mp4", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 100, cv::Size(1280, 1024));
+        video_writer_->open("./Camera/inner_shot.mp4", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 60, cv::Size(1280, 1024));
     }
 }
 
