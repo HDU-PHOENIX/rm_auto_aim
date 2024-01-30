@@ -82,6 +82,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         ps.header = armors_msg->header;
         ps.pose = armor.pose;
         try {
+            // TODO: armors_msg 中 pose 变了但是 header 中的 frame id 没变！
             armor.pose = tf2_buffer_->transform(ps, target_frame_).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
@@ -156,33 +157,56 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
     last_time_ = time;
 
+    PublishMarkers(target_msg);
     {
+        RCLCPP_INFO(this->get_logger(), "position velocity %lf %lf %lf %lf", target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z, target_msg.v_yaw);
+        auto before_armor_position = this->tracker_->tracked_armor.pose.position;
+        RCLCPP_INFO(this->get_logger(), "position before prediction %lf %lf %lf %lf", before_armor_position.x, before_armor_position.y, before_armor_position.z, target_msg.yaw);
+
+        // odom 系下计算 car position 和 yaw 的预测位置
+        auto&& flytime = target_msg.position.x / bullet_speed_;
+        auto predict_car_position = tracker_->target_state;
+        predict_car_position(0) += target_msg.velocity.x * flytime;
+        predict_car_position(2) += target_msg.velocity.y * flytime;
+        predict_car_position(4) += target_msg.velocity.z * flytime;
+        predict_car_position(6) += target_msg.v_yaw * flytime;
+
+        auto pre_armor_position = tracker_->GetArmorPositionFromState(predict_car_position);
+        target_msg.position.x = pre_armor_position.x();
+        target_msg.position.y = pre_armor_position.y();
+        target_msg.position.z = pre_armor_position.z();
+        target_msg.yaw = predict_car_position(6);
+        RCLCPP_INFO(this->get_logger(), "position after prediction %lf %lf %lf %lf", target_msg.position.x, target_msg.position.y, target_msg.position.z, target_msg.yaw);
+        RCLCPP_INFO(this->get_logger(), "fly time %lf", flytime);
+
         geometry_msgs::msg::PoseStamped ps;
         ps.header = armors_msg->header;
-        ps.pose = this->tracker_->tracked_armor.pose;
-        geometry_msgs::msg::Pose target_pose;
+        ps.header.frame_id = "odom";
+        ps.pose.position = target_msg.position;
+        ps.pose.orientation = [this, target_msg, flytime]() {
+            tf2::Quaternion q, armor_q, pre_q;
+            auto aromr_orientation = this->tracker_->tracked_armor.pose.orientation;
+            q.setRPY(0, 0, target_msg.v_yaw * flytime);
+            armor_q.setValue(aromr_orientation.x, aromr_orientation.y, aromr_orientation.z, aromr_orientation.w);
+            pre_q = q * armor_q;
+            geometry_msgs::msg::Quaternion result_q;
+            result_q.set__x(pre_q.getX());
+            result_q.set__y(pre_q.getY());
+            result_q.set__z(pre_q.getZ());
+            result_q.set__w(pre_q.getW());
+            return result_q;
+        }();
         try {
-            target_pose = tf2_buffer_->transform(ps, target_frame_).pose;
+            auto shooter_ps = tf2_buffer_->transform(ps, "shooter");
+            target_msg.header = shooter_ps.header;
+            target_msg.position = shooter_ps.pose.position;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
             return;
         }
 
-        auto&& flytime = target_msg.position.z / bullet_speed_;
-        auto pre_car_position = Eigen::Vector3d {
-            target_pose.position.x + target_msg.velocity.x * flytime,
-            target_pose.position.y + target_msg.velocity.y * flytime,
-            target_pose.position.z + target_msg.velocity.z * flytime
-        };
-        auto pre_armor_position = tracker_->GetArmorPositionFromState(pre_car_position);
-        target_msg.position.x = pre_armor_position.x();
-        target_msg.position.y = pre_armor_position.y();
-        target_msg.position.z = pre_armor_position.z();
-        target_msg.yaw += target_msg.v_yaw * flytime;
         target_pub_->publish(target_msg);
     }
-
-    PublishMarkers(target_msg);
 }
 
 void ArmorTrackerNode::InitMarkers() {
