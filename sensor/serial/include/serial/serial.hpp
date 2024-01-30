@@ -68,11 +68,6 @@ private:
      */
     bool ReopenPort();
 
-    /**
-     * @brief 设置默认的数据包
-     */
-    void SetDefaultDataRecv();
-
     int reopen_count_;            // 重新打开串口的次数
     bool send_default_data_flag_; // 是否发送默认数据
     DataRecv default_data_recv_;  // 默认的数据包

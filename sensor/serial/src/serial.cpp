@@ -138,19 +138,6 @@ bool Serial::ReopenPort() {
     return true;
 }
 
-void Serial::SetDefaultDataRecv() {
-    this->default_data_recv_.start = 's';
-    this->default_data_recv_.color = 'r';
-    this->default_data_recv_.mode = 'r';
-    this->default_data_recv_.speed = 20;
-    this->default_data_recv_.euler[0] = 0;
-    this->default_data_recv_.euler[1] = 0;
-    this->default_data_recv_.euler[2] = 0;
-    this->default_data_recv_.shoot_bool = 0;
-    this->default_data_recv_.rune_flag = 0;
-    this->default_data_recv_.end = 'e';
-}
-
 void Serial::SetDefaultDataRecv(
     char& start,
     char& color,
