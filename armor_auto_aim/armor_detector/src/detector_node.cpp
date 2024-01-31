@@ -1,3 +1,4 @@
+#include <auto_aim_interfaces/msg/detail/serial_info__struct.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core/mat.hpp>
 #include <rclcpp/logging.hpp>
@@ -64,6 +65,8 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     // 创建图像订阅者
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor", rclcpp::SensorDataQoS(), std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1));
+
+    no_armor_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
@@ -137,6 +140,11 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
             armors_pub_->publish(armors_msg_);
         } else {
             RCLCPP_DEBUG(this->get_logger(), "No armor found!");
+            auto_aim_interfaces::msg::SerialInfo no_armor_msg;
+            no_armor_msg.start.set__data('s');
+            no_armor_msg.end.set__data('e');
+            no_armor_msg.euler = { 0, 0, 0 };
+            no_armor_pub_->publish(no_armor_msg);
         }
 
         // Publishing marker

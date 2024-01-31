@@ -2,6 +2,7 @@
 #define ARMOR_DETECTOR__DETECTOR_NODE_HPP_
 
 // ROS
+#include <auto_aim_interfaces/msg/detail/serial_info__struct.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
 #include <image_transport/subscriber_filter.hpp>
@@ -20,7 +21,7 @@
 #include "armor_detector/number_classifier.hpp"
 #include "armor_detector/pnp_solver.hpp"
 #include "auto_aim_interfaces/msg/armors.hpp"
-
+#include "auto_aim_interfaces/msg/serial_info.hpp"
 namespace armor {
 
 class ArmorDetectorNode: public rclcpp::Node {
@@ -127,6 +128,8 @@ private:
     image_transport::Publisher binary_img_pub_;
     image_transport::Publisher number_img_pub_;
     image_transport::Publisher result_img_pub_;
+
+    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr no_armor_pub_;
 };
 
 } // namespace armor
