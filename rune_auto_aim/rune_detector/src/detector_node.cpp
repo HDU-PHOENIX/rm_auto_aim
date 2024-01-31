@@ -119,16 +119,16 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             // cls = RuneClass::BlueUnActivated / RedUnActivated;
             rune_points.clear();
 
-            rune_points.push_back(object.vertices[1]);
-            rune_points.push_back(object.vertices[2]);
-            rune_points.push_back(object.vertices[4]);
-            rune_points.push_back(object.vertices[0]);
+            rune_points.emplace_back(object.vertices[1]);
+            rune_points.emplace_back(object.vertices[2]);
+            rune_points.emplace_back(object.vertices[4]);
+            rune_points.emplace_back(object.vertices[0]);
             auto&& tmp1 = (object.vertices[0] + object.vertices[1]) / 2;
             auto&& tmp2 = (object.vertices[2] + object.vertices[4]) / 2;
             auto&& armor = (tmp1 + tmp2) / 2; // 装甲板中心
             rune_armor = armor;
-            if (!flag1) // 如果 yolo 没有检测到 R 标
-            {
+            if (!flag1) {
+                // 如果 yolo 没有检测到 R 标
                 // symbol = (get_symbol(tmp1, armor, 5.295454, 1) + get_symbol(tmp2,
                 // armor, 3.5542, 0)) / 2;
                 symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
@@ -142,7 +142,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             continue;
         }
 
-        for (auto vertice: object.vertices) { // 画出五个关键点
+        for (auto vertice: object.vertices) {
+            // 画出五个关键点
             cv::circle(img, vertice, 5, Colors::Green, -1);
         }
     }

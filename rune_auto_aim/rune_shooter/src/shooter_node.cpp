@@ -44,8 +44,8 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             serial_info.end.data = 'e';
             serial_info.is_find.data = '1';
             serial_info.can_shoot.data = '1';
-            serial_info.euler[0] = yaw_and_pitch[0];  //yaw
-            serial_info.euler[2] = -yaw_and_pitch[1]; //pitch
+            serial_info.euler[0] = yaw_and_pitch[0]; //yaw
+            serial_info.euler[2] = yaw_and_pitch[1]; //pitch
             serial_info.origin_euler = { 0 };
             serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
             shooter_info_pub_->publish(serial_info);
