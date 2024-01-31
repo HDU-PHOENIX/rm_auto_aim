@@ -20,7 +20,7 @@
 namespace armor {
 Detector::Detector(
     const int& gray_thres,
-    const int& color_thres,
+    const int& contour_thres,
     const int& color,
     const LightParams& light_params,
     const ArmorParams& armor_params,
@@ -28,7 +28,7 @@ Detector::Detector(
 ):
     binary_thres(0),
     gray_thres(gray_thres),
-    color_thres(color_thres),
+    contour_thres(contour_thres),
     enemy_color(color),
     light_params(light_params),
     armor_params(armor_params),
@@ -43,7 +43,7 @@ Detector::Detector(
 ):
     binary_thres(bin_thres),
     gray_thres(0),
-    color_thres(0),
+    contour_thres(0),
     enemy_color(color),
     light_params(light_params),
     armor_params(armor_params),
@@ -84,9 +84,17 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
             // 蓝色 - 红色 获得蓝色区域轮廓
             cv::subtract(channels[0], channels[2], color_mask);
         }
-        cv::threshold(color_mask, color_mask, color_thres, 255, cv::THRESH_BINARY_INV);
-
-        cv::bitwise_and(gray_mask, color_mask, binary_img);
+        // 二值化轮廓后膨胀
+        cv::threshold(color_mask, contour_mask, contour_thres, 255, cv::THRESH_BINARY);
+        cv::Mat kernel = cv::Mat::ones(5, 5, CV_8U);
+        cv::dilate(contour_mask, contour_mask, kernel);
+        // 寻找轮廓并填充
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(contour_mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        for (size_t i = 0; i < contours.size(); i++) {
+            cv::fillPoly(contour_mask, contours, cv::Scalar(255));
+        }
+        cv::bitwise_and(gray_mask, contour_mask, binary_img);
     }
 
     return binary_img;

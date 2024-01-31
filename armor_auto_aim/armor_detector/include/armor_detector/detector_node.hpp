@@ -125,6 +125,7 @@ private:
     rclcpp::Publisher<auto_aim_interfaces::msg::DebugArmors>::SharedPtr armors_data_pub_;
     image_transport::Publisher gray_mask_pub_;
     image_transport::Publisher color_mask_pub_;
+    image_transport::Publisher contour_mask_pub_;
     image_transport::Publisher binary_img_pub_;
     image_transport::Publisher number_img_pub_;
     image_transport::Publisher result_img_pub_;

@@ -172,7 +172,7 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     param_desc.integer_range[0].step = 1;
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 255;
-    int color_thres = declare_parameter("color_thres", 160, param_desc);
+    int contour_thres = declare_parameter("contour_thres", 160, param_desc);
 
     Detector::LightParams l_params;
     param_desc.integer_range.clear();
@@ -227,7 +227,7 @@ std::unique_ptr<Detector> ArmorDetectorNode::InitDetector() {
     if (detect_mode == 0) {
         detector = std::make_unique<Detector>(binary_thres, enemy_color, l_params, a_params, detect_mode);
     } else if (detect_mode == 1) {
-        detector = std::make_unique<Detector>(gray_thres, color_thres, enemy_color, l_params, a_params, detect_mode);
+        detector = std::make_unique<Detector>(gray_thres, contour_thres, enemy_color, l_params, a_params, detect_mode);
     } else {
         RCLCPP_ERROR(this->get_logger(), "Invalid detect_mode!");
     }
@@ -251,7 +251,7 @@ std::vector<Armor> ArmorDetectorNode::DetectArmors(const sensor_msgs::msg::Image
     if (this->debug_) {
         detector_->binary_thres = get_parameter("binary_thres").as_int();
         detector_->gray_thres = get_parameter("gray_thres").as_int();
-        detector_->color_thres = get_parameter("color_thres").as_int();
+        detector_->contour_thres = get_parameter("contour_thres").as_int();
         detector_->enemy_color = get_parameter("enemy_color").as_int();
         detector_->detect_mode = get_parameter("detect_mode").as_int();
         detector_->light_params = {
@@ -292,6 +292,7 @@ void ArmorDetectorNode::CreateDebugPublishers() {
 
     gray_mask_pub_ = image_transport::create_publisher(this, "/detector/gray_mask");
     color_mask_pub_ = image_transport::create_publisher(this, "/detector/color_mask");
+    contour_mask_pub_ = image_transport::create_publisher(this, "/detector/contour_mask");
     binary_img_pub_ = image_transport::create_publisher(this, "/detector/binary_img");
     number_img_pub_ = image_transport::create_publisher(this, "/detector/number_img");
     result_img_pub_ = image_transport::create_publisher(this, "/detector/result_img");
@@ -305,6 +306,7 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
     // 关闭
     gray_mask_pub_.shutdown();
     color_mask_pub_.shutdown();
+    contour_mask_pub_.shutdown();
     binary_img_pub_.shutdown();
     number_img_pub_.shutdown();
     result_img_pub_.shutdown();
@@ -314,6 +316,7 @@ void ArmorDetectorNode::PublishDebugInfo(cv::Mat& img, const sensor_msgs::msg::I
     if (detector_->detect_mode == 1) {
         gray_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->gray_mask).toImageMsg());
         color_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->color_mask).toImageMsg());
+        contour_mask_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->contour_mask).toImageMsg());
     }
     binary_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "mono8", detector_->binary_img).toImageMsg());
 

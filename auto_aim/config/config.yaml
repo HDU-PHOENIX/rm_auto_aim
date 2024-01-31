@@ -36,7 +36,7 @@
     ros__parameters:
         binary_thres: 160
         gray_thres: 200
-        color_thres: 120
+        contour_thres: 100
         enemy_color: 0 # 0-红色，1-蓝色 
         detect_mode: 0 # 0-普通二值化，1-通道相减二值化 (int)
 

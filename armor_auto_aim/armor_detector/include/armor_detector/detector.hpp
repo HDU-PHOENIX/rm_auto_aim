@@ -40,7 +40,7 @@ public:
 
     Detector(
         const int& gray_thres,
-        const int& color_thres,
+        const int& contour_thres,
         const int& color,
         const LightParams& light_params,
         const ArmorParams& armor_params,
@@ -104,7 +104,7 @@ public:
 
     int binary_thres;         // 二值化阈值
     int gray_thres;           // 灰度二值化阈值
-    int color_thres;          // 通道相减二值化阈值
+    int contour_thres;          // 通道相减二值化阈值
     int enemy_color;          // 识别到的颜色
     LightParams light_params; // 灯条参数
     ArmorParams armor_params; // 装甲板参数
@@ -114,7 +114,7 @@ public:
     std::unique_ptr<NumberClassifier> classifier;
 
     // 允许 detector_node 访问的用于调试的图像和信息
-    cv::Mat gray_mask, color_mask, binary_img;
+    cv::Mat gray_mask, color_mask, contour_mask, binary_img;
     auto_aim_interfaces::msg::DebugLights debug_lights;
     auto_aim_interfaces::msg::DebugArmors debug_armors;
 
