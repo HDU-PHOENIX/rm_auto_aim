@@ -85,7 +85,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     cv::Point2f rune_armor;               // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points; // 未激活符叶的五个点
                                           ///------------------------生成扇叶对象----------------------------------------------
-    for (auto object: objects_) {
+    for (const auto& object: objects_) {
         // 遍历所有的神符识别结果，把 R 标和未激活的符叶的信息画出来
         auto prob = object.prob;
         if (prob < confidence_threshold_) {
