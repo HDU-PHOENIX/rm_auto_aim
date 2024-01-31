@@ -47,22 +47,22 @@ private:
    */
     bool DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
+    /**
+    * @brief debug 模式下发布识别到的神符信息
+    */
+    void CreateDebugPublishers();
+    void DestroyDebugPublishers();
+
+    /**
+    * @brief 创建标记发布者
+    */
+    void PublishMarkers();
+
     // debug 模式
     bool debug_;
     bool SEND_DEFAULT_DATA; //是否发送默认数据
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
-
-    /**
-   * @brief debug 模式下发布识别到的神符信息
-   */
-    void CreateDebugPublishers();
-    void DestroyDebugPublishers();
-
-    /**
-   * @brief 创建标记发布者
-   */
-    void PublishMarkers();
 
     // 神符识别器
     std::shared_ptr<NeuralNetwork> detector_;
@@ -94,6 +94,9 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
+
+    //没有识别到神符时发布的信息
+    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr no_rune_pub_;
 };
 
 } // namespace rune

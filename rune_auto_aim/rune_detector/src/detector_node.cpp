@@ -69,6 +69,8 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         cam_info_sub_.reset();
     });
 
+    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
+
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_rune", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
 }
 
@@ -150,9 +152,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);
-    } else {
-        cv::destroyAllWindows();
     }
+
     if (flag1 && flag2) // 有 R 标数据和符叶数据，则认为识别完成
     {
         // RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
@@ -240,7 +241,17 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
                 PublishMarkers();                // 发布标记
                 runes_pub_->publish(runes_msg_); // 发布神符信息
             } else {
-                // RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
+                //如果没有检测到符叶则发布yaw roll pitch为0数据
+                RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
+                auto_aim_interfaces::msg::SerialInfo no_rune_msg;
+                no_rune_msg.start.set__data('s');
+                no_rune_msg.end.set__data('e');
+                no_rune_msg.is_find.set__data('0');
+                no_rune_msg.can_shoot.set__data('0');
+                no_rune_msg.euler = { 0, 0, 0 };
+                no_rune_msg.origin_euler = { 0, 0, 0 };
+                no_rune_msg.distance = 0;
+                no_rune_pub_->publish(no_rune_msg);
             }
         }
     }
