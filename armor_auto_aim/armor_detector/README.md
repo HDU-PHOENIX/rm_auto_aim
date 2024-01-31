@@ -33,6 +33,7 @@
         3. 对`color_mask`进行二值化后膨胀，扩展轮廓，得到`contour_mask`
         4. 在`contour_mask`中寻找轮廓并填充
         5. `gray_mask` 和 `contour_mask` 按位与，获得敌方装甲板灯条轮廓图
+        6. 过程效果图：![](docs/image.png)
 
 ### 检测灯条
 

@@ -1,8 +1,9 @@
 # armor_tracker
 
-- [ArmorTrackerNode](#armortrackernode)
+- [armor\_tracker](#armor_tracker)
+  - [ArmorTrackerNode](#armortrackernode)
+  - [ExtendedKalmanFilter](#extendedkalmanfilter)
   - [Tracker](#tracker)
-    - [KalmanFilter](#kalmanfilter)
 
 ## ArmorTrackerNode
 装甲板处理节点

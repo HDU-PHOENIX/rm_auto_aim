@@ -6,6 +6,7 @@
     - [UKF无迹卡尔曼滤波器](#ukf无迹卡尔曼滤波器)
     - [Ceres-solver](#ceres-solver)
   - [rune\_shooter](#rune_shooter)
+    - [龙哥库塔迭代](#龙哥库塔迭代)
   
 ## Brief
 ```
@@ -42,7 +43,7 @@ $$  w = A * cos (\omega * t + \phi) + b  $$
   - [上交训练集标注转换工具](https://github.com/Spphire/RM-labeling-tool)
   ```(上交转换工具还需要自己修改一下部分细节)```
   - 符叶和R标的标注点顺序如下图
-![](pic/RunePoint.jpg)
+![](docs/RunePoint.jpg)
 
 ## rune_tracker
 能量机关追踪模块,主要通过前面的检测模块采集角速度数据，然后将其送入ukf滤波器进行滤波处理,随后将平滑的角速度曲线送入ceres求解器
