@@ -5,19 +5,16 @@ namespace sensor {
 SerialNode::SerialNode(const rclcpp::NodeOptions& options):
     Node("serial_node", options) {
     this->serial_ = InitSerial();
-    this->camera2shooter_tvec_ = declare_parameter(
-        "camera2shooter_tvec",
+    this->shooter2camera_tvec_ = declare_parameter(
+        "shooter2camera_tvec",
         std::vector<double> { 0.0, 0.0, 0.0 }
     );
-    this->shooter2odom_tvec_ = declare_parameter(
-        "shooter2odom_tvec",
-        std::vector<double> { 0.0, 0.0, 0.0 }
-    );
+    this->odom2shooter_r_ = declare_parameter("odom2shooter_r", 0.5);
 
-    broadcaster_camera2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-    broadcaster_shooter2odom_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-    tfs_camera2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
-    tfs_shooter2odom_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+    broadcaster_shooter2camera_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    broadcaster_odom2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    tfs_shooter2camera_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
+    tfs_odom2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
     this->serial_info_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>(
         "/serial_info",
@@ -56,10 +53,14 @@ void SerialNode::SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::
 }
 
 void SerialNode::LoopForPublish() {
-    while (rclcpp::ok() && !canceled_.load()) {
+    while (rclcpp::ok()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         auto&& package = serial_->ReadData();
+
+        auto yaw = package.euler[0];
+        auto pitch = package.euler[2];
+
         serial_info_.start.data = package.start;
         serial_info_.end.data = package.end;
         serial_info_.color.data = package.color;
@@ -72,34 +73,38 @@ void SerialNode::LoopForPublish() {
         serial_info_.rune_flag.data = package.rune_flag;
 
         // x:red y:green z:blue
-        // 发布 相机 到 枪口 的坐标系转换
+        // 发布 odom 到 枪口 的坐标系转换（补偿 yaw pitch 轴的云台转动）
+        // 四元数字和欧拉角转换 https://quaternions.online
         SendTransform(
-            broadcaster_camera2shooter_,
-            tfs_camera2shooter_,
+            broadcaster_odom2shooter_,
+            tfs_odom2shooter_,
             this->now(),
-            "camera",
+            "odom",
             "shooter",
-            // 四元数字和欧拉角转换 https://quaternions.online
+            [pitch, yaw]() {
+                tf2::Quaternion q;
+                q.setRPY(0, pitch, yaw);
+                return q;
+            }(),
+            tf2::Vector3(
+                odom2shooter_r_ * cos(pitch) * cos(yaw),
+                odom2shooter_r_ * cos(pitch) * sin(yaw),
+                odom2shooter_r_ * sin(-pitch)
+            )
+        );
+        // // 发布 枪口 到 相机 的坐标系转换
+        SendTransform(
+            broadcaster_shooter2camera_,
+            tfs_shooter2camera_,
+            this->now(),
+            "shooter",
+            "camera",
             []() {
                 tf2::Quaternion q;
-                q.setRPY(M_PI_2, -M_PI_2, 0);
+                q.setEuler(M_PI_2, 0, -M_PI_2);
                 return q;
             }(),
-            tf2::Vector3(camera2shooter_tvec_[0], camera2shooter_tvec_[1], camera2shooter_tvec_[2])
-        );
-        // 发布 枪口 到 odom 的坐标系转换（补偿 yaw pitch 轴的云台转动）
-        SendTransform(
-            broadcaster_shooter2odom_,
-            tfs_shooter2odom_,
-            this->now(),
-            "shooter",
-            "odom",
-            [this]() {
-                tf2::Quaternion q;
-                q.setRPY(0, -serial_info_.euler[2], -serial_info_.euler[0]);
-                return q;
-            }(),
-            tf2::Vector3(shooter2odom_tvec_[0], shooter2odom_tvec_[1], shooter2odom_tvec_[2])
+            tf2::Vector3(shooter2camera_tvec_[0], shooter2camera_tvec_[1], shooter2camera_tvec_[2])
         );
 
         serial_info_pub_->publish(serial_info_);

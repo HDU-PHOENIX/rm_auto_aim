@@ -29,8 +29,8 @@
         device_name: "/dev/ttyACM0"
         default_data_recv_mode: 114 # a:97 r:114
         default_data_recv_euler: [0.2, 0.0, 0.2]
-        camera2shooter_tvec: [0.0, 0.1, 0.1]
-        shooter2odom_tvec: [-0.2, 0.1, -0.1]
+        odom2shooter_r: 0.059 # odom to shooter ratio
+        shooter2camera_tvec: [0.11, 0, 0.04]
 
 /armor_detector_node:
     ros__parameters:

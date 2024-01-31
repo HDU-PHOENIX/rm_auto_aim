@@ -68,16 +68,16 @@ private:
     rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_pub_;
 
     // 用于发布 相机坐标系 到 云台坐标系 的转换的广播器
-    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_camera2shooter_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2camera_;
     // 用于发布 云台坐标系 到 odom 的转换的广播器
-    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2odom_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_odom2shooter_;
     // 从相机坐标系到云台中心的转换
-    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_camera2shooter_;
+    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_shooter2camera_;
     // 从云台中心到 odom 坐标系的转换（补偿 yaw pitch 轴的转动以保证 odom 系静止）
-    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_shooter2odom_;
+    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_odom2shooter_;
 
-    std::vector<double> camera2shooter_tvec_; // 相机坐标系到枪口坐标系的平移向量
-    std::vector<double> shooter2odom_tvec_;   // 枪口坐标系到 odom 坐标系的平移向量
+    std::vector<double> shooter2camera_tvec_; // 枪口坐标系到相机坐标系的平移向量
+    double odom2shooter_r_;                   // 枪口到 odom 坐标系的距离
 };
 
 } // namespace sensor
