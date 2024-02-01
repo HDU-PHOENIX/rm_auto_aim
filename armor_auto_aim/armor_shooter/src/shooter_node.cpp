@@ -11,6 +11,11 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         "/shooter_info",
         rclcpp::SensorDataQoS()
     );
+    shooter_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(
+        "/shooter/marker",
+        rclcpp::SensorDataQoS()
+    );
+    InitMarker();
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
         rclcpp::SensorDataQoS(),
@@ -27,7 +32,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             serial_info.speed = msg->v_yaw;
             //TODO: pitch 角度上下正负号得确认
             serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
-            // PublishMarkers(shooter_->shoot_pw_, msg->header.stamp);
+            PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
 
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
@@ -67,31 +72,31 @@ std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
     );
 }
 
-void ArmorShooterNode::PublishMarkers(const Eigen::Vector3d& position, const builtin_interfaces::msg::Time& stamp) {
-    visualization_msgs::msg::MarkerArray marker_array;
-    visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "shooter";
-    marker.header.stamp = stamp;
-    marker.ns = "armor_shooter";
-    marker.id = 0;
-    marker.type = visualization_msgs::msg::Marker::SPHERE;
-    marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.pose.position.x = position[0];
-    marker.pose.position.y = position[1];
-    marker.pose.position.z = position[2];
-    marker.pose.orientation.x = 0;
-    marker.pose.orientation.y = 0;
-    marker.pose.orientation.z = 0;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    marker.scale.z = 0.1;
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.0;
-    marker.color.b = 0.0;
-    marker_array.markers.push_back(marker);
-    marker_pub_->publish(marker_array);
+void ArmorShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
+    shooter_marker_.header.stamp = stamp;
+    shooter_marker_.pose.position.x = shoot_pw[0];
+    shooter_marker_.pose.position.y = shoot_pw[1];
+    shooter_marker_.pose.position.z = shoot_pw[2];
+    shooter_marker_pub_->publish(shooter_marker_);
+}
+
+void ArmorShooterNode::InitMarker() {
+    shooter_marker_.header.frame_id = "shooter";
+    shooter_marker_.ns = "armor_shooter";
+    shooter_marker_.id = 0;
+    shooter_marker_.type = visualization_msgs::msg::Marker::SPHERE;
+    shooter_marker_.action = visualization_msgs::msg::Marker::ADD;
+    shooter_marker_.pose.orientation.x = 0;
+    shooter_marker_.pose.orientation.y = 0;
+    shooter_marker_.pose.orientation.z = 0;
+    shooter_marker_.pose.orientation.w = 1.0;
+    shooter_marker_.scale.x = 0.05;
+    shooter_marker_.scale.y = 0.05;
+    shooter_marker_.scale.z = 0.05;
+    shooter_marker_.color.a = 1.0;
+    shooter_marker_.color.r = 0.0;
+    shooter_marker_.color.g = 0.0;
+    shooter_marker_.color.b = 1.0;
 }
 
 } // namespace armor

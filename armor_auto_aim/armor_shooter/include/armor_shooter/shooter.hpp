@@ -35,7 +35,10 @@ public:
         correction_of_x_ = x;
         correction_of_y_ = y;
     }
-    Eigen::Vector3d shoot_pw_; // 预瞄点的世界坐标下的坐标
+
+    Eigen::Vector3d GetShootPw() {
+        return shoot_pw_;
+    }
 
 private:
     double gravity_;           // 重力系数
@@ -48,5 +51,6 @@ private:
     Eigen::Vector3d orin_pw_;  // 目标点的世界坐标下的坐标
     Eigen::Vector3d shoot_pc_; // 预瞄点的相机坐标下的坐标
     Eigen::Vector3d shoot_pu_; // 预瞄点的像素坐标下的坐标
+    Eigen::Vector3d shoot_pw_; // 预瞄点的世界坐标下的坐标
 };
 } // namespace armor
