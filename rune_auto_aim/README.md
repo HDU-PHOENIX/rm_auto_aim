@@ -6,7 +6,7 @@
     - [UKF无迹卡尔曼滤波器](#ukf无迹卡尔曼滤波器)
     - [Ceres-solver](#ceres-solver)
   - [rune\_shooter](#rune_shooter)
-    - [龙哥库塔迭代](#龙哥库塔迭代)
+    - [龙格库塔迭代](#龙格库塔迭代)
   
 ## Brief
 ```
