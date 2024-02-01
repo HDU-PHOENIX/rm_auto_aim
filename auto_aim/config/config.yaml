@@ -63,7 +63,7 @@
         correction_of_x: -2.3899999999999997
         correction_of_y: -1.7899999999999991
         stop_error: 0.001
-        velocity: 25
+        velocity: 25  #飞机子弹的速度为30m/s
         number_of_iterations: 60
         yaw_threshold: 0.005
         pitch_threshold: 0.005
