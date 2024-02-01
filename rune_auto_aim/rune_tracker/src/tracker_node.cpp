@@ -9,10 +9,24 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
     InitCeres(); //初始化ceres
     InitParams();
-    CreateDebugPublisher(); //创建Debug发布器
     //ukf滤波器初始化 1.5  1.2
     tracker_ = std::make_unique<Tracker>(1.5, 1.2); //tracker中的ukf滤波器初始化
 
+    debug_ = this->declare_parameter("debug", true);
+
+    if (debug_) {
+        CreateDebugPublisher(); //创建Debug发布器
+        // 可视化标记发布器
+        // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
+        armor_marker_.ns = "armors";
+        armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
+        armor_marker_.scale.x = 0.03; //TODO:x,y,z值还需修改
+        armor_marker_.scale.y = 0.23;
+        armor_marker_.scale.z = 0.125;
+        armor_marker_.color.a = 1.0;
+        armor_marker_.color.r = 1.0;
+        marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
+    }
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
         cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
@@ -52,17 +66,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         rclcpp::SensorDataQoS()
     );
     InitRecord(); //打开txt文件 用于记录卡尔曼滤波曲线和原始曲线
-
-    // 可视化标记发布器
-    // 参见 http://wiki.ros.org/rviz/DisplayTypes/Marker
-    armor_marker_.ns = "armors";
-    armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
-    armor_marker_.scale.x = 0.03; //TODO:x,y,z值还需修改
-    armor_marker_.scale.y = 0.23;
-    armor_marker_.scale.z = 0.125;
-    armor_marker_.color.a = 1.0;
-    armor_marker_.color.r = 1.0;
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
 }
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
@@ -127,8 +130,10 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
     target_pub_->publish(runes_msg_);
-    PublishMarkers(runes_msg_);
-    PublishDebugInfo();
+    if (debug_) {
+        PublishMarkers(runes_msg_);
+        PublishDebugInfo();
+    }
 }
 
 bool RuneTrackerNode::Judge() {

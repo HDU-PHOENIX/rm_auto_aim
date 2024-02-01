@@ -1,12 +1,13 @@
 /**:
   ros__parameters:
     debug: true
+    show_pic: false
 
 
 /camera_node:
     ros__parameters:
-        videoflag: false
-        video_path: "./Camera/new.mp4"
+        videoflag: true
+        video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
 /camera_info_node:
@@ -44,7 +45,6 @@
     ros__parameters:
         confidence_threshold: 0.95 #神经网络置信度阈值
         model_path: "/model/yolox_fp16.onnx" #这里的路径是相对路径
-        SEND_DEFAULT_DATA: false
 
 /rune_tracker_node:
     ros__parameters:

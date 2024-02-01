@@ -47,6 +47,9 @@ private:
 
     void PublishDebugInfo(); //发布debug信息
 
+    // 发布标记点函数
+    void PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
+
     enum class MotionState {
         Unknown,
         Static,
@@ -158,8 +161,7 @@ private:
     //数据处理，判断角速度是否正常，正常则记录数据并且丢入ukf，传入的参数为符叶角度
     void DataProcess();
 
-    // 发布标记点函数
-    void PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
+    bool debug_; //debug标志符
 
     // 相机信息订阅者
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;

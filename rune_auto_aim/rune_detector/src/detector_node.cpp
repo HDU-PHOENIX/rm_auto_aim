@@ -31,35 +31,20 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
     model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
-    SEND_DEFAULT_DATA = this->declare_parameter("SEND_DEFAULT_DATA", false);
-    detector_ = InitDetector(); // 初始化神符识别器
-    pnp_solver_ = nullptr;      // 初始化 pnp 求解器
-    //创建标记发布者
-    debug_ = this->declare_parameter("debug", false);
+    detector_ = InitDetector();                                                   // 初始化神符识别器
+    pnp_solver_ = nullptr;                                                        // 初始化 pnp 求解器
 
+    debug_ = this->declare_parameter("debug", false);
     // 监视 Debug 参数变化
     debug_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
     debug_cb_handle_ = debug_param_sub_->add_parameter_callback("debug", [this](const rclcpp::Parameter& p) {
         debug_ = p.as_bool();
     });
 
+    show_pic = this->declare_parameter("show_pic", false);
+
     // 创建神符信息发布者
     runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Rune>("/detector/runes", rclcpp::SensorDataQoS());
-
-    // Visualization Marker Publisher
-    // See http://wiki.ros.org/rviz/DisplayTypes/Marker
-    rune_marker_.ns = "armors";
-    rune_marker_.action = visualization_msgs::msg::Marker::ADD;
-    rune_marker_.type = visualization_msgs::msg::Marker::CUBE;
-    rune_marker_.scale.x = 0.05;
-    rune_marker_.scale.y = 0.23; //设置默认的 x,y,z
-    rune_marker_.scale.z = 0.125;
-    rune_marker_.color.a = 1.0;
-    rune_marker_.color.g = 0.5;
-    rune_marker_.color.b = 1.0;
-    rune_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
-
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
 
     // 创建相机信息订阅者
     cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
@@ -69,6 +54,22 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         cam_info_sub_.reset();
     });
 
+    if (debug_) {
+        // Visualization Marker Publisher
+        // See http://wiki.ros.org/rviz/DisplayTypes/Marker
+        rune_marker_.ns = "armors";
+        rune_marker_.action = visualization_msgs::msg::Marker::ADD;
+        rune_marker_.type = visualization_msgs::msg::Marker::CUBE;
+        rune_marker_.scale.x = 0.05;
+        rune_marker_.scale.y = 0.23; //设置默认的 x,y,z
+        rune_marker_.scale.z = 0.125;
+        rune_marker_.color.a = 1.0;
+        rune_marker_.color.g = 0.5;
+        rune_marker_.color.b = 1.0;
+        rune_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
+        marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
+        debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
+    }
     no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
 
     img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_rune", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
@@ -147,16 +148,20 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             cv::circle(img, vertice, 5, Colors::Green, -1);
         }
     }
-    if (debug_) {
-        cv::circle(img, rune_armor, 6, Colors::Green, -1);          //画出装甲板中心
-        cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
-        cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
+    cv::circle(img, rune_armor, 6, Colors::Green, -1);          //画出装甲板中心
+    cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
+    cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
+    if (show_pic) {
         cv::imshow("tmp", img);
         cv::waitKey(1);
     }
 
-    if (flag1 && flag2) // 有 R 标数据和符叶数据，则认为识别完成
-    {
+    if (debug_) {
+        PublishImg(img, img_msg); // 发布图片
+    }
+
+    if (flag1 && flag2) {
+        // 有 R 标数据和符叶数据，则认为识别完成
         // RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
         bool success = pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
@@ -200,60 +205,27 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    if (SEND_DEFAULT_DATA) {
-        //发送测试数据 默认参数
-        DetectRunes(img_msg);
-        runes_msg_.motion = 2;
-        runes_msg_.leaf_dir.x = 1;
-        runes_msg_.leaf_dir.y = 1; // 符叶向量
-        runes_msg_.symbol.x = 0;   // R 标位置 图像左上角为原点
-        runes_msg_.symbol.y = 0;   // R 标位置 图像左上角为原点
-        runes_msg_.header.frame_id = "camera";
-        runes_msg_.rune_points[0].x = 100;
-        runes_msg_.rune_points[0].y = 100;
-        runes_msg_.rune_points[1].x = 100;
-        runes_msg_.rune_points[1].y = 200;
-        runes_msg_.rune_points[2].x = 200;
-        runes_msg_.rune_points[2].y = 200;
-        runes_msg_.rune_points[3].x = 200;
-        runes_msg_.rune_points[3].y = 100;
-        cv::Mat rvec, tvec;
-        std::vector<cv::Point2d> rune_points;
-        rune_points.emplace_back(100, 100);
-        rune_points.emplace_back(100, 200);
-        rune_points.emplace_back(200, 200);
-        rune_points.emplace_back(200, 100);
-        pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION);
-        runes_msg_.pose_c.position.x = tvec.at<double>(0);
-        runes_msg_.pose_c.position.y = tvec.at<double>(1);
-        runes_msg_.pose_c.position.z = tvec.at<double>(2);
-        // Fill the markers
-        rune_marker_.header.frame_id = "camera";
-        rune_marker_.id++;
-        rune_marker_.pose = runes_msg_.pose_c;
-        PublishMarkers();                // 发布标记
-        runes_pub_->publish(runes_msg_); // 发布神符信息
+    if (pnp_solver_ == nullptr) {
+        RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
     } else {
-        if (pnp_solver_ == nullptr) {
-            RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
-        } else {
-            //检测图片 如果检测到了符叶则发布符叶信息
-            if (DetectRunes(img_msg)) {
-                PublishMarkers();                // 发布标记
-                runes_pub_->publish(runes_msg_); // 发布神符信息
-            } else {
-                //如果没有检测到符叶则发布yaw roll pitch为0数据
-                RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
-                auto_aim_interfaces::msg::SerialInfo no_rune_msg;
-                no_rune_msg.start.set__data('s');
-                no_rune_msg.end.set__data('e');
-                no_rune_msg.is_find.set__data('0');
-                no_rune_msg.can_shoot.set__data('0');
-                no_rune_msg.euler = { 0, 0, 0 };
-                no_rune_msg.origin_euler = { 0, 0, 0 };
-                no_rune_msg.distance = 0;
-                no_rune_pub_->publish(no_rune_msg);
+        //检测图片 如果检测到了符叶则发布符叶信息
+        if (DetectRunes(img_msg)) {
+            if (debug_) {
+                PublishMarkers(); // 发布标记
             }
+            runes_pub_->publish(runes_msg_); // 发布神符信息
+        } else {
+            //如果没有检测到符叶则发布yaw roll pitch为0数据
+            RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
+            auto_aim_interfaces::msg::SerialInfo no_rune_msg;
+            no_rune_msg.start.set__data('s');
+            no_rune_msg.end.set__data('e');
+            no_rune_msg.is_find.set__data('0');
+            no_rune_msg.can_shoot.set__data('0');
+            no_rune_msg.euler = { 0, 0, 0 };
+            no_rune_msg.origin_euler = { 0, 0, 0 };
+            no_rune_msg.distance = 0;
+            no_rune_pub_->publish(no_rune_msg);
         }
     }
 }
@@ -262,6 +234,10 @@ void RuneDetectorNode::PublishMarkers() {
     using Marker = visualization_msgs::msg::Marker;
     rune_marker_.action = Marker::ADD;
     marker_pub_->publish(rune_marker_);
+}
+
+void RuneDetectorNode::PublishImg(cv::Mat& img, const sensor_msgs::msg::Image::SharedPtr& img_msg) {
+    debug_img_pub_.publish(cv_bridge::CvImage(img_msg->header, "bgr8", img).toImageMsg());
 }
 
 std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {

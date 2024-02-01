@@ -2,6 +2,7 @@
 #define RUNE_DETECTOR__DETECTOR_NODE_HPP_
 
 // ROS
+#include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/publisher.hpp>
 #include <image_transport/subscriber_filter.hpp>
@@ -48,21 +49,22 @@ private:
     bool DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     /**
-    * @brief debug 模式下发布识别到的神符信息
-    */
-    void CreateDebugPublishers();
-    void DestroyDebugPublishers();
-
-    /**
     * @brief 创建标记发布者
     */
     void PublishMarkers();
 
+    /**
+    * @brief debug 模式下发布识别到的神符图片
+    */
+    void PublishImg(cv::Mat& img, const sensor_msgs::msg::Image::SharedPtr& img_msg);
+
     // debug 模式
     bool debug_;
+    bool show_pic;
     bool SEND_DEFAULT_DATA; //是否发送默认数据
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
+    image_transport::Publisher debug_img_pub_; //debug
 
     // 神符识别器
     std::shared_ptr<NeuralNetwork> detector_;
