@@ -23,6 +23,10 @@ private:
     rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr shooter_info_pub_;
     visualization_msgs::msg::Marker shooter_marker_;                                   //marker可视化
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr shooter_marker_pub_; //发布marker可视化
+
+    // 消抖阈值
+    double yaw_threshold_;
+    double pitch_threshold_;
 };
 
 } // namespace armor

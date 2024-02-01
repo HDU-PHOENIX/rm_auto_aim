@@ -15,6 +15,10 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         "/shooter/marker",
         rclcpp::SensorDataQoS()
     );
+
+    yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.005);
+    pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
+
     InitMarker();
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
@@ -27,17 +31,22 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(
                 Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
             );
-            //TODO: 考虑做防抖处理
+
             auto_aim_interfaces::msg::SerialInfo serial_info;
             serial_info.speed = msg->v_yaw;
-            //TODO: pitch 角度上下正负号得确认
-            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
-            PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
-
+            if (abs(yaw_and_pitch[0]) < this->get_parameter("yaw_threshold").as_double()
+                && abs(yaw_and_pitch[1]) < this->get_parameter("pitch_threshold").as_double()) {
+                serial_info.can_shoot.set__data('1');
+                serial_info.euler = { 0, 0, 0 };
+            } else {
+                serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
+            }
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');
             shooter_info_pub_->publish(std::move(serial_info));
+
+            PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
         }
     );
 }

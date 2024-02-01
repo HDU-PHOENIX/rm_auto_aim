@@ -65,6 +65,8 @@
         stop_error: 0.001
         velocity: 25
         number_of_iterations: 60
+        yaw_threshold: 0.005
+        pitch_threshold: 0.005
 
 /rune_shooter:
     ros__parameters:
