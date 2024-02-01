@@ -1,11 +1,12 @@
 #include "camera/mindvision.hpp"
 #include <chrono>
 #include <gtest/gtest.h>
+#include <memory>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/highgui.hpp>
 
 TEST(camera, camera_frame_get) {
-    cv::Mat frame;
+    std::shared_ptr<cv::Mat> frame;
     int frame_count = 0;
     double avg_fps = 0;
     auto last_frame_time = std::chrono::system_clock::now();
@@ -13,8 +14,6 @@ TEST(camera, camera_frame_get) {
 
     while (frame_count++ < 1000) {
         ASSERT_TRUE(camera->GetFrame(frame));
-        cv::imshow("frame", frame);
-        cv::waitKey(1);
         auto current_frame_time = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_time = current_frame_time - last_frame_time;
         double fps = 1.0 / elapsed_time.count();
