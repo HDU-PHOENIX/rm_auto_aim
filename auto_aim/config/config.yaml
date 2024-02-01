@@ -6,7 +6,7 @@
 
 /camera_node:
     ros__parameters:
-        videoflag: true
+        videoflag: false
         video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
@@ -38,20 +38,20 @@
         binary_thres: 160
         gray_thres: 200
         contour_thres: 100
-        enemy_color: 0 # 0-红色，1-蓝色 
-        detect_mode: 0 # 0-普通二值化，1-通道相减二值化 (int)
+        enemy_color: 0 # 0-红色�?1-蓝色 
+        detect_mode: 0 # 0-�?通二值化�?1-通道相减二值化 (int)
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.95 #神经网络置信度阈值
-        model_path: "/model/yolox_fp16.onnx" #这里的路径是相对路径
+        confidence_threshold: 0.95 #神经网络�?信度阈�?
+        model_path: "/model/yolox_fp16.onnx" #这里的路径是相�?�路�?
 
 /rune_tracker_node:
     ros__parameters:
         bullet_speed: 25.0
-        filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
+        filter_astring_threshold: 20 #用于不可用数�?的�?�数，当数据突变时候，则过滤一定数�?的数�?之后丢入 ukf
         chasedelay: 0.0
-        phase_offset: 0.0 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
+        phase_offset: 0.0 #//相位�?补偿，用于补偿�?�测到的角速度和滤波后角速度的相位差
 
 /armor_shooter:
     ros__parameters:
@@ -60,10 +60,10 @@
         k_of_small: 0.01903
         k_of_big: 0.000556
         k_of_light: 0.00053
-        correction_of_x: -2.3899999999999997
-        correction_of_y: -1.7899999999999991
+        correction_of_y: -2.3899999999999997
+        correction_of_z: -1.7899999999999991
         stop_error: 0.001
-        velocity: 25  #飞机子弹的速度为30m/s
+        velocity: 25  #飞机子弹的速度�?30m/s
         number_of_iterations: 60
         yaw_threshold: 0.005
         pitch_threshold: 0.005
@@ -75,8 +75,8 @@
         k_of_small: 0.01903
         k_of_big: 0.000556
         k_of_light: 0.00053
-        correction_of_x: -2.3899999999999997
-        correction_of_y: -1.7899999999999991
+        correction_of_y: -2.3899999999999997
+        correction_of_z: -1.7899999999999991
         stop_error: 0.001
         velocity: 25
         number_of_iterations: 60

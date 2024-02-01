@@ -27,7 +27,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
         [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
     //接收 shooter 坐标系下的坐标
 #if UNITY_TEST
-            shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
+            shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             sensor_msgs::msg::JointState joint_state;
             joint_state.header.stamp = this->now();
@@ -35,7 +35,7 @@ RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
             joint_state.position = { yaw_and_pitch[0], yaw_and_pitch[1] };
             joint_state_pub_->publish(joint_state);
 #else
-            shooter_->SetHandOffSet(this->get_parameter("correction_of_x").as_double(), this->get_parameter("correction_of_y").as_double());
+            shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             //TODO: 这里可能要做防抖处理
@@ -94,8 +94,8 @@ std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {
     param_desc.floating_point_range[0].from_value = -0.5;
     param_desc.floating_point_range[0].to_value = 0.5;
     param_desc.floating_point_range[0].step = 0.001;
-    auto correction_of_x = declare_parameter("correction_of_x", 0.0, param_desc);
     auto correction_of_y = declare_parameter("correction_of_y", 0.0, param_desc);
+    auto correction_of_z = declare_parameter("correction_of_z", 0.0, param_desc);
     auto stop_error = declare_parameter("stop_error", 0.001);
     auto velocity = declare_parameter("velocity", 25);
     int r_k_iter = declare_parameter("R_K_iter", 60);
@@ -104,8 +104,8 @@ std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {
         mode,
         k_of_small,
         k_of_large,
-        correction_of_x,
         correction_of_y,
+        correction_of_z,
         stop_error,
         r_k_iter,
         velocity

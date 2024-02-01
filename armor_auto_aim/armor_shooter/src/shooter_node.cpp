@@ -25,8 +25,8 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
             shooter_->SetHandOffSet(
-                this->get_parameter("correction_of_x").as_double(),
-                this->get_parameter("correction_of_y").as_double()
+                this->get_parameter("correction_of_y").as_double(),
+                this->get_parameter("correction_of_z").as_double()
             );
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(
                 Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
@@ -62,8 +62,8 @@ std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
     param_desc.floating_point_range[0].from_value = -0.5;
     param_desc.floating_point_range[0].to_value = 0.5;
     param_desc.floating_point_range[0].step = 0.001;
-    auto correction_of_x = declare_parameter("correction_of_x", 0.0, param_desc);
     auto correction_of_y = declare_parameter("correction_of_y", 0.0, param_desc);
+    auto correction_of_z = declare_parameter("correction_of_z", 0.0, param_desc);
     auto stop_error = declare_parameter("stop_error", 0.001);
     auto velocity = declare_parameter("velocity", 25);
     int r_k_iter = declare_parameter("R_K_iter", 60);
@@ -73,8 +73,8 @@ std::unique_ptr<Shooter> ArmorShooterNode::InitShooter() {
         k_of_small,
         k_of_large,
         k_of_light,
-        correction_of_x,
         correction_of_y,
+        correction_of_z,
         stop_error,
         r_k_iter,
         velocity

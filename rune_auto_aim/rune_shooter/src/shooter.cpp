@@ -29,7 +29,6 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     }
 
     //TODO:根据陀螺仪安装位置调整距离求解方式
-    //降维，坐标系Y轴以垂直向上为正方向
     xyz = { xyz[0], xyz[1] + correction_of_x_, xyz[2] + correction_of_y_ };
     orin_pw_ = xyz;
     auto dist_vertical = xyz[2]; //垂直距离
