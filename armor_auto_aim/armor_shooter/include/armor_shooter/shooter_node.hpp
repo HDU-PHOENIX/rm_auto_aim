@@ -27,6 +27,9 @@ private:
     // 消抖阈值
     double yaw_threshold_;
     double pitch_threshold_;
+
+    double correction_of_y_;
+    double correction_of_z_;
 };
 
 } // namespace armor

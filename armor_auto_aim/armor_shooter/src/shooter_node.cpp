@@ -1,5 +1,6 @@
 #include "armor_shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
+#include <rclcpp/logging.hpp>
 
 namespace armor {
 
@@ -16,31 +17,46 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS()
     );
 
-    yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.005);
+    yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.01);
     pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
+    correction_of_y_ = this->declare_parameter("correction_of_y", 0.0);
+    correction_of_z_ = this->declare_parameter("correction_of_z", 0.0);
+
+    shooter_->SetHandOffSet(correction_of_y_, correction_of_z_);
 
     InitMarker();
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
-            shooter_->SetHandOffSet(
-                this->get_parameter("correction_of_y").as_double(),
-                this->get_parameter("correction_of_z").as_double()
-            );
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(
                 Eigen::Vector3d(msg->position.x, msg->position.y, msg->position.z)
             );
 
             auto_aim_interfaces::msg::SerialInfo serial_info;
             serial_info.speed = msg->v_yaw;
-            if (abs(yaw_and_pitch[0]) < this->get_parameter("yaw_threshold").as_double()
-                && abs(yaw_and_pitch[1]) < this->get_parameter("pitch_threshold").as_double()) {
-                serial_info.can_shoot.set__data('1');
-                serial_info.euler = { 0, 0, 0 };
+
+            yaw_and_pitch[0] = abs(yaw_and_pitch[0]) < yaw_threshold_ ? 0 : yaw_and_pitch[0];
+            yaw_and_pitch[1] = abs(yaw_and_pitch[1]) < pitch_threshold_ ? 0 : yaw_and_pitch[1];
+
+            // TODO: 💩💩💩
+            if (yaw_and_pitch[0] < 0) {
+                yaw_and_pitch[0] = std::max(-0.1, yaw_and_pitch[0]);
             } else {
-                serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
+                yaw_and_pitch[0] = std::min(0.1, yaw_and_pitch[0]);
             }
+            if (yaw_and_pitch[1] < 0) {
+                yaw_and_pitch[1] = std::max(-0.1, yaw_and_pitch[1]);
+            } else {
+                yaw_and_pitch[1] = std::min(0.1, yaw_and_pitch[1]);
+            }
+            if (abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05) {
+                serial_info.can_shoot.set__data('1');
+            } else {
+                serial_info.can_shoot.set__data('0');
+            }
+
+            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');
