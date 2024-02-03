@@ -123,7 +123,7 @@ std::vector<Light> Detector::FindLights(const cv::Mat& rbg_img, const cv::Mat& b
         auto light = Light(r_rect);
 
         if (IsLight(light)) {
-            if (detect_mode == '1') {
+            if (detect_mode == 1) {
                 // 通道相减模式下，直接判断颜色
                 light.color = enemy_color;
                 lights.emplace_back(light);
