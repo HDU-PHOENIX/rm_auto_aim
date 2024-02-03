@@ -8,12 +8,15 @@
 #include <image_transport/subscriber_filter.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/subscription.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/detail/int32_multi_array__struct.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // STD
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
@@ -22,7 +25,7 @@
 #include "pnp_solver.hpp"
 
 #include "colors.hpp"
-// yolo神经网络
+// yolox神经网络
 #include "nn.h"
 
 namespace rune {
@@ -33,6 +36,8 @@ public:
 
 private:
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg);
+
+    void ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg);
 
     /**
    * @brief 初始化神符识别器，设置识别器参数
@@ -99,6 +104,8 @@ private:
 
     //没有识别到神符时发布的信息
     rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr no_rune_pub_;
+
+    rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr mode_switch_sub_;
 };
 
 } // namespace rune

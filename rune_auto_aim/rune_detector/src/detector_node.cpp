@@ -14,14 +14,8 @@
 #include <rclcpp/qos.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-// STD
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "rune_detector/detector_node.hpp"
-
 #include "rune_detector/colors.hpp"
+#include "rune_detector/detector_node.hpp"
 
 using std::placeholders::_1;
 #define PNP_ITERATION false
@@ -72,7 +66,26 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     }
     no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
 
-    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
+    mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
+}
+
+void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
+    // 符模式 0：不可激活 1：小符 2:大符
+    // 模式 0：自瞄 1：符
+    if (msg->data[1] == 0) {
+        //如果是自瞄模式则取消订阅图像
+        img_sub_.reset();
+    } else {
+        //如果是符模式则订阅图像
+        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
+    }
+    if (msg->data[2] == 0) {
+        runes_msg_.motion = 0;
+    } else if (msg->data[2] == 1) {
+        runes_msg_.motion = 1;
+    } else if (msg->data[2] == 2) {
+        runes_msg_.motion = 2;
+    }
 }
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
@@ -170,14 +183,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             return false;
         } else {
             // RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
-            //判断大小符 //0 为不可激活，1 为小符，2 为大符
-            if (img_msg->header.frame_id == "0") {
-                runes_msg_.motion = 0;
-            } else if (img_msg->header.frame_id == "1") {
-                runes_msg_.motion = 1;
-            } else if (img_msg->header.frame_id == "2") {
-                runes_msg_.motion = 2;
-            }
             runes_msg_.pose_c.position.x = tvec.at<double>(0);
             runes_msg_.pose_c.position.y = tvec.at<double>(1);
             runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
