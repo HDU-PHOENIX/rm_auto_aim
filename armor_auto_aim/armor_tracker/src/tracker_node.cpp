@@ -2,6 +2,7 @@
 #include "armor_tracker/extended_kalman_filter.hpp"
 
 // STD
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -58,15 +59,15 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         armors_sub_,                        // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        10,                                 // size of the tf2 cache
+        1000,                               // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
-        std::chrono::duration<int>(1)       // timeout
+        std::chrono::milliseconds(1)        // timeout
     );
     // 注册回调函数
     tf2_filter_->registerCallback(&ArmorTrackerNode::ArmorsCallback, this);
 
-    // 跟踪信息发布器 for debug
+    // 跟踪信息发布器 odom 系下的装甲板坐标
     info_pub_ = this->create_publisher<auto_aim_interfaces::msg::TrackerInfo>("/tracker/info", 10);
 
     // 跟踪目标消息发布器
@@ -177,8 +178,6 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         target_msg.position.y = pre_armor_position.y();
         target_msg.position.z = pre_armor_position.z();
         target_msg.yaw = predict_car_position(6);
-        RCLCPP_INFO(this->get_logger(), "position after prediction %lf %lf %lf %lf", target_msg.position.x, target_msg.position.y, target_msg.position.z, target_msg.yaw);
-        RCLCPP_INFO(this->get_logger(), "fly time %lf", flytime);
 
         geometry_msgs::msg::PoseStamped ps;
         ps.header = armors_msg->header;
