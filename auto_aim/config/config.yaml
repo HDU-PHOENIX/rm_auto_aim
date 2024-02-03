@@ -59,6 +59,7 @@
         default_data_recv_euler: [0.2, 0.0, 0.2]
         odom2shooter_r: 0.059 # odom to shooter ratio
         shooter2camera_tvec: [0.11, 0, 0.04]
+        fix: 0.1
 
 /armor_detector_node:
     ros__parameters:
@@ -92,7 +93,7 @@
         stop_error: 0.001
         velocity: 25  #飞机子弹的速度为 30m/s
         number_of_iterations: 60
-        yaw_threshold: 0.005
+        yaw_threshold: 0.01
         pitch_threshold: 0.005
 
 /rune_shooter:

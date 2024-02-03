@@ -1,4 +1,5 @@
 #include "serial/serial_node.hpp"
+#include <cmath>
 #include <rclcpp/logging.hpp>
 
 namespace sensor {
@@ -10,6 +11,7 @@ SerialNode::SerialNode(const rclcpp::NodeOptions& options):
         std::vector<double> { 0.0, 0.0, 0.0 }
     );
     this->odom2shooter_r_ = declare_parameter("odom2shooter_r", 0.5);
+    this->fix_ = declare_parameter("fix", 0.1);
 
     broadcaster_shooter2camera_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     broadcaster_odom2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
@@ -66,7 +68,11 @@ void SerialNode::LoopForPublish() {
         serial_info_.color.data = package.color;
         serial_info_.mode.data = package.mode;
         serial_info_.speed = package.speed;
-        serial_info_.euler[0] = package.euler[0];
+        if (abs(last_euler_[0] - package.euler[0]) < 0.01) {
+            yaw_fix_ += last_euler_[0] - package.euler[0];
+        }
+        serial_info_.euler[0] = package.euler[0] - yaw_fix_ / 1.57 * fix_;
+        // serial_info_.euler[0] = package.euler[0];
         serial_info_.euler[1] = package.euler[1];
         serial_info_.euler[2] = package.euler[2]; //(0,1,2) = (yaw,roll,pitch)
         serial_info_.shoot_bool.data = package.shoot_bool;
@@ -108,6 +114,8 @@ void SerialNode::LoopForPublish() {
         );
 
         serial_info_pub_->publish(serial_info_);
+
+        last_euler_ = { package.euler[0], package.euler[1], package.euler[2] };
     }
 }
 
