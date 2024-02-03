@@ -158,15 +158,14 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     last_time_ = time;
 
     PublishMarkers(target_msg);
-    {
-        RCLCPP_INFO(this->get_logger(), "position velocity %lf %lf %lf %lf", target_msg.velocity.x, target_msg.velocity.y, target_msg.velocity.z, target_msg.v_yaw);
-        auto before_armor_position = this->tracker_->tracked_armor.pose.position;
-        RCLCPP_INFO(this->get_logger(), "position before prediction %lf %lf %lf %lf", before_armor_position.x, before_armor_position.y, before_armor_position.z, target_msg.yaw);
+    // target_pub_->publish(target_msg);
 
+    {
         // odom 系下计算 car position 和 yaw 的预测位置
-        auto&& flytime = target_msg.position.x / bullet_speed_;
+        // auto&& flytime = target_msg.position.x / bullet_speed_;
+        auto&& flytime = 0.0;
         //这里飞机的向下的速度需要处理，这里忽略傾角
-        //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity; 
+        //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
         auto predict_car_position = tracker_->target_state;
         predict_car_position(0) += target_msg.velocity.x * flytime;
         predict_car_position(2) += target_msg.velocity.y * flytime;
