@@ -32,16 +32,16 @@ private:
     // 下位机欧拉角订阅
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr euler_sub_;
 
-    // 用于发布 相机坐标系 到 枪口坐标系 的转换的广播器
-    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_camera2shooter_;
-    // 用于发布 枪口坐标系 到 odom 的转换的广播器
-    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2odom_;
-    // 从相机坐标系到枪口中心的转换
-    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_camera2shooter_;
-    // 从枪口中心到 odom 坐标系的转换（补偿 yaw pitch 轴的转动以保证 odom 系静止）
-    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_shooter2odom_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_odom2shooter_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2camera_;
+    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_odom2shooter_;
+    std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_shooter2camera_;
 
-    std::vector<double> camera2shooter_tvec_; // 相机坐标系到枪口坐标系的平移向量
-    std::vector<double> shooter2odom_tvec_;   // 枪口坐标系到 odom 坐标系的平移向量
+    std::vector<double> shooter2camera_tvec_; // 枪口坐标系到相机坐标系的平移向量
+    double odom2shooter_r_;                   // 枪口到 odom 坐标系的距离
+
+    double fix_;                  // 修正系数
+    double yaw_fix_ = 0;          // yaw 修正系数
+    float last_yaw_, last_pitch_; // 上一次的欧拉角
 };
 } // namespace auto_aim
