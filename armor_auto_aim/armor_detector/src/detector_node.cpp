@@ -3,6 +3,8 @@
 #include <opencv2/core/mat.hpp>
 #include <rclcpp/logging.hpp>
 #include <rmw/qos_profiles.h>
+#include <std_msgs/msg/detail/float32_multi_array__struct.hpp>
+#include <std_msgs/msg/detail/int32_multi_array__struct.hpp>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/convert.h>
@@ -64,9 +66,23 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     });
 
     // 创建图像订阅者
-    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor", rclcpp::SensorDataQoS(), std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1));
-
     no_armor_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
+
+    auto_aim_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        "communicate/autoaim",
+        100,
+        [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
+            if (msg->data[1] == 0) {
+                img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+                    "/image_for_armor",
+                    rclcpp::SensorDataQoS(),
+                    std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
+                );
+            } else {
+                img_sub_.reset();
+            }
+        }
+    );
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {

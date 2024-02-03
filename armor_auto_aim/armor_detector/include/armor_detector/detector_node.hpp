@@ -10,6 +10,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // STD
@@ -115,6 +116,8 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
+
+    rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr auto_aim_sub_;
 
     // Debug information
     bool debug_;
