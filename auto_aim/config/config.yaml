@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     debug: true
-    show_pic: false
+    show_pic: true
 
 
 /camera_node:

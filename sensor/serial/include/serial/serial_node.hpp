@@ -55,7 +55,6 @@ private:
 
     // 线程相关
     std::thread thread_for_publish_;
-    std::atomic<bool> canceled_;
 
     // 串口
     std::unique_ptr<sensor::Serial> serial_;

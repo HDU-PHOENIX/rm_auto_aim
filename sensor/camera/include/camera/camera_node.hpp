@@ -6,6 +6,7 @@
 
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "camera/mindvision.hpp"
+#include <memory>
 #include <opencv2/videoio.hpp>
 #include <string>
 
@@ -15,9 +16,12 @@ class CameraNode: public rclcpp::Node, MindVision {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
     ~CameraNode() override;
-    void SerialInfoCallback(const auto_aim_interfaces::msg::SerialInfo::SharedPtr msg);
 
 private:
+    void LoopForPublish(); //发布图像
+
+    void GetImg(); //获取图像
+
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
     std::shared_ptr<cv::VideoWriter> video_writer_;
@@ -28,17 +32,14 @@ private:
     rclcpp::Time last_publish_time;
 
     // 原始图像发布者
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_armor_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_for_rune_;
-    // 串口数据接收者
-    rclcpp::Subscription<auto_aim_interfaces::msg::SerialInfo>::SharedPtr serial_info_subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
 
     //是否外部输入视频流标志位
     bool videoflag;
     bool inner_shot_flag;
     std::string video_path;
     cv::VideoCapture capture;
-    cv::Mat frame;
+    std::thread thread_for_publish_; //获取图像的线程
 };
 
 } // namespace sensor
