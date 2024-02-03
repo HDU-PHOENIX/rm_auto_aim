@@ -11,6 +11,7 @@
 #include <cmath>
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
+#include <string>
 #include <vector>
 
 #include "armor_detector/detector.hpp"
@@ -309,10 +310,21 @@ void Detector::DrawResults(cv::Mat& img) {
     for (const auto& armor: armors_) {
         cv::line(img, armor.left_light.top, armor.right_light.bottom, cv::Scalar(0, 255, 0), 2);
         cv::line(img, armor.left_light.bottom, armor.right_light.top, cv::Scalar(0, 255, 0), 2);
+        cv::circle(img, (armor.left_light.center + armor.right_light.center) / 2, 3, cv::Scalar(0, 255, 0), 2);
     }
 
     // Show numbers and confidence
     for (const auto& armor: armors_) {
+        auto armor_center = (armor.left_light.center + armor.right_light.center) / 2;
+        cv::putText(
+            img,
+            std::to_string(armor_center.x) + ", " + std::to_string(armor_center.y),
+            armor_center,
+            cv::FONT_HERSHEY_SIMPLEX,
+            0.8,
+            cv::Scalar(0, 255, 255),
+            2
+        );
         cv::putText(
             img,
             armor.classfication_result,

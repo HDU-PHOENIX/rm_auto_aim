@@ -104,7 +104,7 @@ public:
 
     int binary_thres;         // 二值化阈值
     int gray_thres;           // 灰度二值化阈值
-    int contour_thres;          // 通道相减二值化阈值
+    int contour_thres;        // 通道相减二值化阈值
     int enemy_color;          // 识别到的颜色
     LightParams light_params; // 灯条参数
     ArmorParams armor_params; // 装甲板参数
