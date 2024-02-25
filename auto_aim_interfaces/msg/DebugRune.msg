@@ -4,3 +4,5 @@ float32 delta_angle
 float32[4] a_omega_phi_b
 float32 rotate_angle
 float32 phase_offset
+string motion_state
+string rotation_direction

@@ -95,7 +95,14 @@ private:
         double pred_angle; //预测的角度
         double pred_time;
         cv::Point2d armor; //用于追踪上一次的符叶点
-    } tracker;             //用于跟踪上一次的拟合情况
+        //记录符叶的状态，主要用于计算当前参数的拟合误差
+        inline void Record(double& pred_angle_, const rclcpp::Time& timestamp_, const double& pred_time_, double& angle_) {
+            pred_angle = pred_angle_;
+            timestamp = timestamp_;
+            pred_time = pred_time_;
+            angle = angle_;
+        }
+    } tracker; //用于跟踪上一次的拟合情况
 
     bool SetRotate(const RotationDirection& rotation_direction) {
         static int cnt = 0;
@@ -219,7 +226,15 @@ private:
     std::shared_ptr<tf2_filter> tf2_filter_;
 
     rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr target_pub_; //向shooter节点发送数据
-    auto_aim_interfaces::msg::RuneTarget runes_msg_;                                //自定义的神符信息
+
+    //----RuneTarget中的数据结构----
+    //     float32 speed
+    //     geometry_msgs/Pose pw //shooter系下的坐标
+    //     geometry_msgs/Pose pc //相机坐标系下的坐标
+    //     float32 delay
+    //     std_msgs/Header header
+    //     bool can_shoot
+    auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
 
     // 可视化标记发布器
     visualization_msgs::msg::Marker armor_marker_;

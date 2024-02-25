@@ -53,7 +53,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        100,                                // size of the tf2 cache
+        1000,                               // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::duration<int>(1)       // timeout
@@ -70,6 +70,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
+    RCLCPP_INFO(this->get_logger(), "rune_callback");
     data = rune_ptr;
     auto&& theory_delay = data->pose_c.position.z / bullet_speed;
     chasedelay = this->get_parameter("chasedelay").as_double();
@@ -78,15 +79,19 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
     phase_offset = this->get_parameter("phase_offset").as_double();
-    // if (data->motion == 0) {
-    //     SetState(MotionState::Static);
-    // } else if (data->motion == 1) {
-    //     SetState(MotionState::Small);
-    // } else if (data->motion == 2) {
-    //     SetState(MotionState::Big);
-    // } //从下位机来的数据，判断是静止还是小符还是大符
+    if (data->motion == 0) {
+        SetState(MotionState::Static);
+        debug_msg_.motion_state = "Static";
+    } else if (data->motion == 1) {
+        SetState(MotionState::Small);
+        debug_msg_.motion_state = "Small";
+    } else if (data->motion == 2) {
+        SetState(MotionState::Big);
+        debug_msg_.motion_state = "Big";
+    } //从下位机来的数据，判断是静止还是小符还是大符
 
-    SetState(MotionState::Small);
+    // SetState(MotionState::Small);
+    // debug_msg_.motion_state = "Small";
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
 
@@ -141,14 +146,17 @@ bool RuneTrackerNode::Judge() {
     if (rotation_direction == RotationDirection::Anticlockwise ? leaf_angle_diff < delta
                                                                : leaf_angle_diff < -delta) {
         if (SetRotate(RotationDirection::Anticlockwise)) {
+            debug_msg_.rotation_direction = "Anticlockwise";
             return false;
         }
     } else if (rotation_direction == RotationDirection::Clockwise ? leaf_angle_diff > -delta : leaf_angle_diff > delta) {
         if (SetRotate(RotationDirection::Clockwise)) {
+            debug_msg_.rotation_direction = "Clockwise";
             return false;
         }
     } else {
         if (SetRotate(RotationDirection::Static)) {
+            debug_msg_.rotation_direction = "Static";
             return false;
         }
     }
@@ -232,12 +240,12 @@ void RuneTrackerNode::DataProcess() {
 }
 
 bool RuneTrackerNode::CeresProcess() {
-    if (cere_param_list.size() < 50) {
+    if (cere_param_list.size() < 100) {
         leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess();
         runes_msg_.can_shoot = false;
         return false;
-    } else if (cere_param_list.size() == 50) {
+    } else if (cere_param_list.size() == 100) {
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
         //TODO:这里可能会有问题后续逻辑得仔细考虑一下
@@ -273,10 +281,7 @@ bool RuneTrackerNode::CeresProcess() {
                 runes_msg_.can_shoot = true; //可以发射
                 count_cere = 0;              //将count_cere置为0，非连续5次拟合不良
                 finish_fitting = true;
-                tracker.pred_angle = pred_angle;
-                tracker.timestamp = data->header.stamp;
-                tracker.pred_time = delay + (this->now() - data->header.stamp).seconds();
-                tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
+                tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - data->header.stamp).seconds(), leaf_angle);
             } else {
                 //误差大,则认为拟合不良
                 if (count_cere < 5) {
@@ -289,10 +294,7 @@ bool RuneTrackerNode::CeresProcess() {
                         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                         delay + (this->now() - data->header.stamp).seconds()
                     );
-                    tracker.pred_angle = pred_angle;
-                    tracker.timestamp = data->header.stamp;
-                    tracker.pred_time = delay + (this->now() - data->header.stamp).seconds();
-                    tracker.angle = leaf_angle; //记录当前角度 用于后续的拟合检测
+                    tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - data->header.stamp).seconds(), leaf_angle);
                     return false;
                 }
                 finish_fitting = false; //连续五次误差超过0.1，则认为需要重新拟合
@@ -347,10 +349,7 @@ void RuneTrackerNode::Refitting() {
         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
         (delay + (this->now() - data->header.stamp).seconds())
     );
-    tracker.pred_time = delay + (this->now() - rclcpp::Time(data->header.stamp)).seconds();
-    tracker.pred_angle = pred_angle;
-    tracker.angle = leaf_angle;
-    tracker.timestamp = data->header.stamp;
+    tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
     runes_msg_.can_shoot = true;
 }
 
@@ -406,6 +405,10 @@ RuneTrackerNode::Integral(double w, std::vector<double> params, double t_s, doub
 } //积分 用于预测下个时刻的位置
 
 void RuneTrackerNode::CalSmallRune() {
+    if (motion_state != MotionState::Small) {
+        return;
+    }
+
     if (angles.Any()) {
         leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正范围
         auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);

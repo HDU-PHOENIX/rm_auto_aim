@@ -11,7 +11,7 @@
 #include <rclcpp/subscription.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <std_msgs/msg/detail/int32_multi_array__struct.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // STD

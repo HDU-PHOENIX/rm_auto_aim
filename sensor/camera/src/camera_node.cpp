@@ -3,6 +3,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 #include <rclcpp/logging.hpp>
+#include <unistd.h>
 
 namespace sensor {
 
@@ -56,6 +57,7 @@ void CameraNode::GetImg() {
 void CameraNode::LoopForPublish() {
     // RCLCPP_INFO(this->get_logger(), "isopened %d", video_writer_->isOpened());
     while (rclcpp::ok()) {
+        usleep(100);
         sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
         image_msg->header.stamp = this->now();
         this->GetImg();
