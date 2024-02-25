@@ -7,10 +7,12 @@ ros2 launch auto_aim launch.py &
 pid2=$!
 echo -e "auto_aim pid: $pid2\n\n"
 
+sleep 2
+
 ros2 launch communicate launch.py &
 pid1=$!
 echo -e "communicate_node pid: $pid1\n\n"
-# sleep 5
+
 
 # 当捕获到 SIGINT 信号时，结束这两个进程
 trap "kill $pid2 $pid1" SIGINT

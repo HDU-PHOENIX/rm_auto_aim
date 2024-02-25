@@ -6,7 +6,7 @@
 
 /camera_node:
     ros__parameters:
-        videoflag: false
+        videoflag: true
         video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
