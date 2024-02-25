@@ -64,16 +64,16 @@ def generate_launch_description():
         executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
-                package = 'armor_detector',
-                plugin = 'armor::ArmorDetectorNode',
-                name = 'armor_detector_node',
+                package = 'rune_detector',
+                plugin = 'rune::RuneDetectorNode',
+                name = 'rune_detector_node',
                 extra_arguments = [{"use_intra_process_comms": True}],
                 parameters = [config]
             ),
             ComposableNode(
-                package = 'rune_detector',
-                plugin = 'rune::RuneDetectorNode',
-                name = 'rune_detector_node',
+                package = 'armor_detector',
+                plugin = 'armor::ArmorDetectorNode',
+                name = 'armor_detector_node',
                 extra_arguments = [{"use_intra_process_comms": True}],
                 parameters = [config]
             )
@@ -152,4 +152,19 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([detector, tracker, shooter, camera_info])
+    tf_tree = ComposableNodeContainer(
+        name='tf_tree',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='auto_aim',
+                plugin='auto_aim::TF2Node',
+                name='tf_tree_node',
+                extra_arguments=[{"use_intra_process_comms": True}]
+            )
+        ]
+    )
+
+    return launch.LaunchDescription([tf_tree, detector, tracker, shooter, camera_info])

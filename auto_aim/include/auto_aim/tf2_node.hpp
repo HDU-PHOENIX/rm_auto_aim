@@ -1,8 +1,8 @@
 #include "rclcpp/node.hpp"
-#include "std_msgs/msg/float32_multi_array.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Vector3.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include <sensor_msgs/msg/joint_state.hpp>
 
 namespace auto_aim {
 
@@ -30,7 +30,7 @@ private:
     );
 
     // 下位机欧拉角订阅
-    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr euler_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr euler_sub_;
 
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_odom2shooter_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2camera_;

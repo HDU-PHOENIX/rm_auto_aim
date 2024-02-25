@@ -1,6 +1,8 @@
 #include "auto_aim/tf2_node.hpp"
 #include <memory>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/qos.hpp>
+#include <sensor_msgs/msg/detail/joint_state__struct.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <tf2/LinearMath/Quaternion.h>
@@ -21,20 +23,13 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     tfs_shooter2camera_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
     tfs_odom2shooter_ = std::make_unique<geometry_msgs::msg::TransformStamped>();
 
-    euler_sub_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+    euler_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "/communicate/gyro/left",
         rclcpp::SensorDataQoS(),
-        [this](const std_msgs::msg::Float32MultiArray::SharedPtr msg) {
-            builtin_interfaces::msg::Time timestamp;
-            timestamp.set__sec(msg->data[0]);
-            timestamp.set__nanosec(msg->data[1]);
-            auto yaw = msg->data[2];
-            auto pitch = msg->data[3];
-
-            if (abs(last_yaw_ - yaw) < 0.01) {
-                yaw_fix_ += last_yaw_ - yaw;
-            }
-            yaw -= yaw_fix_ / 1.57 * fix_;
+        [this](const sensor_msgs::msg::JointState::SharedPtr msg) {
+            auto& timestamp = msg->header.stamp;
+            auto& yaw = msg->position[0];
+            auto& pitch = msg->position[1];
 
             // foxglove x:red y:green z:blue
             // 发布 odom 到 枪口 的坐标系转换（补偿 yaw pitch 轴的云台转动）
@@ -73,6 +68,7 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
 
             last_yaw_ = yaw;
             last_pitch_ = pitch;
+            // RCLCPP_INFO_STREAM(this->get_logger(), "timestamp: " << timestamp.sec << " " << timestamp.nanosec);
         }
     );
 }
