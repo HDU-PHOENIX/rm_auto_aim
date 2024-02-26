@@ -89,12 +89,7 @@ cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
         cv::threshold(color_mask, contour_mask, contour_thres, 255, cv::THRESH_BINARY);
         cv::Mat kernel = cv::Mat::ones(5, 5, CV_8U);
         cv::dilate(contour_mask, contour_mask, kernel);
-        // 寻找轮廓并填充
-        std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(contour_mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        for (size_t i = 0; i < contours.size(); i++) {
-            cv::fillPoly(contour_mask, contours, cv::Scalar(255));
-        }
+        // 与灰度图取交集
         cv::bitwise_and(gray_mask, contour_mask, binary_img);
     }
 
