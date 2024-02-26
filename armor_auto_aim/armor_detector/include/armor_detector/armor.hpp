@@ -65,7 +65,7 @@ struct Armor {
     cv::Mat number_img;               // 装甲板数字图像
     std::string number;               // 装甲板数字
     float confidence;                 // 装甲板数字分类置信度
-    std::string classfication_result; // 装甲板数字分类结果
+    std::string classification_result; // 装甲板数字分类结果
 };
 
 } // namespace armor

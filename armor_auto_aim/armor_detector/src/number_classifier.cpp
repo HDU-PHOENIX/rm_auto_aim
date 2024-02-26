@@ -117,7 +117,7 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
         std::stringstream result_ss;
         result_ss << armor.number << ": " << std::fixed << std::setprecision(1)
                   << armor.confidence * 100.0 << "%";
-        armor.classfication_result = result_ss.str();
+        armor.classification_result = result_ss.str();
     }
 
     // erase 删除从 first 到 last 之间

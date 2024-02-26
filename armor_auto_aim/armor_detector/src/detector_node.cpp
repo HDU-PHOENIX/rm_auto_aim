@@ -142,7 +142,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr i
                 text_marker_.id++;
                 text_marker_.pose.position = armor_msg.pose.position;
                 text_marker_.pose.position.y -= 0.1;
-                text_marker_.text = armor.classfication_result;
+                text_marker_.text = armor.classification_result;
                 armors_msg_.armors.emplace_back(armor_msg);
                 marker_array_.markers.emplace_back(armor_marker_);
                 marker_array_.markers.emplace_back(text_marker_);

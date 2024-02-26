@@ -32,7 +32,7 @@ public:
     void ExtractNumbers(const cv::Mat& src, std::vector<Armor>& armors);
 
     /**
-     * @brief 对装甲板进行分类，结果存入 armor.classfication_result
+     * @brief 对装甲板进行分类，结果存入 armor.classification_result
      *
      * @param armors 装甲板的容器
      */

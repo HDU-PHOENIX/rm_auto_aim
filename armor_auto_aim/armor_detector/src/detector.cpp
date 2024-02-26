@@ -322,7 +322,7 @@ void Detector::DrawResults(cv::Mat& img) {
         );
         cv::putText(
             img,
-            armor.classfication_result,
+            armor.classification_result,
             armor.left_light.top,
             cv::FONT_HERSHEY_SIMPLEX,
             0.8,
