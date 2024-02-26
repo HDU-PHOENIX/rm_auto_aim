@@ -161,10 +161,11 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             cv::circle(img, vertice, 5, Colors::Green, -1);
         }
     }
-    cv::circle(img, rune_armor, 6, Colors::Green, -1);          //画出装甲板中心
-    cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
-    cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
+
     if (show_pic) {
+        cv::circle(img, rune_armor, 6, Colors::Green, -1);          //画出装甲板中心
+        cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
+        cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);
     }

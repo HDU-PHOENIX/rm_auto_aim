@@ -1,12 +1,13 @@
 /**:
   ros__parameters:
     debug: true
-    show_pic: true
+    show_pic: false
 
 
 /camera_node:
     ros__parameters:
         videoflag: true
+        # video_path: "./Camera/12mm_red_dark.mp4"
         video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
@@ -52,14 +53,23 @@
         #     0.16715428551325684
         # ]
 
-/serial_node:
+/tf2_node:
     ros__parameters:
-        device_name: "/dev/ttyACM0"
-        default_data_recv_mode: 97 # a:97 r:114
-        default_data_recv_euler: [0.2, 0.0, 0.2]
         odom2shooter_r: 0.059 # odom to shooter ratio
         shooter2camera_tvec: [0.11, 0, 0.04]
         fix: 0.1
+        shooter_coordinate: "shooter"
+        camera_coordinate: "camera"
+        odom_coordinate: "odom"
+
+# /serial_node:
+#     ros__parameters:
+#         device_name: "/dev/ttyACM0"
+#         default_data_recv_mode: 97 # a:97 r:114
+#         default_data_recv_euler: [0.2, 0.0, 0.2]
+#         odom2shooter_r: 0.059 # odom to shooter ratio
+#         shooter2camera_tvec: [0.11, 0, 0.04]
+#         fix: 0.1
 
 /armor_detector_node:
     ros__parameters:
@@ -72,7 +82,8 @@
 /rune_detector_node:
     ros__parameters:
         confidence_threshold: 0.95 #神经网络置信度阈值
-        model_path: "/model/yolox_fp16.onnx" #这里的路径是相对路径
+        # model_path: "/model/2023/yolox.onnx" #这里的路径是相对路径
+        model_path: "/model/yolox_fp16.onnx"
 
 /rune_tracker_node:
     ros__parameters:
@@ -81,30 +92,17 @@
         chasedelay: 0.0
         phase_offset: 0.0 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
 
-/armor_shooter:
+/shooter_node:
     ros__parameters:
         gravity: 9.781
         mode: 115 # small:115 big:98 light:108
         k_of_small: 0.01903
         k_of_big: 0.000556
         k_of_light: 0.00053
-        correction_of_y: -2.3899999999999997
-        correction_of_z: -1.7899999999999991
+        correction_of_y: 0.0
+        correction_of_z: 0.0
         stop_error: 0.001
         velocity: 25  #飞机子弹的速度为 30m/s
         number_of_iterations: 60
         yaw_threshold: 0.01
         pitch_threshold: 0.005
-
-/rune_shooter:
-    ros__parameters:
-        gravity: 9.781
-        mode: 115 # small:115 big:98 light:108
-        k_of_small: 0.01903
-        k_of_big: 0.000556
-        k_of_light: 0.00053
-        correction_of_y: -2.3899999999999997
-        correction_of_z: -1.7899999999999991
-        stop_error: 0.001
-        velocity: 25
-        number_of_iterations: 60

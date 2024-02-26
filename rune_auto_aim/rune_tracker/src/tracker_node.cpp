@@ -1,6 +1,6 @@
 #include "rune_tracker/tracker_node.hpp"
 #define NEW_METHOD    true
-#define PNP_ITERATION true
+#define PNP_ITERATION false
 namespace rune {
 // RuneTrackerNode类的构造函数
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
@@ -61,8 +61,8 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     // 注册回调函数
     tf2_filter_->registerCallback(&RuneTrackerNode::RunesCallback, this);
 
-    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::RuneTarget>(
-        "/RuneTracker2Shooter",
+    target_pub_ = this->create_publisher<auto_aim_interfaces::msg::Target>(
+        "/tracker/target",
         rclcpp::SensorDataQoS()
     );
     InitRecord(); //打开txt文件 用于记录卡尔曼滤波曲线和原始曲线
@@ -70,27 +70,26 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
-    RCLCPP_INFO(this->get_logger(), "rune_callback");
+    // RCLCPP_INFO(this->get_logger(), "rune_callback");
     data = rune_ptr;
     auto&& theory_delay = data->pose_c.position.z / bullet_speed;
     chasedelay = this->get_parameter("chasedelay").as_double();
     delay = theory_delay + chasedelay;
-    runes_msg_.speed = bullet_speed;
     runes_msg_.delay = delay;
     runes_msg_.header = data->header; //时间戳赋值
     phase_offset = this->get_parameter("phase_offset").as_double();
     if (data->motion == 0) {
-        SetState(MotionState::Static);
+        SetState(MotionState::STATIC);
         debug_msg_.motion_state = "Static";
     } else if (data->motion == 1) {
-        SetState(MotionState::Small);
+        SetState(MotionState::SMALL);
         debug_msg_.motion_state = "Small";
     } else if (data->motion == 2) {
-        SetState(MotionState::Big);
+        SetState(MotionState::BIG);
         debug_msg_.motion_state = "Big";
     } //从下位机来的数据，判断是静止还是小符还是大符
 
-    // SetState(MotionState::Small);
+    // SetState(MotionState::SMALL);
     // debug_msg_.motion_state = "Small";
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
@@ -134,6 +133,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     runes_msg_.pw.position.x = ps.pose.position.x;
     runes_msg_.pw.position.y = ps.pose.position.y;
     runes_msg_.pw.position.z = ps.pose.position.z;
+    runes_msg_.mode = true;
     target_pub_->publish(runes_msg_);
     if (debug_) {
         PublishMarkers(runes_msg_);
@@ -143,19 +143,19 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
 
 bool RuneTrackerNode::Judge() {
     constexpr double delta = 1e-2;
-    if (rotation_direction == RotationDirection::Anticlockwise ? leaf_angle_diff < delta
+    if (rotation_direction == RotationDirection::ANTICLOCKWISE ? leaf_angle_diff < delta
                                                                : leaf_angle_diff < -delta) {
-        if (SetRotate(RotationDirection::Anticlockwise)) {
+        if (SetRotate(RotationDirection::ANTICLOCKWISE)) {
             debug_msg_.rotation_direction = "Anticlockwise";
             return false;
         }
-    } else if (rotation_direction == RotationDirection::Clockwise ? leaf_angle_diff > -delta : leaf_angle_diff > delta) {
-        if (SetRotate(RotationDirection::Clockwise)) {
+    } else if (rotation_direction == RotationDirection::CLOCKWISE ? leaf_angle_diff > -delta : leaf_angle_diff > delta) {
+        if (SetRotate(RotationDirection::CLOCKWISE)) {
             debug_msg_.rotation_direction = "Clockwise";
             return false;
         }
     } else {
-        if (SetRotate(RotationDirection::Static)) {
+        if (SetRotate(RotationDirection::STATIC)) {
             debug_msg_.rotation_direction = "Static";
             return false;
         }
@@ -164,7 +164,7 @@ bool RuneTrackerNode::Judge() {
 }
 
 bool RuneTrackerNode::FittingBig() {
-    if (motion_state != MotionState::Big) {
+    if (motion_state != MotionState::BIG) {
         return false;
     }
     RCLCPP_INFO(this->get_logger(), "fitting big");
@@ -262,7 +262,7 @@ bool RuneTrackerNode::CeresProcess() {
             >= tracker.pred_time) {
             // 计算误差
             double delta_angle = 0;
-            if (this->rotation_direction == RotationDirection::Anticlockwise && tracker.pred_angle > 0) {
+            if (this->rotation_direction == RotationDirection::ANTICLOCKWISE && tracker.pred_angle > 0) {
                 tracker.pred_angle *= -1;
             }
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
@@ -355,16 +355,16 @@ void RuneTrackerNode::Refitting() {
 
 bool RuneTrackerNode::Fitting() {
     switch (motion_state) {
-        case MotionState::Static: {
+        case MotionState::STATIC: {
             rotate_angle = 0;
         } break;
-        case MotionState::Small: {
+        case MotionState::SMALL: {
             switch (rotation_direction) {
-                case RotationDirection::Clockwise: {
+                case RotationDirection::CLOCKWISE: {
                     rotate_angle = speed.Mean() * delay;
                     runes_msg_.can_shoot = true;
                 } break;
-                case RotationDirection::Anticlockwise: {
+                case RotationDirection::ANTICLOCKWISE: {
                     rotate_angle = -speed.Mean() * delay;
                     runes_msg_.can_shoot = true;
                 } break;
@@ -374,12 +374,12 @@ bool RuneTrackerNode::Fitting() {
                 }
             }
         } break;
-        case MotionState::Big: {
+        case MotionState::BIG: {
             switch (rotation_direction) {
-                case RotationDirection::Clockwise: {
+                case RotationDirection::CLOCKWISE: {
                     rotate_angle = pred_angle;
                 } break;
-                case RotationDirection::Anticlockwise: {
+                case RotationDirection::ANTICLOCKWISE: {
                     rotate_angle = -pred_angle;
                 } break;
                 default: {
@@ -405,7 +405,7 @@ RuneTrackerNode::Integral(double w, std::vector<double> params, double t_s, doub
 } //积分 用于预测下个时刻的位置
 
 void RuneTrackerNode::CalSmallRune() {
-    if (motion_state != MotionState::Small) {
+    if (motion_state != MotionState::SMALL) {
         return;
     }
 
@@ -426,7 +426,7 @@ void RuneTrackerNode::CalSmallRune() {
     debug_msg_.small_rune_speed = speed.Mean();
 }
 
-void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg) {
+void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg) {
     armor_marker_.header = target_msg.header;
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.id = 0;

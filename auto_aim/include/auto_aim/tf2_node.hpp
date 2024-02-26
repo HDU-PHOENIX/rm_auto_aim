@@ -43,5 +43,6 @@ private:
     double fix_;                  // 修正系数
     double yaw_fix_ = 0;          // yaw 修正系数
     float last_yaw_, last_pitch_; // 上一次的欧拉角
+    std::string shooter_coordinate, camera_coordinate, odom_coordinate;
 };
 } // namespace auto_aim

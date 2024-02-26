@@ -43,43 +43,6 @@ def generate_launch_description():
         ]
     )
 
-    serial_for_unity = ComposableNodeContainer(
-        name='serial_for_unity',
-        namespace='',
-        package='rclcpp_components',
-        executable='component_container',
-        composable_node_descriptions=[
-            ComposableNode(
-                package = 'serial',
-                plugin = 'sensor::SerialForUnity',
-                name = 'serial_for_unity_node',
-                parameters = [config]
-            )
-        ]
-    )
-    detector_for_unity = ComposableNodeContainer(
-        name='detector',
-        namespace='',
-        package='rclcpp_components',
-        executable='component_container',
-        composable_node_descriptions=[
-            ComposableNode(
-                package = 'rune_detector',
-                plugin = 'rune::RuneDetectorNode',
-                name = 'rune_detector_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
-                parameters = [config]
-            ),
-            ComposableNode(
-                package = 'armor_detector',
-                plugin = 'armor::ArmorDetectorNode',
-                name = 'armor_detector_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
-                parameters = [config]
-            )
-        ]
-    )
-
     detector = ComposableNodeContainer(
         name='detector',
         namespace='',
@@ -138,16 +101,11 @@ def generate_launch_description():
         executable='component_container',
         composable_node_descriptions=[
             ComposableNode(
-                package='armor_shooter',
-                plugin='armor::ArmorShooterNode',
-                name='armor_shooter_node',
-                extra_arguments=[{"use_intra_process_comms": True}]
-            ),
-            ComposableNode(
-                package='rune_shooter',
-                plugin='rune::RuneShooterNode',
-                name='rune_shooter_node',
-                extra_arguments=[{"use_intra_process_comms": True}]
+                package='shooter',
+                plugin='auto_aim::ShooterNode',
+                name='shooter_node',
+                extra_arguments=[{"use_intra_process_comms": True}],
+                parameters = [config]
             )
         ]
     )

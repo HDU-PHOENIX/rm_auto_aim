@@ -1,8 +1,8 @@
-#include "rune_shooter/shooter.hpp"
+#include "shooter/shooter.hpp"
 #include <rclcpp/logger.hpp>
 #include <rclcpp/logging.hpp>
 
-namespace rune {
+namespace auto_aim {
 Shooter::Shooter(
     const double& gravity,
     const char& mode,
@@ -88,4 +88,4 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     return Eigen::Vector2d(yaw, pitch_new * -1); //pitch向上为负
 }
 
-} // namespace rune
+} // namespace auto_aim

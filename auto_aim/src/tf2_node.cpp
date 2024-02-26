@@ -17,6 +17,9 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
     );
     this->odom2shooter_r_ = declare_parameter("odom2shooter_r", 0.5);
     this->fix_ = declare_parameter("fix", 0.1);
+    this->shooter_coordinate = declare_parameter("shooter_coordinate", "shooter");
+    this->camera_coordinate = declare_parameter("camera_coordinate", "camera");
+    this->odom_coordinate = declare_parameter("odom_coordinate", "odom");
 
     broadcaster_shooter2camera_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
     broadcaster_odom2shooter_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
@@ -38,8 +41,8 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
                 broadcaster_odom2shooter_,
                 tfs_odom2shooter_,
                 timestamp,
-                "odom",
-                "shooter",
+                odom_coordinate,
+                shooter_coordinate,
                 [pitch, yaw]() {
                     tf2::Quaternion q;
                     q.setRPY(0, pitch, yaw);
@@ -56,8 +59,8 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
                 broadcaster_shooter2camera_,
                 tfs_shooter2camera_,
                 timestamp,
-                "shooter",
-                "camera",
+                shooter_coordinate,
+                camera_coordinate,
                 []() {
                     tf2::Quaternion q;
                     q.setEuler(M_PI_2, 0, -M_PI_2);

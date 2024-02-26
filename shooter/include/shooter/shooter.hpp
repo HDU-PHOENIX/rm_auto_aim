@@ -4,7 +4,7 @@
 #define LARGE 1
 #define LIGHT 2
 
-namespace rune {
+namespace auto_aim {
 
 class Shooter {
 public:
@@ -57,4 +57,4 @@ private:
     Eigen::Vector3d shoot_pc_; //预瞄点的相机坐标下的坐标
     Eigen::Vector3d shoot_pu_; //预瞄点的像素坐标下的坐标
 };
-} // namespace rune
+} // namespace auto_aim

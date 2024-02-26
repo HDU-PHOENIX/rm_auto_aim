@@ -204,7 +204,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
             return;
         }
-
+        target_msg.mode = false;
         target_pub_->publish(target_msg);
     }
 }

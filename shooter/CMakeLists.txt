@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(rune_shooter)
+project(shooter)
 
 
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -31,8 +31,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} Eigen3::Eigen )
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN rune::RuneShooterNode
-    EXECUTABLE rune_shooter_node
+    PLUGIN auto_aim::ShooterNode
+    EXECUTABLE shooter_node
 )
 
 

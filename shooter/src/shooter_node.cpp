@@ -1,61 +1,75 @@
-#include "rune_shooter/shooter_node.hpp"
+#include "shooter/shooter_node.hpp"
 #include "Eigen/src/Core/Matrix.h"
 #include <rclcpp/logging.hpp>
-#define UNITY_TEST false
-namespace rune {
+namespace auto_aim {
 
-RuneShooterNode::RuneShooterNode(const rclcpp::NodeOptions& options):
-    Node("rune_shooter", options) {
-    RCLCPP_INFO(this->get_logger(), "runeShooterNode has been initialized.");
+ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
+    Node("shooter_node", options) {
+    RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
     InitMarker();
+    last_shoot_time = this->now();
+    yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.01);
+    pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
     marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-        "/rune_shooter/marker",
+        "/shooter/marker",
         rclcpp::SensorDataQoS()
     );
     shooter_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
-        "/shooter_info",
+        "/shoot_info/left",
         rclcpp::SensorDataQoS()
     );
-    joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
-        "/serial2unity",
-        rclcpp::SensorDataQoS()
-    );
-    target_sub_ = this->create_subscription<auto_aim_interfaces::msg::RuneTarget>(
-        "/RuneTracker2Shooter",
+    target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
+        "/tracker/target",
         rclcpp::SensorDataQoS(),
-        [this](const auto_aim_interfaces::msg::RuneTarget::SharedPtr msg) {
-    //接收 shooter 坐标系下的坐标
-#if UNITY_TEST
-            shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
-            auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
-            sensor_msgs::msg::JointState joint_state;
-            joint_state.header.stamp = this->now();
-            joint_state.name = { "yaw", "pitch" };
-            joint_state.position = { yaw_and_pitch[0], yaw_and_pitch[1] };
-            joint_state_pub_->publish(joint_state);
-#else
+        [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
+            //接收 shooter 坐标系下的坐标
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
-            //TODO: 这里可能要做防抖处理
             auto_aim_interfaces::msg::SerialInfo serial_info;
-            serial_info.start.data = 's';
-            serial_info.end.data = 'e';
-            serial_info.is_find.data = '1';
-            serial_info.can_shoot.data = '1';
-            serial_info.euler[0] = yaw_and_pitch[0]; //yaw
-            serial_info.euler[2] = yaw_and_pitch[1]; //pitch
-            serial_info.origin_euler = { 0 };
-            serial_info.distance = msg->pw.position.z; //TODO: 这里的距离可能还需要修改
+
+            serial_info.speed = msg->v_yaw;
+            ShootingJudge(yaw_and_pitch, serial_info, msg);
+            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
+            serial_info.start.set__data('s');
+            serial_info.end.set__data('e');
+            serial_info.is_find.set__data('1');
             shooter_info_pub_->publish(serial_info);
             PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
-#endif
         }
     );
 }
 
-void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
+void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, auto_aim_interfaces::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
+    if (data->mode) {
+        if ((sqrt(yaw_and_pitch[0] * yaw_and_pitch[0] + yaw_and_pitch[1] * yaw_and_pitch[1]) < 0.05))
+        {
+            //给下位机发送的移动角度小于一定值,则开火
+            if ((rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) //确保子弹不会没有飞到就开下一枪
+            {
+                serial_info.can_shoot.set__data('1');
+                last_shoot_time = data->header.stamp;
+            }
+        } else {
+            serial_info.can_shoot.set__data('0');
+        }
+        return;
+    }
+    yaw_and_pitch[0] = abs(yaw_and_pitch[0]) < yaw_threshold_ ? 0 : yaw_and_pitch[0];
+    yaw_and_pitch[1] = abs(yaw_and_pitch[1]) < pitch_threshold_ ? 0 : yaw_and_pitch[1];
+
+    yaw_and_pitch[0] = std::clamp(yaw_and_pitch[0], -0.1, 0.1);
+    yaw_and_pitch[1] = std::clamp(yaw_and_pitch[1], -0.1, 0.1);
+    if (abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05) {
+        serial_info.can_shoot.set__data('1');
+    } else {
+        serial_info.can_shoot.set__data('0');
+    }
+    return;
+}
+
+void ShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const builtin_interfaces::msg::Time& stamp) {
     visualization_msgs::msg::MarkerArray marker_array;
     marker.header.stamp = stamp;
     marker.pose.position.x = shoot_pw[0];
@@ -65,9 +79,9 @@ void RuneShooterNode::PublishMarkers(const Eigen::Vector3d& shoot_pw, const buil
     marker_pub_->publish(marker_array);
 }
 
-void RuneShooterNode::InitMarker() {
+void ShooterNode::InitMarker() {
     marker.header.frame_id = "shooter";
-    marker.ns = "rune_shooter";
+    marker.ns = "shooter";
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::SPHERE;
     marker.action = visualization_msgs::msg::Marker::ADD;
@@ -84,7 +98,7 @@ void RuneShooterNode::InitMarker() {
     marker.color.b = 0.0;
 }
 
-std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {
+std::unique_ptr<Shooter> ShooterNode::InitShooter() {
     rcl_interfaces::msg::ParameterDescriptor param_desc;
     auto gravity = declare_parameter("gravity", 9.781);
     auto mode = declare_parameter("mode", 's');
@@ -112,11 +126,11 @@ std::unique_ptr<Shooter> RuneShooterNode::InitShooter() {
     );
 }
 
-} // namespace rune
+} // namespace auto_aim
 
 #include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable
 // when its library is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(rune::RuneShooterNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(auto_aim::ShooterNode)

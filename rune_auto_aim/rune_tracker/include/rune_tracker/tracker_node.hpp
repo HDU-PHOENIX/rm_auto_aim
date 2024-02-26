@@ -3,8 +3,7 @@
 
 // ROS
 #include "auto_aim_interfaces/msg/debug_rune.hpp"
-#include "auto_aim_interfaces/msg/rune_target.hpp"
-#include <auto_aim_interfaces/msg/detail/rune_target__struct.hpp>
+#include "auto_aim_interfaces/msg/target.hpp"
 #include <message_filters/subscriber.h>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/time.hpp>
@@ -48,21 +47,21 @@ private:
     void PublishDebugInfo(); //发布debug信息
 
     // 发布标记点函数
-    void PublishMarkers(const auto_aim_interfaces::msg::RuneTarget& target_msg);
+    void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
     enum class MotionState {
-        Unknown,
-        Static,
-        Small,
-        Big
-    } motion_state = MotionState::Unknown; //符叶运动状态 未知 静止 小符 大符 下位机传上来的数据
+        UNKNOWN,
+        STATIC,
+        SMALL,
+        BIG
+    } motion_state = MotionState::UNKNOWN; //符叶运动状态 未知 静止 小符 大符 下位机传上来的数据
 
     enum class RotationDirection {
-        Unknown,
-        Static,
-        Clockwise,
-        Anticlockwise
-    } rotation_direction = RotationDirection::Unknown; //旋转方向 这个由程序自己判断
+        UNKNOWN,
+        STATIC,
+        CLOCKWISE,
+        ANTICLOCKWISE
+    } rotation_direction = RotationDirection::UNKNOWN; //旋转方向 这个由程序自己判断
 
     struct CereParam {
         double omega;
@@ -225,16 +224,16 @@ private:
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; // tf2 监听器
     std::shared_ptr<tf2_filter> tf2_filter_;
 
-    rclcpp::Publisher<auto_aim_interfaces::msg::RuneTarget>::SharedPtr target_pub_; //向shooter节点发送数据
+    rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_; //向shooter节点发送数据
 
-    //----RuneTarget中的数据结构----
+    //----Target中的数据结构----
     //     float32 speed
     //     geometry_msgs/Pose pw //shooter系下的坐标
     //     geometry_msgs/Pose pc //相机坐标系下的坐标
     //     float32 delay
     //     std_msgs/Header header
     //     bool can_shoot
-    auto_aim_interfaces::msg::RuneTarget runes_msg_; //自定义的神符信息
+    auto_aim_interfaces::msg::Target runes_msg_; //自定义的神符信息
 
     // 可视化标记发布器
     visualization_msgs::msg::Marker armor_marker_;
