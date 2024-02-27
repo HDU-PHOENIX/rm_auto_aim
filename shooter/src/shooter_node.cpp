@@ -35,7 +35,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');
-            shooter_info_pub_->publish(serial_info);
+            shooter_info_pub_->publish(std::move(serial_info));
             PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
         }
     );
@@ -61,11 +61,8 @@ void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, auto_aim_interfaces::msg::
 
     yaw_and_pitch[0] = std::clamp(yaw_and_pitch[0], -0.1, 0.1);
     yaw_and_pitch[1] = std::clamp(yaw_and_pitch[1], -0.1, 0.1);
-    if (abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05) {
-        serial_info.can_shoot.set__data('1');
-    } else {
-        serial_info.can_shoot.set__data('0');
-    }
+    serial_info.can_shoot.set__data(abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05 ? '1' : '0');
+
     return;
 }
 

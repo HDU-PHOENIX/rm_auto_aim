@@ -96,7 +96,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
 
     this->leaf_dir = std::move(tmp_dir); //现在这一帧符叶向量
 
-    leaf_angle = Angle(leaf_dir);                       //返回弧度制的角度
+    leaf_angle = Angle(leaf_dir);                //返回弧度制的角度
     CalSmallRune();                                     //计算小符角速度
     Judge();                                            //判断顺时针还是逆时针
     FittingBig();                                       //拟合大符
