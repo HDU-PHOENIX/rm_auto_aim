@@ -64,7 +64,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
+    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/tracker/target", rclcpp::SensorDataQoS());
 
     mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }
@@ -170,9 +170,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         cv::waitKey(1);
     }
 
-    if (debug_) {
-        PublishImg(img, img_msg); // 发布图片
-    }
+    // if (debug_) {
+    //     PublishImg(img, img_msg); // 发布图片
+    // }
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成
@@ -183,7 +183,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             RCLCPP_WARN(this->get_logger(), "PnP failed!");
             return false;
         } else {
-            // RCLCPP_WARN(this->get_logger(), "PnP success!"); // 识别成功
             runes_msg_.pose_c.position.x = tvec.at<double>(0);
             runes_msg_.pose_c.position.y = tvec.at<double>(1);
             runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置

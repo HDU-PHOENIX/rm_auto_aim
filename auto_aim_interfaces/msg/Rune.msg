@@ -4,6 +4,8 @@ geometry_msgs/Pose2D[4] rune_points
 geometry_msgs/Pose2D symbol
 std_msgs/Header header
 float32 speed
+float64 chasedelay
+float64 phase_offset
 
 bool find
 int32 motion
