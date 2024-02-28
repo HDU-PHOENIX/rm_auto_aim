@@ -7,14 +7,17 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     Node("shooter_node", options) {
     RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
-    InitMarker();
+    debug_ = this->declare_parameter("debug", false);
+    if (debug_) {
+        InitMarker();
+        marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
+            "/shooter/marker",
+            rclcpp::SensorDataQoS()
+        );
+    }
     last_shoot_time = this->now();
     yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.01);
     pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-        "/shooter/marker",
-        rclcpp::SensorDataQoS()
-    );
     shooter_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
         "/shoot_info/left",
         rclcpp::SensorDataQoS()
@@ -36,7 +39,9 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');
             shooter_info_pub_->publish(std::move(serial_info));
-            PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
+            if (debug_) {
+                PublishMarkers(shooter_->GetShootPw(), msg->header.stamp);
+            }
         }
     );
 }

@@ -9,7 +9,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
     InitParams();
     tracker_ = std::make_unique<Tracker>(1.5, 1.2, filter_astring_threshold);
-    debug_ = this->declare_parameter("debug", true);
+    debug_ = this->declare_parameter("debug", false);
 
     if (debug_) {
         CreateDebugPublisher(); //创建Debug发布器

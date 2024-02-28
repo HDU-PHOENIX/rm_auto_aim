@@ -29,6 +29,7 @@ private:
     double pitch_threshold_;
 
     rclcpp::Time last_shoot_time;
+    bool debug_; //debug标志符
 };
 
 } // namespace auto_aim

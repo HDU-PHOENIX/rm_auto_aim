@@ -28,12 +28,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     detector_ = InitDetector();                                                   // 初始化神符识别器
     pnp_solver_ = nullptr;                                                        // 初始化 pnp 求解器
 
-    debug_ = this->declare_parameter("debug", false);
-    // 监视 Debug 参数变化
-    debug_param_sub_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
-    debug_cb_handle_ = debug_param_sub_->add_parameter_callback("debug", [this](const rclcpp::Parameter& p) {
-        debug_ = p.as_bool();
-    });
+    debug_ = this->declare_parameter("debug", false); // debug 模式
 
     show_pic = this->declare_parameter("show_pic", false);
 
@@ -64,7 +59,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/tracker/target", rclcpp::SensorDataQoS());
+    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
 
     mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }
@@ -227,9 +222,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
             no_rune_msg.end.set__data('e');
             no_rune_msg.is_find.set__data('0');
             no_rune_msg.can_shoot.set__data('0');
-            no_rune_msg.euler = { 0, 0, 0 };
-            no_rune_msg.origin_euler = { 0, 0, 0 };
-            no_rune_msg.distance = 0;
+            no_rune_msg.euler = { 0, 0 };
             no_rune_pub_->publish(no_rune_msg);
         }
     }

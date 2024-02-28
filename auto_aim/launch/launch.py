@@ -83,13 +83,15 @@ def generate_launch_description():
                 package = 'armor_tracker',
                 plugin = 'armor::ArmorTrackerNode',
                 name = 'armor_tracker_node',
-                extra_arguments = [{"use_intra_process_comms": True}]
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
             ),
             ComposableNode(
                 package='rune_tracker',
                 plugin='rune::RuneTrackerNode',
                 name='rune_tracker_node',
-                extra_arguments=[{"use_intra_process_comms": True}]
+                extra_arguments=[{"use_intra_process_comms": True}],
+                parameters = [config]
             )
         ]
     )
@@ -120,7 +122,8 @@ def generate_launch_description():
                 package='auto_aim',
                 plugin='auto_aim::TF2Node',
                 name='tf_tree_node',
-                extra_arguments=[{"use_intra_process_comms": True}]
+                extra_arguments=[{"use_intra_process_comms": True}],
+                parameters = [config]
             )
         ]
     )

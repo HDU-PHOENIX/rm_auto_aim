@@ -66,9 +66,6 @@ private:
     // debug 模式
     bool debug_;
     bool show_pic;
-    bool SEND_DEFAULT_DATA; //是否发送默认数据
-    std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
-    std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
     image_transport::Publisher debug_img_pub_; //debug
 
     // 神符识别器
