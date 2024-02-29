@@ -283,48 +283,62 @@ NeuralNetwork::~NeuralNetwork() {
 
 //TODO:change to your dir
 bool NeuralNetwork::Init(std::string path) {
-    ie.SetConfig({ { CONFIG_KEY(CACHE_DIR), "../.cache" } });
-    ie.SetConfig({ { CONFIG_KEY(CPU_THROUGHPUT_STREAMS), "CPU_THROUGHPUT_AUTO" } });
-    // ie.SetConfig({{CONFIG_KEY(GPU_THROUGHPUT_STREAMS),"1"}}  );
-    // Step 1. Read a model in OpenVINO Intermediate Representation (.xml and
-    // .bin files) or ONNX (.onnx file) format
-    network = ie.ReadNetwork(path);
-    if (network.getOutputsInfo().size() != 1)
-        throw std::logic_error("Sample supports topologies with 1 output only");
+    // Setting Configuration Values.
+    core.set_property("CPU", ov::enable_profiling(true));
 
-    // Step 2. Configure input & output
-    //  Prepare input blobs
-    InferenceEngine::InputInfo::Ptr input_info = network.getInputsInfo().begin()->second;
-    input_name = network.getInputsInfo().begin()->first;
+    // Step 1.Create openvino runtime core
+    model = core.read_model(path);
 
-    //  Prepare output blobs
-    if (network.getOutputsInfo().empty()) {
-        std::cerr << "Network outputs info is empty" << std::endl;
-        return EXIT_FAILURE;
-    }
-    InferenceEngine::DataPtr output_info = network.getOutputsInfo().begin()->second;
-    output_name = network.getOutputsInfo().begin()->first;
+    // Preprocessing.
+    ov::preprocess::PrePostProcessor ppp(model);
+    ppp.input().tensor().set_element_type(ov::element::f32);
 
-    // output_info->setPrecision(Precision::FP16);
-    // Step 3. Loading a model to the device
-    // executable_network = ie.LoadNetwork(network, "MULTI:GPU");
-    executable_network = ie.LoadNetwork(network, "CPU");
-    // executable_network = ie.LoadNetwork(network, "CPU");
+    // set output precision.
+    ppp.output().tensor().set_element_type(ov::element::f32);
 
-    // Step 4. Create an infer request
-    infer_request = executable_network.CreateInferRequest();
-    const InferenceEngine::Blob::Ptr output_blob = infer_request.GetBlob(output_name);
-    // moutput = as<InferenceEngine::MemoryBlob>(output_blob);
-    moutput = InferenceEngine::as<InferenceEngine::MemoryBlob>(output_blob);
-    // Blob::Ptr input = infer_request.GetBlob(input_name);     // just wrap Mat data by Blob::Ptr
-    if (!moutput) {
-        throw std::logic_error(
-            "We expect output to be inherited from MemoryBlob, "
-            "but by fact we were not able to cast output to MemoryBlob"
-        );
-    }
-    // locked memory holder should be alive all time while access to its buffer
-    // happens
+    // 将预处理融入原始模型.
+    ppp.build();
+
+    // Step 2. Compile the model
+    compiled_model = core.compile_model(
+        model,
+        "CPU",
+        ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY)
+        // "AUTO:GPU,CPU",
+        // ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY)
+        // ov::hint::inference_precision(ov::element::u8)
+    );
+
+    // compiled_model.set_property(ov::device::priorities("GPU"));
+
+    // Step 3. Create an Inference Request
+    infer_request = compiled_model.create_infer_request();
+
+    // Fill Input Tensors with Data
+    // get input tensor by index
+    // input_tensor = infer_request.get_input_tensor(0);
+
+    // Step 4. Set Inputs
+    // Get input port for model with one input
+    // auto input_port = compiled_model.input();
+
+    // Create tensor from external memory
+    // ov::Tensor input_tensor(input_port.get_element_type(), input_port.get_shape(), memory_ptr);
+    // input_tensor = ov::Tensor(input_port.get_element_type(), input_port.get_shape(), memory_ptr);
+
+    // // Set input tensor for model with one input
+    // infer_request.set_input_tensor(input_tensor);
+
+    // //Step 5. Start Inference
+    // infer_request.start_async();
+    // infer_request.wait();
+
+    // //Step 6. Process the Inference Results
+    // // Get output tensor by tensor name
+    // auto output = infer_request.get_tensor("tensor_name");
+    // const float output_buffer = output.data<const float>();
+    // output_buffer[] - accessing output tensor data
+
     return true;
 }
 
@@ -333,40 +347,36 @@ bool NeuralNetwork::detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>&
         return false;
     }
     cv::Mat pr_img = scaledResize(src, transfrom_matrix);
-#ifdef SHOW_INPUT
-    namedWindow("network_input", 0);
-    imshow("network_input", pr_img);
-    waitKey(1);
-#endif //SHOW_INPUT
     cv::Mat pre;
     cv::Mat pre_split[3];
     pr_img.convertTo(pre, CV_32F);
     cv::split(pre, pre_split);
+    // Get input tensor by index
+    input_tensor = infer_request.get_input_tensor(0);
+    // 准备输入
+    infer_request.set_input_tensor(input_tensor);
 
-    InferenceEngine::Blob::Ptr imgBlob = infer_request.GetBlob(input_name); // just wrap Mat data by Blob::Ptr
-    InferenceEngine::MemoryBlob::Ptr mblob = InferenceEngine::as<InferenceEngine::MemoryBlob>(imgBlob);
-    // locked memory holder should be alive all time while access to its buffer happens
-    auto mblobHolder = mblob->wmap();
-    float* blob_data = mblobHolder.as<float*>();
+    float* tensor_data = input_tensor.data<float_t>();
 
-    auto img_offset = INPUT_W * INPUT_H;
-    //Copy img into blob
-    for (int c = 0; c < 3; c++) {
-        memcpy(blob_data, pre_split[c].data, INPUT_W * INPUT_H * sizeof(float));
-        blob_data += img_offset;
+    auto img_offset = INPUT_H * INPUT_W;
+    // Copy img into tensor
+    for (int c = 0; c < 3; c++)
+    {
+        memcpy(tensor_data, pre_split[c].data, INPUT_H * INPUT_W * sizeof(float));
+        tensor_data += img_offset;
     }
+    // auto st = std::chrono::steady_clock::now();
+    // 推理
+    infer_request.infer();
+    // auto end = std::chrono::steady_clock::now();
+    // double infer_dt = std::chrono::duration<double,std::milli>(end - st).count();
+    // cout << "infer_time:" << infer_dt << endl;
 
-    infer_request.Infer();
-    // -----------------------------------------------------------------------------------------------------
-    // --------------------------- Step 8. Process output----------------
-    // const Blob::Ptr output_blob = infer_request.GetBlob(output_name);
-    // MemoryBlob::CPtr moutput = as<MemoryBlob>(output_blob);
+    // 处理推理结果
+    ov::Tensor output_tensor = infer_request.get_output_tensor();
+    float* output = output_tensor.data<float_t>();
 
-    auto moutputHolder = moutput->rmap();
-    const float* net_pred = moutputHolder.as<const InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-    // int img_w = src.cols;
-    // int img_h = src.rows;
-    decodeOutputs(net_pred, objects, transfrom_matrix);
+    decodeOutputs(output, objects, transfrom_matrix);
     for (auto object = objects.begin(); object != objects.end(); ++object)
     {
         if ((*object).pts.size() >= 10) {
