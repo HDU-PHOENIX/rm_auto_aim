@@ -1,20 +1,3 @@
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/core/types.hpp>
-#include <opencv2/highgui.hpp>
-#include <rclcpp/logging.hpp>
-#include <rmw/qos_profiles.h>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/convert.h>
-
-#include <ament_index_cpp/get_package_share_directory.hpp>
-#include <image_transport/image_transport.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <rclcpp/duration.hpp>
-#include <rclcpp/qos.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-
-#include "rune_detector/colors.hpp"
 #include "rune_detector/detector_node.hpp"
 
 using std::placeholders::_1;
@@ -90,8 +73,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     runes_msg_.header = rune_marker_.header = img_msg->header;
 
     rune_marker_.id = 0;
-    // RuneClass cls; // 符叶枚举类对象 用于标记符叶的种类
-    bool flag1 = false, flag2 = false;    //bool flag3 = false;
+    bool flag1 = false, flag2 = false;    // bool flag3 = false;
     cv::Point2f symbol;                   // 符叶 R 标的位置
     cv::Point2f rune_armor;               // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points; // 未激活符叶的五个点
@@ -105,9 +87,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             continue;
         }
 
-        auto&& detect_center = (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[3] + object.vertices[4]) / 5; // 用于计算 R 标位置
-
-        auto&& get_symbol = [](const cv::Point2f& lightbar_mid_point, const cv::Point2f& armor_center, const double& center_lightbar_ratio, const bool& flag) {
+        static auto&& get_symbol = [](const cv::Point2f& lightbar_mid_point, const cv::Point2f& armor_center, const double& center_lightbar_ratio, const bool& flag) {
             // get_symbol 是通过符叶的坐标来计算中心 R 标的位置
             if (!flag) {
                 // flag = 0 使用装甲板中心和内灯条算出标识符位置
@@ -120,12 +100,13 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         };
 
         if (object.cls == 0) {
-            // cls = RuneClass::Blue / Red ( object.color == 0 / 1 )
+            // R标 RuneClass::Blue or Red
+            auto&& detect_center = (object.vertices[0] + object.vertices[1] + object.vertices[2] + object.vertices[3] + object.vertices[4]) / 5; // 用于计算 R 标位置
             flag1 = true;
             symbol = detect_center;
 
         } else if (object.cls == 1) {
-            // cls = RuneClass::BlueUnActivated / RedUnActivated;
+            // 未激活扇叶 RuneClass::BlueUnActivated or RedUnActivated;
             rune_points.clear();
 
             rune_points.emplace_back(object.vertices[1]);
@@ -146,8 +127,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             flag2 = true;
         } else if (object.cls == 2) {
             // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
-            // cls = RuneClass::BlueActivated / RedActivated;
-            //flag3 = true;
+            // RuneClass::BlueActivated or RedActivated;
+            // flag3 = true;
             continue;
         }
 
@@ -165,9 +146,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         cv::waitKey(1);
     }
 
-    // if (debug_) {
-    //     PublishImg(img, img_msg); // 发布图片
-    // }
+    if (debug_) {
+        PublishImg(img, img_msg); // 发布图片
+    }
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成

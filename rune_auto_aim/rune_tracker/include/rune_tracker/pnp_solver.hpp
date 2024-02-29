@@ -51,4 +51,4 @@ private:
 
 } // namespace rune
 
-#endif // ARMOR_DETECTOR__PNP_SOLVER_HPP_
+#endif

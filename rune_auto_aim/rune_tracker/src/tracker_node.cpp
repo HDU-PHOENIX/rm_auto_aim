@@ -1,5 +1,4 @@
 #include "rune_tracker/tracker_node.hpp"
-#define NEW_METHOD    true
 #define PNP_ITERATION false
 namespace rune {
 // RuneTrackerNode类的构造函数

@@ -1,8 +1,6 @@
 #include "rune_tracker/tracker.hpp"
 #include <rclcpp/logger.hpp>
-#define NEW_METHOD    true
-#define PNP_ITERATION false
-
+#define NEW_METHOD true
 namespace rune {
 Tracker::Tracker(double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_) {
     ukf_ = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
