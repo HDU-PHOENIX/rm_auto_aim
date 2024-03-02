@@ -15,8 +15,7 @@ endif()
 find_package(ament_cmake_auto REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(OpenMP REQUIRED)
-FIND_PACKAGE(InferenceEngine CONFIG REQUIRED)
-INCLUDE_DIRECTORIES(${InferenceEngine_INCLUDE_DIRS})
+find_package(OpenVINO REQUIRED)
 FIND_PACKAGE(Eigen3 CONFIG REQUIRED)
 INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIRS})
 ament_auto_find_build_dependencies()
@@ -33,7 +32,7 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} Eigen3::Eigen ${InferenceEngine_LIBRARIES} OpenMP::OpenMP_CXX)
+target_link_libraries(${PROJECT_NAME} openvino::runtime ${OpenCV_LIBS} Eigen3::Eigen OpenMP::OpenMP_CXX)
 
 rclcpp_components_register_node(${PROJECT_NAME}
     PLUGIN rune::RuneDetectorNode
