@@ -48,14 +48,14 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
 
 void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, auto_aim_interfaces::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
     if (data->mode) {
-        if ((sqrt(yaw_and_pitch[0] * yaw_and_pitch[0] + yaw_and_pitch[1] * yaw_and_pitch[1]) < 0.05))
+        if ((sqrt(yaw_and_pitch[0] * yaw_and_pitch[0] + yaw_and_pitch[1] * yaw_and_pitch[1]) < 0.05) && data->can_shoot)
         {
-            //给下位机发送的移动角度小于一定值,则开火
             if ((rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) //确保子弹不会没有飞到就开下一枪
             {
                 serial_info.can_shoot.set__data('1');
                 last_shoot_time = data->header.stamp;
             }
+            serial_info.can_shoot.set__data('0');
         } else {
             serial_info.can_shoot.set__data('0');
         }

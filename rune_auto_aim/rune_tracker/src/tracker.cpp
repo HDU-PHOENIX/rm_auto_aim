@@ -5,13 +5,13 @@ namespace rune {
 Tracker::Tracker(double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_) {
     ukf_ = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
     this->filter_astring_threshold = filter_astring_threshold_;
-    InitCeres(); //³õÊ¼»¯ceres
+    InitCeres(); //åˆå§‹åŒ–ceres
 }
 
 void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     auto&& theory_delay = data->pose_c.position.z / data->speed;
     runes_msg.delay = delay = theory_delay + data->chasedelay;
-    runes_msg.header = data->header; //Ê±¼ä´Á¸³Öµ
+    runes_msg.header = data->header; //æ—¶é—´æˆ³èµ‹å€¼
     phase_offset = data->phase_offset;
     if (data->motion == 0) {
         SetState(MotionState::STATIC);
@@ -22,23 +22,24 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
     } else if (data->motion == 2) {
         SetState(MotionState::BIG);
         debug_msg.motion_state = "Big";
-    } //´ÓÏÂÎ»»úÀ´µÄÊı¾İ£¬ÅĞ¶ÏÊÇ¾²Ö¹»¹ÊÇĞ¡·û»¹ÊÇ´ó·û
+    } //ä»ä¸‹ä½æœºæ¥çš„æ•°æ®ï¼Œåˆ¤æ–­æ˜¯é™æ­¢è¿˜æ˜¯å°ç¬¦è¿˜æ˜¯å¤§ç¬¦
 
-    cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //·ûËÄ¸öµãÖĞĞÄµ½R±ê
-    leaf_angle = Angle(std::move(tmp_dir));                  //·µ»Ø»¡¶ÈÖÆµÄ½Ç¶È
-    CalSmallRune(data, debug_msg);                           //¼ÆËãĞ¡·û½ÇËÙ¶È
-    Judge(debug_msg);                                        //ÅĞ¶ÏË³Ê±Õë»¹ÊÇÄæÊ±Õë
-    FittingBig(data, runes_msg, debug_msg);                  //ÄâºÏ´ó·û
-    Fitting(runes_msg);                                      //¼ÆËãÔ¤²â½Ç¶È
-    data_last = data;                                        //¼ÇÂ¼ÉÏÒ»Ö¡µÄÊı¾İ
-    leaf_angle_last = leaf_angle;                            //¼ÇÂ¼ÉÏÒ»Ö¡µÄ½Ç¶È
-    cv::Point2d symbol(data->symbol.x, data->symbol.y);      //R±ê
+    cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //ç¬¦å››ä¸ªç‚¹ä¸­å¿ƒåˆ°Ræ ‡
+    leaf_angle = Angle(std::move(tmp_dir));                  //è¿”å›å¼§åº¦åˆ¶çš„è§’åº¦
+    leaf_angle_diff = leaf_angle - leaf_angle_last;          //ç¬¦å¶è§’åº¦å·®
+    CalSmallRune(data, debug_msg);                           //è®¡ç®—å°ç¬¦è§’é€Ÿåº¦
+    Judge(debug_msg);                                        //åˆ¤æ–­é¡ºæ—¶é’ˆè¿˜æ˜¯é€†æ—¶é’ˆ
+    FittingBig(data, runes_msg, debug_msg);                  //æ‹Ÿåˆå¤§ç¬¦
+    Fitting(runes_msg);                                      //è®¡ç®—é¢„æµ‹è§’åº¦
+    data_last = data;                                        //è®°å½•ä¸Šä¸€å¸§çš„æ•°æ®
+    leaf_angle_last = leaf_angle;                            //è®°å½•ä¸Šä¸€å¸§çš„è§’åº¦
+    cv::Point2d symbol(data->symbol.x, data->symbol.y);      //Ræ ‡
     rotate_armors.clear();
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
     }
     for (auto&& vertex: rotate_armors) {
-        //½«¹Ø¼üµãÒÔÔ²ĞÄĞı×ªrotate_angle µÃµ½Ô¤²âµã
+        //å°†å…³é”®ç‚¹ä»¥åœ†å¿ƒæ—‹è½¬rotate_angle å¾—åˆ°é¢„æµ‹ç‚¹
         vertex = Rotate(vertex, symbol, rotate_angle);
     }
 }
@@ -48,9 +49,9 @@ void Tracker::InitCeres() {
     tracker.pred_time = 0;
     tracker.pred_angle = 0;
     tracker.angle = 0;
-    options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //Ñ¡Ôñ×îĞ¡¶ş³ËµÄÄâºÏÄ£Ê½
-    options.minimizer_progress_to_stdout = false;              //Ñ¡Ôñ²»´òÓ¡ÄâºÏĞÅÏ¢
-    options.num_threads = 4;                                   //Ê¹ÓÃ4¸öÏß³Ì½øĞĞÄâºÏ
+    options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //é€‰æ‹©æœ€å°äºŒä¹˜çš„æ‹Ÿåˆæ¨¡å¼
+    options.minimizer_progress_to_stdout = false;              //é€‰æ‹©ä¸æ‰“å°æ‹Ÿåˆä¿¡æ¯
+    options.num_threads = 4;                                   //ä½¿ç”¨4ä¸ªçº¿ç¨‹è¿›è¡Œæ‹Ÿåˆ
     a_omega_phi_b[0] = RUNE_ROTATE_A_MIN;
     a_omega_phi_b[1] = RUNE_ROTATE_O_MIN;
     a_omega_phi_b[2] = 0;
@@ -64,10 +65,13 @@ void Tracker::CalSmallRune(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
     }
 
     if (angles.Any()) {
-        leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //ĞŞÕı·¶Î§
+        if (fabs(leaf_angle - leaf_angle_last) > 0.8) {
+            //å°ç¬¦æ›´æ¢æ‰‡å¶ åˆ™è¿™ä¸€æ¬¡çš„æ•°æ®ä¸åšå¤„ç†
+            return;
+        }
         auto&& leaf_angle_diff_abs = std::abs(leaf_angle_diff);
         angles.PushForcibly(angles[-1] + leaf_angle_diff_abs);
-        //ÏÂÃæÇó½â½ÇËÙ¶È
+        //ä¸‹é¢æ±‚è§£è§’é€Ÿåº¦
         speed.Push(
             leaf_angle_diff_abs
             / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
@@ -85,23 +89,23 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         return false;
     }
 
-    if (cere_param_list.empty()) {              //Êı¾İ¶ÓÁĞÎª¿ÕÊ±£¬³õÊ¼»¯
-        tracker.timestamp = data->header.stamp; //¼ÇÂ¼Ê±¼ä´Á
-        t_zero = data->header.stamp;            //Ê±¼äÆğµã
-        cere_rotated_angle = leaf_angle;        //¼ÇÂ¼µÚÒ»Ö¡·ûÒ¶µÄ½Ç¶È
+    if (cere_param_list.empty()) {              //æ•°æ®é˜Ÿåˆ—ä¸ºç©ºæ—¶ï¼Œåˆå§‹åŒ–
+        tracker.timestamp = data->header.stamp; //è®°å½•æ—¶é—´æˆ³
+        t_zero = data->header.stamp;            //æ—¶é—´èµ·ç‚¹
+        cere_rotated_angle = leaf_angle;        //è®°å½•ç¬¬ä¸€å¸§ç¬¦å¶çš„è§’åº¦
         tracker.pred_time = 0;
         tracker.angle = cere_rotated_angle;
     }
 
     if ((rclcpp::Time(data->header.stamp) - t_zero).seconds() > 30) {
-        //·ûµÄÊı¾İ¹ıÆÚ
+        //ç¬¦çš„æ•°æ®è¿‡æœŸ
         Reset();
         return false;
     }
     if (abs(leaf_angle - leaf_angle_last) > 0.4) {
-        //ÉÏÒ»Ö¡ÓëÕâÒ»Ö¡µÄ½Ç¶È²îÖµ³¬¹ı0.4£¬ÔòÅĞ¶ÏÎª¿É¼¤»îµÄ·ûÒ¶ÒÑ×ª»»
-        cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // ±ä»»·ûÒ¶³õÊ¼½Ç¶È
-        //½Ç¶È±ä»»ºó£¬ĞèÒª½ÃÕı½Ç¶È
+        //ä¸Šä¸€å¸§ä¸è¿™ä¸€å¸§çš„è§’åº¦å·®å€¼è¶…è¿‡0.4ï¼Œåˆ™åˆ¤æ–­ä¸ºå¯æ¿€æ´»çš„ç¬¦å¶å·²è½¬æ¢
+        cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // å˜æ¢ç¬¦å¶åˆå§‹è§’åº¦
+        //è§’åº¦å˜æ¢åï¼Œéœ€è¦çŸ«æ­£è§’åº¦
         cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
         cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
         // RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
@@ -112,24 +116,24 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 
 bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (cere_param_list.size() < 100) {
-        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         runes_msg.can_shoot = false;
         return false;
     } else if (cere_param_list.size() == 100) {
-        //¶ÓÁĞÊı¾İÒÑÂú
-        cere_param_list.pop_front(); //¶ÓÁĞÍ·Êı¾İµ¯³ö
-        //TODO:ÕâÀï¿ÉÄÜ»áÓĞÎÊÌâºóĞøÂß¼­µÃ×ĞÏ¸¿¼ÂÇÒ»ÏÂ
-        leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        //é˜Ÿåˆ—æ•°æ®å·²æ»¡
+        cere_param_list.pop_front(); //é˜Ÿåˆ—å¤´æ•°æ®å¼¹å‡º
+        //TODO:è¿™é‡Œå¯èƒ½ä¼šæœ‰é—®é¢˜åç»­é€»è¾‘å¾—ä»”ç»†è€ƒè™‘ä¸€ä¸‹
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         if (finish_fitting) {
             RCLCPP_INFO(rclcpp::get_logger("tracker"), "predict correct");
         } else {
             RCLCPP_INFO(rclcpp::get_logger("tracker"), "predict inaccuracy,restart fittting");
         }
-        //µ±ÏÖÔÚµÄÊ±¼ä¼õÈ¥ÉÏÒ»´ÎÄâºÏµÄÊ±¼ä´óÓÚÔ¤²âµÄÊ±¼äÊ±£¬¿ªÊ¼ÑéÖ¤Ô¤²âµÄ×¼È·ĞÔ
+        //å½“ç°åœ¨çš„æ—¶é—´å‡å»ä¸Šä¸€æ¬¡æ‹Ÿåˆçš„æ—¶é—´å¤§äºé¢„æµ‹çš„æ—¶é—´æ—¶ï¼Œå¼€å§‹éªŒè¯é¢„æµ‹çš„å‡†ç¡®æ€§
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(tracker.timestamp)).seconds() >= tracker.pred_time) {
-            // ¼ÆËãÎó²î
+            // è®¡ç®—è¯¯å·®
             double delta_angle = 0;
             if (this->rotation_direction_ == RotationDirection::ANTICLOCKWISE && tracker.pred_angle > 0)
             {
@@ -139,7 +143,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
             delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
             debug_msg.delta_angle = delta_angle;
             if (delta_angle < 0.2) {
-                //Îó²îĞ¡,ÔòÈÏÎªÄâºÏÁ¼ºÃ
+                //è¯¯å·®å°,åˆ™è®¤ä¸ºæ‹Ÿåˆè‰¯å¥½
                 pred_angle = Integral(
                     a_omega_phi_b[1],
                     std::vector<double> { a_omega_phi_b[0],
@@ -148,12 +152,12 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                     delay + (rclcpp::Clock().now() - data->header.stamp).seconds()
                 );
-                runes_msg.can_shoot = true; //¿ÉÒÔ·¢Éä
-                count_cere = 0;             //½«count_cereÖÃÎª0£¬·ÇÁ¬Ğø5´ÎÄâºÏ²»Á¼
+                runes_msg.can_shoot = true; //å¯ä»¥å‘å°„
+                count_cere = 0;             //å°†count_cereç½®ä¸º0ï¼Œéè¿ç»­5æ¬¡æ‹Ÿåˆä¸è‰¯
                 finish_fitting = true;
                 tracker.Record(pred_angle, data->header.stamp, delay + (rclcpp::Clock().now() - data->header.stamp).seconds(), leaf_angle);
             } else {
-                //Îó²î´ó,ÔòÈÏÎªÄâºÏ²»Á¼
+                //è¯¯å·®å¤§,åˆ™è®¤ä¸ºæ‹Ÿåˆä¸è‰¯
                 if (count_cere < 5) {
                     count_cere++;
                     pred_angle = Integral(
@@ -167,21 +171,20 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                     tracker.Record(pred_angle, data->header.stamp, delay + (rclcpp::Clock().now() - data->header.stamp).seconds(), leaf_angle);
                     return false;
                 }
-                finish_fitting = false; //Á¬ĞøÎå´ÎÎó²î³¬¹ı0.1£¬ÔòÈÏÎªĞèÒªÖØĞÂÄâºÏ
+                finish_fitting = false; //è¿ç»­äº”æ¬¡è¯¯å·®è¶…è¿‡0.1ï¼Œåˆ™è®¤ä¸ºéœ€è¦é‡æ–°æ‹Ÿåˆ
                 count_cere = 0;
                 Refitting(data);
-                runes_msg.can_shoot = true;
+                runes_msg.can_shoot = false;
                 return true;
             }
         } else {
-            //»¹Ã»ÓĞµ½´ïÔ¤²âµÄÊ±¼ä
+            //è¿˜æ²¡æœ‰åˆ°è¾¾é¢„æµ‹çš„æ—¶é—´
             pred_angle = Integral(
                 a_omega_phi_b[1],
                 std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
                 (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                 (delay + (rclcpp::Clock().now() - data->header.stamp).seconds())
             );
-            runes_msg.can_shoot = false;
             return false;
         }
     }
@@ -190,11 +193,11 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
 
 void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (leaf_angular_velocity < 4) {
-        //Èç¹ûÕâÒ»Ö¡ºÍÉÏÒ»ÕëÊ±¼ä²î´óÓÚ0.15s£¬ÔòÈÏÎªÕâÒ»Ö¡µÄÊı¾İ²»¿ÉÓÃ
+        //å¦‚æœè¿™ä¸€å¸§å’Œä¸Šä¸€é’ˆæ—¶é—´å·®å¤§äº0.15sï¼Œåˆ™è®¤ä¸ºè¿™ä¸€å¸§çš„æ•°æ®ä¸å¯ç”¨
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
             > 0.15) {
-            count_cant_use = filter_astring_threshold; //ÒòÎª¿¨¶ûÂüÂË²¨ÔÚÊı¾İÍ»±äºóĞèÒªÒ»¶¨Ê±¼äÊÕÁ²£¬ËùÒÔÉèÖÃ20¸öÊı¾İµÄÊÕÁ²¼ä¸ô
+            count_cant_use = filter_astring_threshold; //å› ä¸ºå¡å°”æ›¼æ»¤æ³¢åœ¨æ•°æ®çªå˜åéœ€è¦ä¸€å®šæ—¶é—´æ”¶æ•›ï¼Œæ‰€ä»¥è®¾ç½®20ä¸ªæ•°æ®çš„æ”¶æ•›é—´éš”
         }
         count_cant_use--;
 #if NEW_METHOD
@@ -203,12 +206,12 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
             MeasurementPackage::SensorType::LASER,
             Eigen::Vector2d { leaf_angular_velocity, 0 }
         );
-        //Ö±½ÓÊäÈë½ÇËÙ¶È£¬È»ºó½øĞĞÂË²¨
-        ukf_->ProcessMeasurement(package); //¹À¼Æµ±Ç°ÕæÊµµÄ×´Ì¬
+        //ç›´æ¥è¾“å…¥è§’é€Ÿåº¦ï¼Œç„¶åè¿›è¡Œæ»¤æ³¢
+        ukf_->ProcessMeasurement(package); //ä¼°è®¡å½“å‰çœŸå®çš„çŠ¶æ€
         double&& omega = 1.0 * abs(ukf_->x_(0));
         debug_msg.big_rune_speed = omega;
 #else
-        // ÓÃ¶şÎ¬×ø±êÄâºÏ
+        // ç”¨äºŒç»´åæ ‡æ‹Ÿåˆ
         auto&& theta = leaf_angle;
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
@@ -216,11 +219,11 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
             Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(theta - cere_rotated_angle),
                               RUNE_ARMOR_TO_SYMBOL * sin(theta - cere_rotated_angle) }
         );
-        //½«´«¸ĞÆ÷µÄ×ø±êÊı¾İ¶ªÈëUKF
-        //ukfÊäÈë×ø±ê£¬Êä³ö¹À¼ÆµÄ×´Ì¬ÏòÁ¿x_Îª[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
+        //å°†ä¼ æ„Ÿå™¨çš„åæ ‡æ•°æ®ä¸¢å…¥UKF
+        //ukfè¾“å…¥åæ ‡ï¼Œè¾“å‡ºä¼°è®¡çš„çŠ¶æ€å‘é‡x_ä¸º[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
 
-        ukf_->ProcessMeasurement(package);                              //¹À¼Æµ±Ç°ÕæÊµµÄ×´Ì¬
-        double&& omega = 1.0 * abs(ukf_->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //´Ó×´Ì¬¹À¼ÆÆ÷ÖĞÈ¡³ö¹À¼ÆµÄomega
+        ukf_->ProcessMeasurement(package);                              //ä¼°è®¡å½“å‰çœŸå®çš„çŠ¶æ€
+        double&& omega = 1.0 * abs(ukf_->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //ä»çŠ¶æ€ä¼°è®¡å™¨ä¸­å–å‡ºä¼°è®¡çš„omega
         debug_msg.big_rune_speed = omega;
 #endif
         if (count_cant_use <= 0) {
@@ -234,7 +237,7 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
 void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
     ceres::Problem problem;
     for (auto& i: cere_param_list) {
-        //½«Êı¾İÌí¼ÓÈëÎÊÌâ
+        //å°†æ•°æ®æ·»åŠ å…¥é—®é¢˜
         problem.AddResidualBlock(
             new ceres::AutoDiffCostFunction<CURVE_FITTING_COST, 1, 4>(
                 new CURVE_FITTING_COST(
@@ -246,17 +249,17 @@ void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
             a_omega_phi_b
         );
     }
-    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //ÉèÖÃ²ÎÊıÉÏÏÂÏŞ
+    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //è®¾ç½®å‚æ•°ä¸Šä¸‹é™
     problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
     problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
-    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // Êı¾İÊÇ¹Ù·½µÄ
+    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // æ•°æ®æ˜¯å®˜æ–¹çš„
 
     problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
     problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
     problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
     problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
 
-    ceres::Solve(options, &problem, &summary); //¿ªÊ¼ÄâºÏ(½â¾öÎÊÌâ)
+    ceres::Solve(options, &problem, &summary); //å¼€å§‹æ‹Ÿåˆ(è§£å†³é—®é¢˜)
     pred_angle = Integral(
         a_omega_phi_b[1],
         std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
@@ -337,6 +340,6 @@ Tracker::Integral(double w, std::vector<double> params, double t_s, double pred_
     double theta1 = -a / w * cos(w * t_s + phi) + (params[2]) * t_s;
     double theta2 = -a / w * cos(w * t_e + phi) + (params[2]) * t_e;
     return theta2 - theta1;
-} //»ı·Ö ÓÃÓÚÔ¤²âÏÂ¸öÊ±¿ÌµÄÎ»ÖÃ
+} //ç§¯åˆ† ç”¨äºé¢„æµ‹ä¸‹ä¸ªæ—¶åˆ»çš„ä½ç½®
 
 } // namespace rune

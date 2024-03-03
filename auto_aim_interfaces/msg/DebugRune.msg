@@ -2,6 +2,7 @@ std_msgs/Header header
 float32 delay
 float32 small_rune_speed
 float32 big_rune_speed
+float32 origin_big_rune_speed
 float32 delta_angle
 float32[4] a_omega_phi_b
 float32 rotate_angle
