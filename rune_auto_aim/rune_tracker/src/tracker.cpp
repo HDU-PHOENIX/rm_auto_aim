@@ -103,7 +103,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         return false;
     }
     if (abs(leaf_angle - leaf_angle_last) > 0.4) {
-        //上一帧与这一帧的角度差值超过0.4，则判断为可激活的符叶已转换
+        //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
         cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
         //角度变换后，需要矫正角度
         cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
@@ -142,7 +142,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
             delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
             delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
             debug_msg.delta_angle = delta_angle;
-            if (delta_angle < 0.2) {
+            if (delta_angle < 0.15) {
                 //误差小,则认为拟合良好
                 pred_angle = Integral(
                     a_omega_phi_b[1],
@@ -192,7 +192,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
 }
 
 void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
-    if (leaf_angular_velocity < 4) {
+    if (leaf_angular_velocity < 2.1) {
         //如果这一帧和上一针时间差大于0.15s，则认为这一帧的数据不可用
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
                 .seconds()
