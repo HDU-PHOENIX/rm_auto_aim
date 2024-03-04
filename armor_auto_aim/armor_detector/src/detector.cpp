@@ -157,6 +157,8 @@ void Detector::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classe
 }
 
 void Detector::DrawResult(const cv::Mat& input) {
+    cv::circle(input, pnp_solver_->GetCameraCenter(), 5, cv::Scalar(255, 0, 0), 2);
+
     for (const auto& light: lights_) {
         cv::Point2f vertices[4];
         light.points(vertices);

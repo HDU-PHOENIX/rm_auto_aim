@@ -9,6 +9,7 @@ PnPSolver::PnPSolver(
     const std::vector<double>& camera_matrix,
     const std::vector<double>& distortion_coefficients
 ):
+    camera_center_(camera_matrix.at(2), camera_matrix.at(5)),
     camera_matrix_(cv::Mat(3, 3, CV_64F, const_cast<double*>(camera_matrix.data())).clone()),
     distortion_coefficients_(cv::Mat(1, 5, CV_64F, const_cast<double*>(distortion_coefficients.data())).clone()) {}
 
@@ -68,8 +69,11 @@ void PnPSolver::SolvePnP(const Armor& armor) {
 }
 
 float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& armor_center) {
-    float cx = camera_matrix_.at<double>(0, 2); // 光学中心 x
-    float cy = camera_matrix_.at<double>(1, 2); // 光学中心 y
-    return cv::norm(armor_center - cv::Point2f(cx, cy));
+    return cv::norm(armor_center - camera_center_);
 }
+
+cv::Point2f PnPSolver::GetCameraCenter() {
+    return camera_center_;
+}
+
 } // namespace armor

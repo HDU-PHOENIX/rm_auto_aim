@@ -78,11 +78,11 @@ ArmorDetectorNode::CreateDetector() {
 
     auto&& enemy_color = declare_parameter("enemy_color", 'b');
     auto&& confidence_threshold = declare_parameter("confidence_threshold", 0.7);
-    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> { 1302.9388992859376, 0, 609.2298064340857, 0, 2515.6912302455735, 467.0345949712323, 0, 0, 1 });
+    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
+    auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
     auto&& pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
     auto&& model_path = declare_parameter("model_path", "/model/mlp.onnx");
     auto&& label_path = declare_parameter("label_path", "/model/label.txt");
-    auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> { 0.9716178021093913, -22.20834732244382, -0.19838225091062828, -0.08828110807170159, 96.16902256363146 });
     auto&& ignore_classes = declare_parameter("ignore_classes", std::vector<std::string> { "negative" });
 
     return std::make_unique<Detector>(
