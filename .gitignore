@@ -6,3 +6,4 @@ Camera
 .vscode
 record/*.txt
 __pycache__
+armor_auto_aim/armor_detector/model/test.mp4

@@ -1,20 +1,4 @@
-// OpenCV
-#include <opencv2/core.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/types.hpp>
-#include <opencv2/dnn.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-
-// STL
-#include <algorithm>
-#include <cstddef>
 #include <fstream>
-#include <map>
-#include <string>
-#include <vector>
 
 #include "armor_detector/armor.hpp"
 #include "armor_detector/number_classifier.hpp"
@@ -23,15 +7,12 @@ namespace armor {
 NumberClassifier::NumberClassifier(
     const std::string& model_path,
     const std::string& label_path,
-    const double thre,
+    const float confidence_threshold,
     const std::vector<std::string>& ignore_classes
 ):
-    threshold(thre),
+    confidence_threshold_(confidence_threshold),
     ignore_classes_(ignore_classes) {
-    // 加载模型
     net_ = cv::dnn::readNetFromONNX(model_path);
-
-    // 加载标签
     std::ifstream label_file(label_path);
     std::string line;
     while (std::getline(label_file, line)) {
@@ -40,16 +21,12 @@ NumberClassifier::NumberClassifier(
 }
 
 void NumberClassifier::ExtractNumbers(const cv::Mat& src, std::vector<Armor>& armors) {
-    // 图片中的灯条长度
     const int light_length = 12;
-    // 透视变化之后的图片大小
     const int warp_height = 28;
     const int small_armor_width = 32;
     const int large_armor_width = 54;
-    // 数字 ROI 大小
     const cv::Size roi_size(20, 28);
 
-    // 遍历所有装甲板
     for (auto& armor: armors) {
         // 透视变换
         cv::Point2f lights_vertices[4] = { armor.left_light.bottom,
@@ -72,20 +49,19 @@ void NumberClassifier::ExtractNumbers(const cv::Mat& src, std::vector<Armor>& ar
         cv::warpPerspective(src, number_image, rotation_matrix, cv::Size(warp_width, warp_height));
 
         // 获取数字 ROI
-        number_image =
-            number_image(cv::Rect(cv::Point((warp_width - roi_size.width) / 2, 0), roi_size));
+        number_image = number_image(cv::Rect(cv::Point((warp_width - roi_size.width) / 2, 0), roi_size));
 
         // 二值化
         cv::cvtColor(number_image, number_image, cv::COLOR_RGB2GRAY);
         cv::threshold(number_image, number_image, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
 
-        armor.number_img = number_image;
+        armor.number_image = number_image;
     }
 }
 
 void NumberClassifier::Classify(std::vector<Armor>& armors) {
     for (auto& armor: armors) {
-        cv::Mat image = armor.number_img.clone();
+        cv::Mat image = armor.number_image.clone();
 
         // Normalize
         image = image / 255.0;
@@ -111,12 +87,12 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
         minMaxLoc(softmax_prob.reshape(1, 1), nullptr, &confidence, nullptr, &class_id_point);
         int label_id = class_id_point.x;
 
-        armor.confidence = confidence;
+        armor.classification_confidence = confidence;
         armor.number = class_names_[label_id];
 
         std::stringstream result_ss;
         result_ss << armor.number << ": " << std::fixed << std::setprecision(1)
-                  << armor.confidence * 100.0 << "%";
+                  << armor.classification_confidence * 100.0 << "%";
         armor.classification_result = result_ss.str();
     }
 
@@ -130,7 +106,7 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
             armors.end(),
             [this](const Armor& armor) {
                 // 装甲板置信度过低
-                if (armor.confidence < threshold) {
+                if (armor.classification_confidence < confidence_threshold_) {
                     return true;
                 }
 
@@ -154,6 +130,10 @@ void NumberClassifier::Classify(std::vector<Armor>& armors) {
         ),
         armors.end()
     );
+}
+
+void NumberClassifier::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
+    ignore_classes_ = ignore_classes;
 }
 
 } // namespace armor

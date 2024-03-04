@@ -1,17 +1,11 @@
 cmake_minimum_required(VERSION 3.8)
 project(armor_detector)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-## Export compile commands for clangd
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-add_compile_options(-g)
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #######################
 ## Find dependencies ##
@@ -26,22 +20,32 @@ ament_auto_find_build_dependencies()
 ###########
 
 ament_auto_add_library(${PROJECT_NAME} SHARED
-    DIRECTORY src
+  DIRECTORY src
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
 rclcpp_components_register_node(${PROJECT_NAME}
-    PLUGIN armor::ArmorDetectorNode
-    EXECUTABLE armor_detector_node
+  PLUGIN armor::ArmorDetectorNode
+  EXECUTABLE armor_detector_node
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(detector_test test/detector_test.cpp)
+  target_include_directories(detector_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(detector_test ${PROJECT_NAME})
+endif()
 
 #############
 ## Install ##
 #############
 
 ament_auto_package(
-    INSTALL_TO_SHARE
-    model
+  INSTALL_TO_SHARE
+  model
 )

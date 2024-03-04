@@ -33,6 +33,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TrackerInfo.msg"
   "msg/SerialInfo.msg"
   "msg/DebugRune.msg"
+  "msg/IgnoreClasses.msg"
 
   DEPENDENCIES
     std_msgs

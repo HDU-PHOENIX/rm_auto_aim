@@ -1,207 +1,110 @@
-// OpenCV
-#include <opencv2/core.hpp>
-#include <opencv2/core/base.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/types.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
-// STD
-#include <algorithm>
-#include <cmath>
-#include <rclcpp/logger.hpp>
-#include <rclcpp/logging.hpp>
-#include <string>
-#include <vector>
-
 #include "armor_detector/detector.hpp"
-#include "auto_aim_interfaces/msg/debug_armor.hpp"
-#include "auto_aim_interfaces/msg/debug_light.hpp"
 
 namespace armor {
 Detector::Detector(
-    const int& gray_thres,
-    const int& contour_thres,
-    const int& color,
-    const LightParams& light_params,
-    const ArmorParams& armor_params,
-    const int& detect_mode
+    int binary_threshold,
+    int light_contour_threshold,
+    Color enemy_color,
+    std::string model_path,
+    std::string label_path,
+    float confidence_threshold,
+    const std::vector<double>& camera_matrix,
+    const std::vector<double>& distortion_coefficients,
+    std::vector<std::string> ignore_classes,
+    cv::Mat kernel
 ):
-    binary_thres(0),
-    gray_thres(gray_thres),
-    contour_thres(contour_thres),
-    enemy_color(color),
-    light_params(light_params),
-    armor_params(armor_params),
-    detect_mode(detect_mode) {}
+    binary_threshold_(binary_threshold),
+    light_contour_threshold_(light_contour_threshold),
+    enemy_color_(enemy_color),
+    kernel_(kernel) {
+    this->classifier_ = std::make_unique<NumberClassifier>(model_path, label_path, confidence_threshold, ignore_classes);
+    this->pnp_solver_ = std::make_unique<PnPSolver>(camera_matrix, distortion_coefficients);
+}
 
 Detector::Detector(
-    const int& bin_thres,
-    const int& color,
-    const LightParams& light_params,
-    const ArmorParams& armor_params,
-    const int& detect_mode
+    int binary_threshold,
+    int light_contour_threshold,
+    Color enemy_color,
+    std::unique_ptr<NumberClassifier> classifier,
+    std::unique_ptr<PnPSolver> pnp_solver,
+    cv::Mat kernel
 ):
-    binary_thres(bin_thres),
-    gray_thres(0),
-    contour_thres(0),
-    enemy_color(color),
-    light_params(light_params),
-    armor_params(armor_params),
-    detect_mode(detect_mode) {}
+    binary_threshold_(binary_threshold),
+    light_contour_threshold_(light_contour_threshold),
+    enemy_color_(enemy_color),
+    kernel_(kernel),
+    classifier_(std::move(classifier)),
+    pnp_solver_(std::move(pnp_solver)) {}
 
-std::vector<Armor> Detector::Detect(const cv::Mat& input) {
-    binary_img = PreprocessImage(input);     // 二值化图像
-    lights_ = FindLights(input, binary_img); // 检测灯条
-    armors_ = MatchLights(lights_);          // 匹配灯条
+std::vector<Armor> Detector::DetectArmor(const cv::Mat& input) {
+    preprocessed_image_ = PreprocessImage(input);
+    lights_ = DetectLight(input);
+    armors_ = FilterArmor(lights_);
 
-    // 若图像含有装甲板，进行数字提取和分类
     if (!armors_.empty()) {
-        classifier->ExtractNumbers(input, armors_);
-        classifier->Classify(armors_);
+        classifier_->ExtractNumbers(input, armors_);
+        classifier_->Classify(armors_);
+
+        for (auto& armor: armors_) {
+            pnp_solver_->CalculatePose(armor);
+        }
     }
 
     return armors_;
 }
 
-cv::Mat Detector::PreprocessImage(const cv::Mat& rgb_img) {
-    // 灰度
-    cv::Mat gray_img;
-    cv::cvtColor(rgb_img, gray_img, cv::COLOR_RGB2GRAY);
-
-    // 二值化
-    cv::Mat binary_img;
-    if (detect_mode == 0) {
-        cv::threshold(gray_img, binary_img, binary_thres, 255, cv::THRESH_BINARY);
-    } else {
-        std::vector<cv::Mat> channels;
-        split(rgb_img, channels);
-        // 找出灰度图里面较亮的地方
-        cv::threshold(gray_img, gray_mask, gray_thres, 255, cv::THRESH_BINARY);
-        if (enemy_color == RED) {
-            // 红色 - 蓝色 获得红色区域轮廓
-            cv::subtract(channels[2], channels[0], color_mask);
-        } else if (enemy_color == BLUE) {
-            // 蓝色 - 红色 获得蓝色区域轮廓
-            cv::subtract(channels[0], channels[2], color_mask);
-        }
-        // 二值化轮廓后膨胀
-        cv::threshold(color_mask, contour_mask, contour_thres, 255, cv::THRESH_BINARY);
-        cv::Mat kernel = cv::Mat::ones(5, 5, CV_8U);
-        cv::dilate(contour_mask, contour_mask, kernel);
-        // 与灰度图取交集
-        cv::bitwise_and(gray_mask, contour_mask, binary_img);
-    }
-
-    return binary_img;
+cv::Mat Detector::PreprocessImage(const cv::Mat& input) {
+    cv::Mat gray, binary;
+    cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
+    cv::threshold(gray, binary, this->binary_threshold_, 255, cv::THRESH_BINARY);
+    return binary;
 }
 
-std::vector<Light> Detector::FindLights(const cv::Mat& rbg_img, const cv::Mat& binary_img) {
-    using std::vector;
+std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
+    std::vector<Light> lights;
+    debug_lights_.clear();
 
-    // 寻找灯条轮廓
-    vector<vector<cv::Point>> contours;
-    vector<cv::Vec4i> hierarchy;
-    cv::findContours(binary_img, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    cv::split(input, channels_);
+    // 敌方颜色通道 - 己方颜色通道
+    if (enemy_color_ == Color::RED) {
+        cv::subtract(channels_[2], channels_[0], color_mask_);
+    } else {
+        cv::subtract(channels_[0], channels_[2], color_mask_);
+    }
+    cv::threshold(color_mask_, light_contour_binary_image_, light_contour_threshold_, 255, cv::THRESH_BINARY);
+    cv::dilate(light_contour_binary_image_, light_contour_binary_image_, kernel_);
+    cv::bitwise_and(preprocessed_image_, light_contour_binary_image_, light_contour_binary_image_);
 
-    vector<Light> lights;
-    this->debug_lights.data.clear();
-
-    // 遍历轮廓，寻找灯条并判断颜色
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(this->light_contour_binary_image_, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
     for (const auto& contour: contours) {
-        if (contour.size() < 5) {
+        if (contour.size() < 4) {
             continue;
         }
 
-        // 构造最小外接矩形，并转换为 Light 类
-        auto r_rect = cv::minAreaRect(contour);
-        auto light = Light(r_rect);
-
-        if (IsLight(light)) {
-            if (detect_mode == 1) {
-                // 通道相减模式下，直接判断颜色
-                light.color = enemy_color;
-                lights.emplace_back(light);
-            } else {
-                // 获取包含灯条的最小直立矩形
-                auto rect = light.boundingRect();
-
-                // 防止越界
-                if (0 <= rect.x && 0 <= rect.width && 0 <= rect.y && 0 <= rect.height
-                    && rect.x + rect.width <= rbg_img.cols && rect.y + rect.height <= rbg_img.rows)
-                {
-                    int sum_r = 0, sum_b = 0;
-                    auto roi = rbg_img(rect);
-                    // 遍历 ROI，计算灯条颜色
-                    for (int i = 0; i < roi.rows; i++) {
-                        for (int j = 0; j < roi.cols; j++) {
-                            if (cv::pointPolygonTest(
-                                    contour,
-                                    cv::Point2f(j + rect.x, i + rect.y),
-                                    false
-                                )
-                                >= 0) {
-                                sum_r += roi.at<cv::Vec3b>(i, j)[0];
-                                sum_b += roi.at<cv::Vec3b>(i, j)[2];
-                            }
-                        }
-                    }
-                    // 直接通过像素值加和判断颜色
-                    light.color = sum_r > sum_b ? RED : BLUE;
-                    lights.emplace_back(light);
-                }
-            }
+        Light light = FormLight(contour);
+        if (light.valid == true) {
+            lights.push_back(light);
         }
     }
 
     return lights;
 }
 
-bool Detector::IsLight(const Light& light) {
-    // 计算灯条长宽比和倾斜角度判断是否为灯条
-
-    // The ratio of light (short side / long side)
-    float ratio = light.width / light.length;
-    bool ratio_ok = light_params.min_ratio < ratio && ratio < light_params.max_ratio;
-
-    bool angle_ok = light.tilt_angle < light_params.max_angle;
-
-    bool is_light = ratio_ok && angle_ok;
-
-    // debug information
-    auto_aim_interfaces::msg::DebugLight light_data;
-    light_data.center_x = light.center.x;
-    light_data.ratio = ratio;
-    light_data.angle = light.tilt_angle;
-    light_data.is_light = is_light;
-    this->debug_lights.data.emplace_back(light_data);
-
-    return is_light;
-}
-
-std::vector<Armor> Detector::MatchLights(const std::vector<Light>& lights) {
+std::vector<Armor> Detector::FilterArmor(const std::vector<Light>& lights) {
     std::vector<Armor> armors;
-    this->debug_armors.data.clear();
+    armors.reserve(lights.size() / 2);
+    debug_armors_.clear();
 
-    // 循环遍历所有配对的灯
-    for (auto light_1 = lights.begin(); light_1 != lights.end(); light_1++) {
-        for (auto light_2 = light_1 + 1; light_2 != lights.end(); light_2++) {
-            // 跳过己方灯条
-            if (light_1->color != enemy_color || light_2->color != enemy_color) {
+    for (const auto& left_light: lights) {
+        for (const auto& right_light: lights) {
+            if (left_light.center.x >= right_light.center.x) {
                 continue;
             }
 
-            // 两灯条间是否包含灯条
-            if (ContainLight(*light_1, *light_2, lights)) {
-                continue;
-            }
-
-            // 判断装甲板类型
-            auto type = IsArmor(*light_1, *light_2);
-            if (type != ArmorType::INVALID) {
-                auto armor = Armor(*light_1, *light_2);
-                armor.type = type;
-                armors.emplace_back(armor);
+            Armor armor = FormArmor(left_light, right_light);
+            if (armor.type != ArmorType::INVALID) {
+                armors.push_back(armor);
             }
         }
     }
@@ -209,72 +112,29 @@ std::vector<Armor> Detector::MatchLights(const std::vector<Light>& lights) {
     return armors;
 }
 
-bool Detector::ContainLight(
-    const Light& light_1,
-    const Light& light_2,
-    const std::vector<Light>& lights
-) {
-    auto points =
-        std::vector<cv::Point2f> { light_1.top, light_1.bottom, light_2.top, light_2.bottom };
-    auto bounding_rect = cv::boundingRect(points);
+Light Detector::FormLight(const std::vector<cv::Point>& light_contour) {
+    Light light(cv::minAreaRect(light_contour));
+    bool is_light = (light.length > light.width * 3) && (light.size.area() > 100);
+    light.valid = is_light;
 
-    for (const auto& test_light: lights) {
-        if (test_light.center == light_1.center || test_light.center == light_2.center) {
-            continue;
-        }
-
-        if (bounding_rect.contains(test_light.top) || bounding_rect.contains(test_light.bottom)
-            || bounding_rect.contains(test_light.center))
-        {
-            return true;
-        }
-    }
-
-    return false;
+    debug_lights_.push_back(light);
+    return light;
 }
 
-ArmorType Detector::IsArmor(const Light& light_1, const Light& light_2) {
-    // 两个灯的长度比 (short side / long side)
-    float light_length_ratio = light_1.length < light_2.length ? light_1.length / light_2.length
-                                                               : light_2.length / light_1.length;
-    bool light_ratio_ok = light_length_ratio > armor_params.min_light_ratio;
+Armor Detector::FormArmor(const Light& left_light, const Light& right_light) {
+    Armor armor(left_light, right_light);
+    bool light_height_ratio_valid = armor.light_height_ratio > 0.8;
+    bool light_angle_diff_valid = armor.light_angle_diff < 10;
+    bool angle_valid = armor.angle < 30;
 
-    // 两个灯条的距离 (unit : light length)
-    // Distance between the center of 2 lights (unit : light length)
-    float avg_light_length = (light_1.length + light_2.length) / 2;
-    float center_distance = cv::norm(light_1.center - light_2.center) / avg_light_length;
-    bool center_distance_ok = (armor_params.min_small_center_distance <= center_distance
-                               && armor_params.max_small_center_distance > center_distance)
-        || (armor_params.min_large_center_distance <= center_distance
-            && armor_params.max_large_center_distance > center_distance);
-
-    // 装甲板倾斜角度
-    cv::Point2f diff = light_1.center - light_2.center;
-    float angle = std::abs(std::atan(diff.y / diff.x)) / CV_PI * 180;
-    bool angle_ok = angle < armor_params.max_angle;
-
-    // 判断是否为装甲板
-    bool is_armor = light_ratio_ok && center_distance_ok && angle_ok;
-
-    // 判断装甲板类型
-    ArmorType type;
-    if (is_armor) {
-        type = center_distance > armor_params.min_large_center_distance ? ArmorType::LARGE
-                                                                        : ArmorType::SMALL;
+    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid) {
+        armor.type = (armor.light_center_distance > 3.2) ? ArmorType::LARGE : ArmorType::SMALL;
     } else {
-        type = ArmorType::INVALID;
+        armor.type = ArmorType::INVALID;
     }
 
-    // Fill in debug information
-    auto_aim_interfaces::msg::DebugArmor armor_data;
-    armor_data.type = ARMOR_TYPE_STR[static_cast<int>(type)];
-    armor_data.center_x = (light_1.center.x + light_2.center.x) / 2;
-    armor_data.light_ratio = light_length_ratio;
-    armor_data.center_distance = center_distance;
-    armor_data.angle = angle;
-    this->debug_armors.data.emplace_back(armor_data);
-
-    return type;
+    debug_armors_.push_back(armor);
+    return armor;
 }
 
 cv::Mat Detector::GetAllNumbersImage() {
@@ -284,7 +144,7 @@ cv::Mat Detector::GetAllNumbersImage() {
         std::vector<cv::Mat> number_imgs;
         number_imgs.reserve(armors_.size());
         for (auto& armor: armors_) {
-            number_imgs.emplace_back(armor.number_img);
+            number_imgs.emplace_back(armor.number_image);
         }
         cv::Mat all_num_img;
         cv::vconcat(number_imgs, all_num_img);
@@ -292,43 +152,25 @@ cv::Mat Detector::GetAllNumbersImage() {
     }
 }
 
-void Detector::DrawResults(cv::Mat& img) {
-    // Draw Lights
+void Detector::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
+    classifier_->UpdateIgnoreClasses(ignore_classes);
+}
+
+void Detector::DrawResult(const cv::Mat& input) {
     for (const auto& light: lights_) {
-        cv::circle(img, light.top, 3, cv::Scalar(255, 255, 255), 1);
-        cv::circle(img, light.bottom, 3, cv::Scalar(255, 255, 255), 1);
-        auto line_color = light.color == RED ? cv::Scalar(255, 255, 0) : cv::Scalar(255, 0, 255);
-        cv::line(img, light.top, light.bottom, line_color, 1);
+        cv::Point2f vertices[4];
+        light.points(vertices);
+        for (int i = 0; i < 4; i++) {
+            cv::line(input, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 2);
+        }
+        cv::putText(input, std::to_string(light.tilt_angle), light.center, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 2);
     }
 
-    // Draw armors
     for (const auto& armor: armors_) {
-        cv::line(img, armor.left_light.top, armor.right_light.bottom, cv::Scalar(0, 255, 0), 2);
-        cv::line(img, armor.left_light.bottom, armor.right_light.top, cv::Scalar(0, 255, 0), 2);
-        cv::circle(img, (armor.left_light.center + armor.right_light.center) / 2, 3, cv::Scalar(0, 255, 0), 2);
-    }
-
-    // Show numbers and confidence
-    for (const auto& armor: armors_) {
-        auto armor_center = (armor.left_light.center + armor.right_light.center) / 2;
-        cv::putText(
-            img,
-            std::to_string(armor_center.x) + ", " + std::to_string(armor_center.y),
-            armor_center,
-            cv::FONT_HERSHEY_SIMPLEX,
-            0.8,
-            cv::Scalar(0, 255, 255),
-            2
-        );
-        cv::putText(
-            img,
-            armor.classification_result,
-            armor.left_light.top,
-            cv::FONT_HERSHEY_SIMPLEX,
-            0.8,
-            cv::Scalar(0, 255, 255),
-            2
-        );
+        cv::line(input, armor.left_light.top, armor.right_light.bottom, cv::Scalar(0, 255, 0), 2);
+        cv::line(input, armor.left_light.bottom, armor.right_light.top, cv::Scalar(0, 255, 0), 2);
+        cv::circle(input, armor.center, 3, cv::Scalar(0, 255, 0), 2);
+        cv::putText(input, armor.number, armor.center, cv::FONT_HERSHEY_SIMPLEX, 2.5, cv::Scalar(255, 0, 0), 2);
     }
 }
 

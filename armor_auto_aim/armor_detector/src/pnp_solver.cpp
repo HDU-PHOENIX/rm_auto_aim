@@ -1,38 +1,51 @@
+#include <tf2/LinearMath/Matrix3x3.h>
+
+#include "armor_detector/armor.hpp"
 #include "armor_detector/pnp_solver.hpp"
 
-#include <opencv2/calib3d.hpp>
-#include <vector>
-
 namespace armor {
+
 PnPSolver::PnPSolver(
-    const bool iterative,
-    const std::array<double, 9>& camera_matrix,
-    const std::vector<double>& dist_coeffs
+    const std::vector<double>& camera_matrix,
+    const std::vector<double>& distortion_coefficients
 ):
-    iterative_(iterative),
     camera_matrix_(cv::Mat(3, 3, CV_64F, const_cast<double*>(camera_matrix.data())).clone()),
-    dist_coeffs_(cv::Mat(1, 5, CV_64F, const_cast<double*>(dist_coeffs.data())).clone()) {
-    // Unit: m
-    constexpr double small_half_y = SMALL_ARMOR_WIDTH / 2.0 / 1000.0;
-    constexpr double small_half_z = SMALL_ARMOR_HEIGHT / 2.0 / 1000.0;
-    constexpr double large_half_y = LARGE_ARMOR_WIDTH / 2.0 / 1000.0;
-    constexpr double large_half_z = LARGE_ARMOR_HEIGHT / 2.0 / 1000.0;
+    distortion_coefficients_(cv::Mat(1, 5, CV_64F, const_cast<double*>(distortion_coefficients.data())).clone()) {}
 
-    // Start from bottom left in clockwise order
-    // Model coordinate: x forward, y left, z up
-    small_armor_points_.emplace_back(0, small_half_y, -small_half_z);
-    small_armor_points_.emplace_back(0, small_half_y, small_half_z);
-    small_armor_points_.emplace_back(0, -small_half_y, small_half_z);
-    small_armor_points_.emplace_back(0, -small_half_y, -small_half_z);
+void PnPSolver::CalculatePose(Armor& armor) {
+    this->SolvePnP(armor);
 
-    large_armor_points_.emplace_back(0, large_half_y, -large_half_z);
-    large_armor_points_.emplace_back(0, large_half_y, large_half_z);
-    large_armor_points_.emplace_back(0, -large_half_y, large_half_z);
-    large_armor_points_.emplace_back(0, -large_half_y, -large_half_z);
+    armor.pose.position.x = tvec_.at<double>(0);
+    armor.pose.position.y = tvec_.at<double>(1);
+    armor.pose.position.z = tvec_.at<double>(2);
+    // 旋转向量 to 旋转矩阵
+    cv::Mat rotation_matrix;
+    cv::Rodrigues(rvec_, rotation_matrix);
+    // tf2 旋转矩阵
+    tf2::Matrix3x3 tf2_rotation_matrix(
+        rotation_matrix.at<double>(0, 0),
+        rotation_matrix.at<double>(0, 1),
+        rotation_matrix.at<double>(0, 2),
+        rotation_matrix.at<double>(1, 0),
+        rotation_matrix.at<double>(1, 1),
+        rotation_matrix.at<double>(1, 2),
+        rotation_matrix.at<double>(2, 0),
+        rotation_matrix.at<double>(2, 1),
+        rotation_matrix.at<double>(2, 2)
+    );
+    // 旋转矩阵 to 四元数
+    tf2::Quaternion tf2_q;
+    tf2_rotation_matrix.getRotation(tf2_q);
+    armor.pose.orientation = tf2::toMsg(tf2_q);
+
+    armor.distance_to_image_center = cv::norm(
+        armor.center - cv::Point2f(camera_matrix_.at<double>(0, 2), camera_matrix_.at<double>(1, 2))
+    );
+
+    armor.distance_to_center = CalculateDistanceToCenter(armor.center);
 }
 
-bool PnPSolver::SolvePnP(const Armor& armor, cv::Mat& rvec, cv::Mat& tvec) {
-    // 装甲板四个点在图像中的坐标
+void PnPSolver::SolvePnP(const Armor& armor) {
     std::vector<cv::Point2f> image_armor_points;
     image_armor_points.emplace_back(armor.left_light.bottom);
     image_armor_points.emplace_back(armor.left_light.top);
@@ -40,32 +53,18 @@ bool PnPSolver::SolvePnP(const Armor& armor, cv::Mat& rvec, cv::Mat& tvec) {
     image_armor_points.emplace_back(armor.right_light.bottom);
 
     // 装甲板四个点在三维坐标系中的坐标
-    auto object_points = armor.type == ArmorType::SMALL ? small_armor_points_ : large_armor_points_;
-    // PnP
-    bool is_success = cv::solvePnP(
+    auto object_points = armor.type == ArmorType::SMALL ? SMALL_ARMOR_POINTS : LARGE_ARMOR_POINTS;
+
+    cv::solvePnP(
         object_points,
         image_armor_points,
         camera_matrix_,
-        dist_coeffs_,
-        rvec,
-        tvec,
+        distortion_coefficients_,
+        rvec_,
+        tvec_,
         false,
         cv::SOLVEPNP_IPPE
     );
-    if (this->iterative_) {
-        // 迭代第二次
-        is_success = cv::solvePnP(
-            object_points,
-            image_armor_points,
-            camera_matrix_,
-            dist_coeffs_,
-            rvec,
-            tvec,
-            true,
-            cv::SOLVEPNP_IPPE
-        );
-    }
-    return is_success;
 }
 
 float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& armor_center) {
@@ -73,5 +72,4 @@ float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& armor_center) {
     float cy = camera_matrix_.at<double>(1, 2); // 光学中心 y
     return cv::norm(armor_center - cv::Point2f(cx, cy));
 }
-
 } // namespace armor
