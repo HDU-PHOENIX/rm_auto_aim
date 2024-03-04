@@ -25,6 +25,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
+    no_armor_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",
@@ -53,15 +54,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
                 armors = detector_->DetectArmor(raw_image);
             }
 
-            if (!armors.empty()) {
-                PublishArmors(armors);
-
-                rclcpp::Time&& now = this->now();
-                RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
-                last_publish_time_ = now;
-            } else {
-                RCLCPP_DEBUG(this->get_logger(), "No armor detected");
-            }
+            PublishArmors(armors);
         }
     );
 }
@@ -167,17 +160,31 @@ void ArmorDetectorNode::PublishDebugInfo(const sensor_msgs::msg::Image::SharedPt
 }
 
 void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors) {
-    auto_aim_interfaces::msg::Armors armors_msg;
-    for (auto& armor: armors) {
-        auto_aim_interfaces::msg::Armor armor_msg;
-        armor_msg.set__number(armor.number);
-        armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
-        armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
-        armor_msg.set__pose(armor.pose);
-        armors_msg.armors.push_back(armor_msg);
-    }
+    if (!armors.empty()) {
+        auto_aim_interfaces::msg::Armors armors_msg;
+        for (const auto& armor: armors) {
+            auto_aim_interfaces::msg::Armor armor_msg;
+            armor_msg.set__number(armor.number);
+            armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
+            armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
+            armor_msg.set__pose(armor.pose);
+            armors_msg.armors.push_back(armor_msg);
+        }
 
-    armors_pub_->publish(armors_msg);
+        rclcpp::Time&& now = this->now();
+        RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
+        last_publish_time_ = now;
+        armors_pub_->publish(armors_msg);
+    } else {
+        auto_aim_interfaces::msg::SerialInfo no_armor_serial_info;
+        no_armor_serial_info.start.set__data('s');
+        no_armor_serial_info.end.set__data('e');
+        no_armor_serial_info.is_find.set__data('0');
+        no_armor_serial_info.can_shoot.set__data('0');
+        no_armor_serial_info.euler = { 0, 0, 0 };
+
+        RCLCPP_DEBUG(this->get_logger(), "No armor detected");
+    }
 }
 
 void ArmorDetectorNode::InitMarkers() {
