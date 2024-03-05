@@ -18,13 +18,9 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     // 创建神符信息发布者
     runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Rune>("/detector/runes", rclcpp::SensorDataQoS());
 
-    // 创建相机信息订阅者
-    cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
-        cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
-        cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
-        pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
-        cam_info_sub_.reset();
-    });
+    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
+    auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
+    pnp_solver_ = std::make_unique<PnPSolver>(camera_matrix, distortion_coefficients);
 
     if (debug_) {
         // Visualization Marker Publisher

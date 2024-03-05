@@ -27,22 +27,6 @@ def generate_launch_description():
         'config', 'config.yaml'
     )
 
-    camera_info = ComposableNodeContainer(
-        name='camera_info',
-        namespace='',
-        package='rclcpp_components',
-        executable='component_container',
-        composable_node_descriptions=[
-            ComposableNode(
-                package = 'camerainfo',
-                plugin = 'camerainfo::CameraInfoNode',
-                name = 'camera_info_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
-                parameters = [config]
-            ),
-        ]
-    )
-
     detector = ComposableNodeContainer(
         name='detector',
         namespace='',
@@ -128,4 +112,4 @@ def generate_launch_description():
         ]
     )
 
-    return launch.LaunchDescription([tf_tree, detector, tracker, shooter, camera_info])
+    return launch.LaunchDescription([tf_tree, detector, tracker, shooter])

@@ -23,14 +23,9 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         armor_marker_.color.r = 1.0;
         marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
     }
-    // 创建相机信息订阅者
-    cam_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>("/camera_info", rclcpp::SensorDataQoS(), [this](sensor_msgs::msg::CameraInfo::ConstSharedPtr camera_info) {
-        cam_center_ = cv::Point2f(camera_info->k[2], camera_info->k[5]);
-        cam_info_ = std::make_shared<sensor_msgs::msg::CameraInfo>(*camera_info);
-        pnp_solver_ = std::make_unique<PnPSolver>(camera_info->k, camera_info->d);
-        // RCLCPP_INFO(this->get_logger(), "camera_info received");
-        cam_info_sub_.reset();
-    });
+    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
+    auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
+    pnp_solver_ = std::make_unique<PnPSolver>(camera_matrix, distortion_coefficients);
 
     // tf2 buffer & listener 相关
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());

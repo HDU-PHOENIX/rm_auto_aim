@@ -14,8 +14,8 @@
 namespace rune {
 class PnPSolver {
 public:
-    PnPSolver(
-        const std::array<double, 9>& camera_matrix,
+    explicit PnPSolver(
+        const std::vector<double>& camera_matrix,
         const std::vector<double>& distortion_coefficients
     );
 
@@ -42,8 +42,8 @@ public:
     GeneratePw(double outerwidth, double insidewidth, double height);
 
 private:
-    cv::Mat camera_matrix_; // 相机参数矩阵 相机内参
-    cv::Mat dist_coeffs_;   // 相机畸变参数矩阵
+    cv::Mat camera_matrix_;           // 相机参数矩阵 相机内参
+    cv::Mat distortion_coefficients_; // 相机畸变参数矩阵
 
     // 神符的顶点的三维坐标
     //std::vector<cv::Point3f> rune_points_;
