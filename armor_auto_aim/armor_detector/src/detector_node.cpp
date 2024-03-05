@@ -114,7 +114,7 @@ void ArmorDetectorNode::UpdateDetectorParameters() {}
 void ArmorDetectorNode::PublishDebugInfo(const sensor_msgs::msg::Image::SharedPtr& image_msg) {
     binary_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "mono8", detector_->GetBinaryImage()).toImageMsg());
     number_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "mono8", detector_->GetAllNumbersImage()).toImageMsg());
-    result_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "mono8", result_image_).toImageMsg());
+    result_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "bgr8", result_image_).toImageMsg());
 
     auto_aim_interfaces::msg::DebugArmors debug_armors_msg;
     auto_aim_interfaces::msg::DebugLights debug_lights_msg;
