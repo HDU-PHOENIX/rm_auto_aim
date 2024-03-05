@@ -7,7 +7,7 @@
         0, 2515.6912302455735, 467.0345949712323,
         0, 0, 1
     ]
-    distortion: [
+    distortion_coefficients: [
         0.9716178021093913,
         -22.20834732244382,
         -0.19838225091062828,
@@ -17,9 +17,8 @@
 
 /camera_node:
     ros__parameters:
-        videoflag: false
-        # video_path: "./Camera/12mm_red_dark.mp4"
-        video_path: "./Camera/new1.mp4"
+        videoflag: true
+        video_path: "/home/jalen/code/rm_auto_aim/src/armor_auto_aim/armor_detector/model/test.mp4"
         inner_shot_flag: false
 
 /camera_info_node:
