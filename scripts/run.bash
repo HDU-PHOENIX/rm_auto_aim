@@ -7,7 +7,7 @@ ros2 launch auto_aim launch.py &
 pid2=$!
 echo -e "auto_aim pid: $pid2\n\n"
 
-sleep 2
+sleep 3
 
 ros2 launch communicate launch.py &
 pid1=$!

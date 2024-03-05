@@ -34,7 +34,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
 
             serial_info.speed = msg->v_yaw;
             ShootingJudge(yaw_and_pitch, serial_info, msg);
-            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
+            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), static_cast<float>(yaw_and_pitch[1]) };
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');

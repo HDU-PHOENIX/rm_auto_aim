@@ -38,7 +38,8 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         rune_marker_.color.a = 1.0;
         rune_marker_.color.g = 0.5;
         rune_marker_.color.b = 1.0;
-        rune_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
+        rune_marker_.id = 0;
+        // rune_marker_.lifetime = rclcpp::Duration::from_seconds(0.1);
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
@@ -72,7 +73,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     detector_->detect(img, objects_);           // 把神符识别结果放到 objects_里面
     runes_msg_.header = rune_marker_.header = img_msg->header;
 
-    rune_marker_.id = 0;
     bool flag1 = false, flag2 = false;    // bool flag3 = false;
     cv::Point2f symbol;                   // 符叶 R 标的位置
     cv::Point2f rune_armor;               // 符叶未激活装甲板中心
@@ -146,9 +146,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         cv::waitKey(1);
     }
 
-    if (debug_) {
-        PublishImg(img, img_msg); // 发布图片
-    }
+    // if (debug_) {
+    //     PublishImg(img, img_msg); // 发布图片
+    // }
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成
@@ -176,7 +176,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
             // Fill the markers
             rune_marker_.header.frame_id = "camera";
-            rune_marker_.id++;
             rune_marker_.pose = runes_msg_.pose_c;
             return true;
         }

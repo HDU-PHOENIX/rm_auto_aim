@@ -3,11 +3,11 @@
 namespace rune {
 // RuneTrackerNode类的构造函数
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
-    Node("rune_tracker", option) {
+    Node("rune_tracker_node", option) {
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
     InitParams();
-    tracker_ = std::make_unique<Tracker>(1.5, 1.2, filter_astring_threshold);
+    tracker_ = std::make_unique<Tracker>(option, 1.5, 1.2, filter_astring_threshold);
     debug_ = this->declare_parameter("debug", false);
 
     if (debug_) {
@@ -48,7 +48,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        1000,                               // size of the tf2 cache
+        100,                                // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::duration<int>(1)       // timeout
@@ -65,7 +65,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
-    // RCLCPP_INFO(this->get_logger(), "rune_callback");
     rune_ptr->speed = this->get_parameter("bullet_speed").as_double();
     rune_ptr->chasedelay = this->get_parameter("chasedelay").as_double();
     rune_ptr->phase_offset = this->get_parameter("phase_offset").as_double();
