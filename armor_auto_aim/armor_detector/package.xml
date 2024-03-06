@@ -22,6 +22,8 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>auto_aim_interfaces</depend>
   <depend>visualization_msgs</depend>
+  <depend>communicate</depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>

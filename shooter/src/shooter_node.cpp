@@ -18,7 +18,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     last_shoot_time = this->now();
     yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.01);
     pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
-    shooter_info_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>(
+    shooter_info_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
         "/shoot_info/left",
         rclcpp::SensorDataQoS()
     );
@@ -30,7 +30,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
             auto&& yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
-            auto_aim_interfaces::msg::SerialInfo serial_info;
+            communicate::msg::SerialInfo serial_info;
 
             serial_info.speed = msg->v_yaw;
             ShootingJudge(yaw_and_pitch, serial_info, msg);
@@ -46,7 +46,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     );
 }
 
-void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, auto_aim_interfaces::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
+void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
     if (data->mode) {
         if ((sqrt(yaw_and_pitch[0] * yaw_and_pitch[0] + yaw_and_pitch[1] * yaw_and_pitch[1]) < 0.05) && data->can_shoot)
         {

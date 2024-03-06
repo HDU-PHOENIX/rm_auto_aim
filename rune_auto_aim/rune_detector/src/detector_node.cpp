@@ -39,7 +39,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    no_rune_pub_ = this->create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
+    no_rune_pub_ = this->create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
 
     mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }
@@ -193,7 +193,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         } else {
             //如果没有检测到符叶则发布yaw roll pitch为0数据
             RCLCPP_WARN(this->get_logger(), "DetectRunes find nothing");
-            auto_aim_interfaces::msg::SerialInfo no_rune_msg;
+            communicate::msg::SerialInfo no_rune_msg;
             no_rune_msg.start.set__data('s');
             no_rune_msg.end.set__data('e');
             no_rune_msg.is_find.set__data('0');
