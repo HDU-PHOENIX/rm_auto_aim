@@ -121,7 +121,7 @@ void SerialNode::LoopForPublish() {
 
 std::unique_ptr<sensor::Serial> SerialNode::InitSerial() {
     uint32_t baud_rate = declare_parameter("baud_rate", 115200);
-    std::string device_name = declare_parameter("device_name", "/dev/ttyUSB0");
+    std::string device_name = declare_parameter("device_name", "/dev/ttyACM0");
     // 默认的串口通信协议
     char default_data_recv_start = declare_parameter("default_data_recv_start", 's');
     char default_data_recv_color = declare_parameter("default_data_recv_color", 'r');

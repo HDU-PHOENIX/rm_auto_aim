@@ -28,9 +28,9 @@ private:
 
     void UpdateDetectorParameters();
 
-    void PublishDebugInfo(const sensor_msgs::msg::Image::SharedPtr& image_msg);
+    void PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header);
 
-    void PublishArmors(const std::vector<Armor>& armors);
+    void PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header);
 
     void InitMarkers();
 
@@ -48,9 +48,9 @@ private:
     // 用于视化的标记信息
     visualization_msgs::msg::Marker armor_marker_;
     visualization_msgs::msg::Marker text_marker_;
-    visualization_msgs::msg::MarkerArray marker_array_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr armor_marker_pub_;
 
+    int lost_count_;
     std::unique_ptr<Detector> detector_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;

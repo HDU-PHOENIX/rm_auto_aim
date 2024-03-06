@@ -7,6 +7,7 @@
 namespace armor {
 ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     Node("armor_detector", options) {
+    lost_count_ = 0;
     detector_ = CreateDetector();
     InitMarkers();
 
@@ -49,12 +50,16 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
                 result_image_ = raw_image.clone();
                 detector_->DrawResult(result_image_);
-                PublishDebugInfo(msg);
+                PublishDebugInfo(armors, msg->header);
             } else {
                 armors = detector_->DetectArmor(raw_image);
+                result_image_ = raw_image.clone();
+                detector_->DrawResult(result_image_);
+                cv::imshow("result", result_image_);
+                cv::waitKey(1);
             }
 
-            PublishArmors(armors);
+            PublishArmors(armors, msg->header);
         }
     );
 }
@@ -69,7 +74,7 @@ ArmorDetectorNode::CreateDetector() {
     auto&& binary_threshold = declare_parameter("binary_threshold", 100, param_desc);
     auto&& light_contour_threshold = declare_parameter("light_contour_threshold", 100, param_desc);
 
-    auto&& enemy_color = declare_parameter("enemy_color", 'b');
+    auto&& enemy_color = declare_parameter("enemy_color", 0); // 0-红色 1-蓝色
     auto&& confidence_threshold = declare_parameter("confidence_threshold", 0.7);
     auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
     auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
@@ -81,7 +86,7 @@ ArmorDetectorNode::CreateDetector() {
     return std::make_unique<Detector>(
         binary_threshold,
         light_contour_threshold,
-        enemy_color == 'b' ? Color::BLUE : Color::RED,
+        enemy_color == 0 ? Color::RED : Color::BLUE,
         pkg_path + model_path,
         pkg_path + label_path,
         confidence_threshold,
@@ -111,17 +116,18 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
 
 void ArmorDetectorNode::UpdateDetectorParameters() {}
 
-void ArmorDetectorNode::PublishDebugInfo(const sensor_msgs::msg::Image::SharedPtr& image_msg) {
-    binary_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "mono8", detector_->GetBinaryImage()).toImageMsg());
-    number_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "mono8", detector_->GetAllNumbersImage()).toImageMsg());
-    result_img_pub_.publish(cv_bridge::CvImage(image_msg->header, "bgr8", result_image_).toImageMsg());
+void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
+    binary_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetBinaryImage()).toImageMsg());
+    number_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetAllNumbersImage()).toImageMsg());
+    result_img_pub_.publish(cv_bridge::CvImage(header, "bgr8", result_image_).toImageMsg());
 
     auto_aim_interfaces::msg::DebugArmors debug_armors_msg;
     auto_aim_interfaces::msg::DebugLights debug_lights_msg;
+    visualization_msgs::msg::MarkerArray marker_array;
     auto&& debug_lights = detector_->GetDebugLights();
     auto&& debug_armors = detector_->GetDebugArmors();
 
-    for (auto& light: debug_lights) {
+    for (const auto& light: debug_lights) {
         auto_aim_interfaces::msg::DebugLight debug_light_msg;
         debug_light_msg.set__tilt_angle(light.tilt_angle);
         debug_light_msg.set__center_x(light.center.x);
@@ -130,7 +136,7 @@ void ArmorDetectorNode::PublishDebugInfo(const sensor_msgs::msg::Image::SharedPt
         debug_lights_msg.data.push_back(debug_light_msg);
     }
 
-    for (auto& armor: debug_armors) {
+    for (const auto& armor: debug_armors) {
         auto_aim_interfaces::msg::DebugArmor debug_armor_msg;
         debug_armor_msg.set__center_x(armor.center.x);
         debug_armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
@@ -139,29 +145,33 @@ void ArmorDetectorNode::PublishDebugInfo(const sensor_msgs::msg::Image::SharedPt
         debug_armor_msg.set__light_angle_diff(armor.light_angle_diff);
         debug_armor_msg.set__angle(armor.angle);
         debug_armors_msg.data.push_back(debug_armor_msg);
+    }
 
+    armor_marker_.header = text_marker_.header = header;
+    for (const auto& armor: armors) {
         // Fill the markers
         if (armor.type != ArmorType::INVALID) {
-            armor_marker_.id++;
+            // armor_marker_.id++;
             armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
             armor_marker_.pose = armor.pose;
             text_marker_.id++;
             text_marker_.pose.position = armor.pose.position;
             text_marker_.pose.position.y -= 0.1;
             text_marker_.text = armor.classification_result;
-            marker_array_.markers.emplace_back(armor_marker_);
-            marker_array_.markers.emplace_back(text_marker_);
+            marker_array.markers.emplace_back(armor_marker_);
+            marker_array.markers.emplace_back(text_marker_);
         }
     }
 
     debug_lights_pub_->publish(debug_lights_msg);
     debug_armors_pub_->publish(debug_armors_msg);
-    armor_marker_pub_->publish(marker_array_);
+    armor_marker_pub_->publish(marker_array);
 }
 
-void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors) {
+void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
     if (!armors.empty()) {
         auto_aim_interfaces::msg::Armors armors_msg;
+        armors_msg.header = header;
         for (const auto& armor: armors) {
             auto_aim_interfaces::msg::Armor armor_msg;
             armor_msg.set__number(armor.number);
@@ -175,7 +185,8 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors) {
         RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
         last_publish_time_ = now;
         armors_pub_->publish(armors_msg);
-    } else {
+        lost_count_ = 0;
+    } else if (++lost_count_ > 5) {
         auto_aim_interfaces::msg::SerialInfo no_armor_serial_info;
         no_armor_serial_info.start.set__data('s');
         no_armor_serial_info.end.set__data('e');
@@ -189,6 +200,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors) {
 
 void ArmorDetectorNode::InitMarkers() {
     armor_marker_.ns = "armors";
+    armor_marker_.id = 0;
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.type = visualization_msgs::msg::Marker::CUBE;
     armor_marker_.scale.x = 0.05;

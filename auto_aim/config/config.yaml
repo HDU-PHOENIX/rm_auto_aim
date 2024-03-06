@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    debug: true
+    debug: false
     show_pic: false
     camera_matrix: [
         1302.9388992859376, 0, 609.2298064340857,
@@ -17,7 +17,7 @@
 
 /camera_node:
     ros__parameters:
-        videoflag: true
+        videoflag: false
         video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
@@ -44,8 +44,7 @@
         binary_thres: 160
         gray_thres: 200
         contour_thres: 100
-        enemy_color: 0 # 0-红色，1-蓝色 
-        detect_mode: 0 # 0-普通二值化，1-通道相减二值化 (int)
+        enemy_color: 1 # 0-红色，1-蓝色
 
 /rune_detector_node:
     ros__parameters:
