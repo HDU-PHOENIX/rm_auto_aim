@@ -103,6 +103,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         Reset();
         return false;
     }
+#if !NEW_METHOD
     if (abs(leaf_angle - leaf_angle_last) > 0.4) {
         //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
         cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
@@ -111,6 +112,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
         // RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
     }
+#endif
     CeresProcess(data, runes_msg, debug_msg);
     return true;
 }
@@ -332,15 +334,5 @@ bool Tracker::Fitting(auto_aim_interfaces::msg::Target& runes_msg) {
     }
     return true;
 }
-
-double
-Tracker::Integral(double w, std::vector<double> params, double t_s, double pred_time) {
-    double a = params[0];
-    double phi = params[1];
-    double t_e = t_s + pred_time;
-    double theta1 = -a / w * cos(w * t_s + phi) + (params[2]) * t_s;
-    double theta2 = -a / w * cos(w * t_e + phi) + (params[2]) * t_e;
-    return theta2 - theta1;
-} //积分 用于预测下个时刻的位置
 
 } // namespace rune

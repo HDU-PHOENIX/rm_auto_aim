@@ -1,11 +1,9 @@
-#ifndef RUNE_DETECTOR__PNP_SOLVER_HPP_
-#define RUNE_DETECTOR__PNP_SOLVER_HPP_
+#pragma once
 
 #include <geometry_msgs/msg/point.hpp>
 #include <opencv2/core.hpp>
 
 // STD
-#include <array>
 #include <opencv4/opencv2/core/types.hpp>
 #include <vector>
 
@@ -50,5 +48,3 @@ private:
 };
 
 } // namespace rune
-
-#endif

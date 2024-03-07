@@ -5,7 +5,6 @@
 #include <opencv2/core.hpp>
 
 // STD
-#include <array>
 #include <opencv4/opencv2/core/types.hpp>
 #include <vector>
 

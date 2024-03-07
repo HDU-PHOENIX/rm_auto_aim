@@ -72,7 +72,7 @@ if __name__ == "__main__":
     cv2.destroyAllWindows()
     if len(obj_points) > 0:
         _, mtx, dist, _, _ = cv2.calibrateCamera(obj_points, img_points, frame.shape[:2][::-1], None, None)
-        data = {'intrinsics': [mtx[0, 0], mtx[0, 2], mtx[1, 1], mtx[1, 2]],
+        data = {'intrinsics': [mtx[0, 0], 0, mtx[0, 2], 0, mtx[1, 1], mtx[1, 2], 0, 0, 1],
                 'extrinsics': [1.65, 0.1, 0.01],
                 'distortion': [dist[0, 0], dist[0, 1], dist[0, 2], dist[0, 3], dist[0, 4]]}
         pprint.PrettyPrinter(indent=4).pprint(data)

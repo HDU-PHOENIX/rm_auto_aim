@@ -5,7 +5,6 @@
 #include "auto_aim_interfaces/msg/target.hpp"
 #include <message_filters/subscriber.h>
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/create_timer_ros.h>
@@ -40,12 +39,6 @@ private:
 
     bool debug_; //debug标志符
 
-    // 相机信息订阅者
-    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
-    // 相机中心
-    cv::Point2f cam_center_;
-    // 相机信息
-    std::shared_ptr<sensor_msgs::msg::CameraInfo> cam_info_;
     // PnP 解算器
     std::unique_ptr<PnPSolver> pnp_solver_;
 

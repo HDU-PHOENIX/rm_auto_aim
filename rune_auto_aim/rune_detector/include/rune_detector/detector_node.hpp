@@ -47,27 +47,27 @@ private:
     void ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg);
 
     /**
-   * @brief 初始化神符识别器，设置识别器参数
-   *
-   * @return std::unique_ptr<Detector> 识别器指针
-   */
+     * @brief 初始化神符识别器，设置识别器参数
+     *
+     * @return std::unique_ptr<Detector> 识别器指针
+     */
     std::shared_ptr<NeuralNetwork> InitDetector();
 
     /**
-   * @brief 识别神符
-   *
-   * @return std::vector<Rune> 识别到的神符
-   */
+     * @brief 识别神符
+     *
+     * @return std::vector<Rune> 识别到的神符
+     */
     bool DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     /**
-    * @brief 创建标记发布者
-    */
+     * @brief 创建标记发布者
+     */
     void PublishMarkers();
 
     /**
-    * @brief debug 模式下发布识别到的神符图片
-    */
+     * @brief debug 模式下发布识别到的神符图片
+     */
     void PublishImg(cv::Mat& img, const sensor_msgs::msg::Image::SharedPtr& img_msg);
 
     // debug 模式

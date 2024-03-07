@@ -1,9 +1,5 @@
 #include "rune_tracker/pnp_solver.hpp"
 
-#include <opencv2/calib3d.hpp>
-#include <opencv2/core/types.hpp>
-#include <vector>
-
 namespace rune {
 PnPSolver::PnPSolver(
     const std::vector<double>& camera_matrix,

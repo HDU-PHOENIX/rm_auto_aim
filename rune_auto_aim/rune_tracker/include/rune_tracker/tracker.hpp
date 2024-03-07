@@ -6,13 +6,6 @@
 #include "auto_aim_interfaces/msg/rune.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
 #include <rclcpp/rclcpp.hpp>
-#include <rclcpp/time.hpp>
-
-// STD
-#include <math.h>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "point.hpp"                 //添加Angle方法
 #include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
@@ -74,7 +67,7 @@ private:
 
         template<typename T>
         bool operator()(const T* const param, T* residual) const {
-            residual[0] = T(_y) - (param[0] * sin(param[1] * _x + param[2]) + param[3]);
+            residual[0] = T(_y) - (param[0] * ceres::sin(param[1] * _x + param[2]) + param[3]);
             return true;
         }
         const double _x, _y;
@@ -161,7 +154,14 @@ private:
     bool CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg);
 
     //积分,用于大符预测角度计算
-    double Integral(double w, std::vector<double> params, double t_s, double pred_time);
+    inline double Integral(double& w, const std::vector<double>& params, const double& t_s, const double& pred_time) {
+        double a = params[0];
+        double phi = params[1];
+        double t_e = t_s + pred_time;
+        double theta1 = -a / w * cos(w * t_s + phi) + (params[2]) * t_s;
+        double theta2 = -a / w * cos(w * t_e + phi) + (params[2]) * t_e;
+        return theta2 - theta1;
+    };
 
     Filter* ukf_; // ukf滤波器
     double delay; //理论延迟和追踪延迟之和
