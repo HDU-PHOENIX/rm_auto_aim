@@ -1,9 +1,9 @@
 #include "rune_tracker/tracker.hpp"
-#include <rclcpp/logger.hpp>
 #define NEW_METHOD true
 namespace rune {
-Tracker::Tracker(const rclcpp::NodeOptions& option, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_):
-    Node("rune_tracker", option) {
+Tracker::Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_):
+    node_(node) {
+    RCLCPP_INFO(node_->get_logger(), "Starting RuneTracker!");
     ukf_ = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
     this->filter_astring_threshold = filter_astring_threshold_;
     InitCeres(); //初始化ceres
@@ -27,7 +27,7 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
-    // RCLCPP_INFO(this->get_logger(), "leaf_angle %lf", leaf_angle);
+    // RCLCPP_INFO(node_->get_logger(), "leaf_angle %lf", leaf_angle);
     leaf_angle_diff = leaf_angle - leaf_angle_last;     //符叶角度差
     CalSmallRune(data, debug_msg);                      //计算小符角速度
     Judge(debug_msg);                                   //判断顺时针还是逆时针
@@ -110,7 +110,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         //角度变换后，需要矫正角度
         cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
         cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
-        // RCLCPP_INFO(this->get_logger(), "rune_leaf change!");
+        // RCLCPP_INFO(node_->get_logger(), "rune_leaf change!");
     }
 #endif
     CeresProcess(data, runes_msg, debug_msg);
@@ -129,11 +129,11 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
         //TODO:这里可能会有问题后续逻辑得仔细考虑一下
         debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
-        RCLCPP_INFO(this->get_logger(), "finish_fitting flag %d", finish_fitting);
+        RCLCPP_INFO(node_->get_logger(), "finish_fitting flag %d", finish_fitting);
         //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性
         if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(tracker.timestamp)).seconds() >= tracker.pred_time) {
             // 计算误差
-            RCLCPP_INFO(this->get_logger(), "calculate error");
+            RCLCPP_INFO(node_->get_logger(), "calculate error");
             double delta_angle = 0;
             if (this->rotation_direction_ == RotationDirection::ANTICLOCKWISE && tracker.pred_angle > 0)
             {
@@ -144,21 +144,21 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
             debug_msg.delta_angle = delta_angle;
             if (delta_angle < 0.15) {
                 //误差小,则认为拟合良好
-                RCLCPP_INFO(this->get_logger(), "error small");
+                RCLCPP_INFO(node_->get_logger(), "error small");
                 pred_angle = Integral(
                     a_omega_phi_b[1],
                     std::vector<double> { a_omega_phi_b[0],
                                           a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
                                           a_omega_phi_b[3] },
                     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                    delay + (this->now() - data->header.stamp).seconds()
+                    delay + (node_->now() - data->header.stamp).seconds()
                 );
                 runes_msg.can_shoot = true; //可以发射
                 count_cere = 0;             //将count_cere置为0，非连续5次拟合不良
                 finish_fitting = true;
-                tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - data->header.stamp).seconds(), leaf_angle);
+                tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - data->header.stamp).seconds(), leaf_angle);
             } else {
-                RCLCPP_INFO(this->get_logger(), "error big");
+                RCLCPP_INFO(node_->get_logger(), "error big");
                 //误差大,则认为拟合不良
                 if (count_cere < 5) {
                     count_cere++;
@@ -168,9 +168,9 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                                               a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
                                               a_omega_phi_b[3] },
                         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                        delay + (this->now() - data->header.stamp).seconds()
+                        delay + (node_->now() - data->header.stamp).seconds()
                     );
-                    tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - data->header.stamp).seconds(), leaf_angle);
+                    tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - data->header.stamp).seconds(), leaf_angle);
                     return false;
                 }
                 finish_fitting = false; //连续五次误差超过0.1，则认为需要重新拟合
@@ -185,7 +185,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                 a_omega_phi_b[1],
                 std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
                 (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-                (delay + (this->now() - data->header.stamp).seconds())
+                (delay + (node_->now() - data->header.stamp).seconds())
             );
             return false;
         }
@@ -237,7 +237,7 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
 }
 
 void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
-    RCLCPP_INFO(this->get_logger(), "refitting");
+    RCLCPP_INFO(node_->get_logger(), "refitting");
     ceres::Problem problem;
     for (auto& i: cere_param_list) {
         //将数据添加入问题
@@ -267,9 +267,9 @@ void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
         a_omega_phi_b[1],
         std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
         (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-        (delay + (this->now() - data->header.stamp).seconds())
+        (delay + (node_->now() - data->header.stamp).seconds())
     );
-    tracker.Record(pred_angle, data->header.stamp, delay + (this->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
+    tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
 }
 
 bool Tracker::Judge(auto_aim_interfaces::msg::DebugRune& debug_msg) {

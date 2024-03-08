@@ -5,9 +5,9 @@ namespace rune {
 RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     Node("rune_tracker_node", option) {
     // 打印信息，表示节点已启动
-    RCLCPP_INFO(this->get_logger(), "Starting TrackerNode!");
+    RCLCPP_INFO(this->get_logger(), "Starting RuneTrackerNode!");
     InitParams();
-    tracker_ = std::make_unique<Tracker>(option, 1.5, 1.2, filter_astring_threshold);
+    tracker_ = std::make_unique<Tracker>(this, 1.5, 1.2, filter_astring_threshold);
     debug_ = this->declare_parameter("debug", false);
 
     if (debug_) {
@@ -55,7 +55,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         "/tracker/target",
         rclcpp::SensorDataQoS()
     );
-    InitRecord(); //打开txt文件 用于记录卡尔曼滤波曲线和原始曲线
 }
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
@@ -151,33 +150,6 @@ void RuneTrackerNode::InitParams() {
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 30;
     filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0, param_desc);
-}
-
-void RuneTrackerNode::InitRecord() {
-    omega_file.open("./record/omega.txt"); //用于记录曲线
-    if (!omega_file.is_open()) {
-        while (true) {
-            RCLCPP_INFO(this->get_logger(), "cannot open the omega.txt");
-        }
-    }
-    omega_time.open("./record/omegatime.txt");
-    if (!omega_time.is_open()) {
-        while (true) {
-            RCLCPP_INFO(this->get_logger(), "cannot open the omegatime.txt");
-        }
-    }
-    origin_omega_time.open("./record/origin_omegatime.txt");
-    if (!origin_omega_time.is_open()) {
-        while (true) {
-            RCLCPP_INFO(this->get_logger(), "cannot open the origin_omegatime.txt");
-        }
-    }
-    origin_omega_file.open("./record/origin_omega.txt");
-    if (!origin_omega_file.is_open()) {
-        while (true) {
-            RCLCPP_INFO(this->get_logger(), "cannot open the origin_omega.txt");
-        }
-    }
 }
 
 } // namespace rune

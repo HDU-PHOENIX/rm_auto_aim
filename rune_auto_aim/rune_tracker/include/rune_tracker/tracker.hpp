@@ -18,9 +18,9 @@
 
 namespace rune {
 // 装甲板追踪器类
-class Tracker: public rclcpp::Node {
+class Tracker {
 public:
-    Tracker(const rclcpp::NodeOptions& option, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_);
+    Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_);
     using Rune = auto_aim_interfaces::msg::Rune;
 
     //node调用tracker功能函数
@@ -189,6 +189,7 @@ private:
 
     double pred_angle;                                   //预测角度
     auto_aim_interfaces::msg::Rune::SharedPtr data_last; //上一帧的数据
+    rclcpp::Node* node_;
 };
 
 } // namespace rune

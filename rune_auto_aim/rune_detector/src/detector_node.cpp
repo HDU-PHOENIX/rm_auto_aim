@@ -39,7 +39,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    no_rune_pub_ = this->create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
+    no_rune_pub_ = this->create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", 10);
 
     mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }

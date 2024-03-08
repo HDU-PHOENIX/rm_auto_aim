@@ -34,7 +34,6 @@ private:
     // 发布标记点函数
     void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
 
-    void InitRecord();
     void InitParams(); //初始化ROS2的declare参数
 
     bool debug_; //debug标志符
