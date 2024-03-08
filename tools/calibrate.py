@@ -13,7 +13,7 @@ import argparse
 
 def parse():
     parse = optparse.OptionParser()
-    parse.add_option('-s', '--save', dest='save', action='store_true', default=False, help='save images used for calibration')
+    parse.add_option('-s', '--save', dest='save', action='store_true', default=True, help='save images used for calibration')
     parse.add_option('-c', '--cache', dest='cache', action='store_true', default=False, help='use cached images for calibration')
     parse.add_option('-d', '--device', dest='device', type='int', default=0, help='device id')
     parse.add_option('--sn', dest='sn', type='string', default=None, help='serial number of the camera')
@@ -27,11 +27,11 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # 定义棋盘格的尺寸（棋盘格内角点）
-    rows, cols = 6, 9
+    rows, cols = 7, 12
     size = (rows, cols)
 
     # 迭代终止条件（最大误差容忍度0.001 + 最大迭代次数30）
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-6)
 
     # 定义 3D 点的世界坐标
     obj_p = np.zeros((rows*cols, 3), np.float32)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     if not options.cache:
         source = map(lambda pack: pack[1], camera.get_frames())
     else:
-        source = map(cv2.imread, glob.glob('images/*.jpg'))
+        source = map(cv2.imread, glob.glob('outputs/*.jpg'))
     for frame in source:
         if not options.cache:
             copy = frame.copy()
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         key_pressed = cv2.waitKey(0 if options.cache else 1)
         if ret and key_pressed == ord('s'):
             print("Save one image")
-            if options.save:
+            if options.save and not options.cache:
                 cv2.imwrite(time.strftime('outputs/%Y-%m-%d-%H-%M-%S.jpg', time.localtime()), copy)
             obj_points.append(obj_p)
             # 细化给定二维点的像素坐标
@@ -71,11 +71,12 @@ if __name__ == "__main__":
             break
     cv2.destroyAllWindows()
     if len(obj_points) > 0:
-        _, mtx, dist, _, _ = cv2.calibrateCamera(obj_points, img_points, frame.shape[:2][::-1], None, None)
+        diff, mtx, dist, _, _ = cv2.calibrateCamera(obj_points, img_points, frame.shape[:2][::-1], None, None, criteria=criteria)
         data = {'intrinsics': [mtx[0, 0], 0, mtx[0, 2], 0, mtx[1, 1], mtx[1, 2], 0, 0, 1],
                 'extrinsics': [1.65, 0.1, 0.01],
                 'distortion': [dist[0, 0], dist[0, 1], dist[0, 2], dist[0, 3], dist[0, 4]]}
         pprint.PrettyPrinter(indent=4).pprint(data)
         json.dump(data, open(f'./{options.sn}.json', 'w'), indent=4)
+        print("重投影误差： %lf" % diff)
     else:
         print("no image provide for calibration")
