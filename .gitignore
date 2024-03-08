@@ -7,3 +7,6 @@ Camera
 record/*.txt
 __pycache__
 armor_auto_aim/armor_detector/model/test.mp4
+
+tools/outputs
+tools/*.json
