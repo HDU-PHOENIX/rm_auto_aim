@@ -54,7 +54,7 @@ ArmorShooterNode::ArmorShooterNode(const rclcpp::NodeOptions& options):
                 serial_info.can_shoot.set__data('0');
             }
 
-            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, 0 };
+            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), 0, static_cast<float>(yaw_and_pitch[1]) };
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');

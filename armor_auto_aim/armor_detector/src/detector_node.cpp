@@ -53,10 +53,6 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
                 PublishDebugInfo(armors, msg->header);
             } else {
                 armors = detector_->DetectArmor(raw_image);
-                result_image_ = raw_image.clone();
-                detector_->DrawResult(result_image_);
-                cv::imshow("result", result_image_);
-                cv::waitKey(1);
             }
 
             PublishArmors(armors, msg->header);
