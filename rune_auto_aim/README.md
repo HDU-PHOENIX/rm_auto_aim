@@ -6,7 +6,7 @@
     - [UKF无迹卡尔曼滤波器](#ukf无迹卡尔曼滤波器)
     - [Ceres-solver](#ceres-solver)
   - [rune\_shooter](#rune_shooter)
-    - [龙格库塔迭代](#龙格库塔迭代)
+    - [龙哥库塔迭代](#龙哥库塔迭代)
   
 ## Brief
 ```
@@ -46,8 +46,10 @@ $$  w = A * cos (\omega * t + \phi) + b  $$
 ![](docs/RunePoint.jpg)
 
 ## rune_tracker
-能量机关追踪模块,主要通过前面的检测模块采集角速度数据，然后将其送入ukf滤波器进行滤波处理,随后将平滑的角速度曲线送入ceres求解器
-输出能量机关旋转角速度三角函数参数(幅值、相位、角频率、上下位移)
+能量机关追踪模块：
+- 主要通过前面的检测模块采集角速度数据，然后将其送入ukf滤波器进行滤波处理,随后将平滑的角速度曲线送入ceres求解器
+- 输出能量机关旋转角速度三角函数参数(幅值、相位、角频率、上下位移)
+- 符面角度定义：![](docs/RuneCoordinate.png)
 
 订阅：
 - 接收detector的数据 `/detector/runes`
