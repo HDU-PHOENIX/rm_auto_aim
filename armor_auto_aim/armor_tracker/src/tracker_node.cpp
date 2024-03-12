@@ -164,47 +164,42 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     {
         // odom 系下计算 car position 和 yaw 的预测位置
         // auto&& flytime = target_msg.position.x / bullet_speed_;
-        auto&& flytime = 0.0;
+        auto&& flytime = 0.5;
         //这里飞机的向下的速度需要处理，这里忽略傾角
         //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
-        auto predict_car_position = tracker_->target_state;
-        predict_car_position(0) += target_msg.velocity.x * flytime;
-        predict_car_position(2) += target_msg.velocity.y * flytime;
-        predict_car_position(4) += target_msg.velocity.z * flytime;
-        predict_car_position(6) += target_msg.v_yaw * flytime;
+        auto predict_car_state = tracker_->target_state;
+        predict_car_state(0) += target_msg.velocity.x * flytime; // x predict
+        predict_car_state(2) += target_msg.velocity.y * flytime; // y predict
+        predict_car_state(4) += target_msg.velocity.z * flytime; // z predict
+        predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
 
-        auto pre_armor_position = tracker_->GetArmorPositionFromState(predict_car_position);
-        target_msg.position.x = pre_armor_position.x();
-        target_msg.position.y = pre_armor_position.y();
-        target_msg.position.z = pre_armor_position.z();
-        target_msg.yaw = predict_car_position(6);
+        auto predict_armor_position = tracker_->GetArmorPositionFromState(predict_car_state);
+        geometry_msgs::msg::Point predict_armor_position_msg;
+        predict_armor_position_msg.x = predict_armor_position.x();
+        predict_armor_position_msg.y = predict_armor_position.y();
+        predict_armor_position_msg.z = predict_armor_position.z();
+
+        // target_msg.position.x = predict_armor_position.x();
+        // target_msg.position.y = predict_armor_position.y();
+        // target_msg.position.z = predict_armor_position.z();
+        // target_msg.yaw = predict_car_state(6);
 
         geometry_msgs::msg::PoseStamped ps;
         ps.header = armors_msg->header;
         ps.header.frame_id = "odom";
-        ps.pose.position = target_msg.position;
-        ps.pose.orientation = [this, target_msg, flytime]() {
-            tf2::Quaternion q, armor_q, pre_q;
-            auto aromr_orientation = this->tracker_->tracked_armor.pose.orientation;
-            q.setRPY(0, 0, target_msg.v_yaw * flytime);
-            armor_q.setValue(aromr_orientation.x, aromr_orientation.y, aromr_orientation.z, aromr_orientation.w);
-            pre_q = q * armor_q;
-            geometry_msgs::msg::Quaternion result_q;
-            result_q.set__x(pre_q.getX());
-            result_q.set__y(pre_q.getY());
-            result_q.set__z(pre_q.getZ());
-            result_q.set__w(pre_q.getW());
-            return result_q;
-        }();
+        ps.pose.position = predict_armor_position_msg;
+        // 后续用不到旋转，且不影响 position 的转换，所以删除相关计算
         try {
             auto shooter_ps = tf2_buffer_->transform(ps, "shooter");
             target_msg.header = shooter_ps.header;
-            target_msg.position = shooter_ps.pose.position;
+            target_msg.pw = shooter_ps.pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
             return;
         }
-        target_msg.mode = false;
+        target_msg.mode = false; // armor: false, rune: true
+        target_msg.yaw = predict_car_state(6);
+        target_msg.v_yaw = predict_car_state(7);
         target_pub_->publish(target_msg);
     }
 }

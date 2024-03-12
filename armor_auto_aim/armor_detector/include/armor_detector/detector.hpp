@@ -91,7 +91,7 @@ private:
      * @param lights 灯条集合
      * @return 装甲板集合
      */
-    std::vector<Armor> FilterArmor(const std::vector<Light>& lights);
+    std::vector<Armor> FilterArmor(const cv::Mat& input, const std::vector<Light>& lights);
 
     /**
      * @brief 从灯条轮廓构成灯条
@@ -106,7 +106,7 @@ private:
      * @param right_light 右灯条
      * @return 组成的装甲板
      */
-    Armor FormArmor(const Light& left_light, const Light& right_light);
+    Armor FormArmor(const cv::Mat& input, const Light& left_light, const Light& right_light);
 
     cv::Mat preprocessed_image_;         // 预处理后的图片
     cv::Mat channels_[3];                // 通道相减模式下的三通道图

@@ -39,12 +39,9 @@ Detector::Detector(
 std::vector<Armor> Detector::DetectArmor(const cv::Mat& input) {
     preprocessed_image_ = PreprocessImage(input);
     lights_ = DetectLight(input);
-    armors_ = FilterArmor(lights_);
+    armors_ = FilterArmor(input, lights_);
 
     if (!armors_.empty()) {
-        classifier_->ExtractNumbers(input, armors_);
-        classifier_->Classify(armors_);
-
         for (auto& armor: armors_) {
             pnp_solver_->CalculatePose(armor);
         }
@@ -91,7 +88,7 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     return lights;
 }
 
-std::vector<Armor> Detector::FilterArmor(const std::vector<Light>& lights) {
+std::vector<Armor> Detector::FilterArmor(const cv::Mat& input, const std::vector<Light>& lights) {
     std::vector<Armor> armors;
     armors.reserve(lights.size() / 2);
     debug_armors_.clear();
@@ -102,7 +99,7 @@ std::vector<Armor> Detector::FilterArmor(const std::vector<Light>& lights) {
                 continue;
             }
 
-            Armor armor = FormArmor(left_light, right_light);
+            Armor armor = FormArmor(input, left_light, right_light);
             if (armor.type != ArmorType::INVALID) {
                 armors.push_back(armor);
             }
@@ -121,13 +118,14 @@ Light Detector::FormLight(const std::vector<cv::Point>& light_contour) {
     return light;
 }
 
-Armor Detector::FormArmor(const Light& left_light, const Light& right_light) {
+Armor Detector::FormArmor(const cv::Mat& input, const Light& left_light, const Light& right_light) {
     Armor armor(left_light, right_light);
     bool light_height_ratio_valid = armor.light_height_ratio > 0.8;
     bool light_angle_diff_valid = armor.light_angle_diff < 10;
     bool angle_valid = armor.angle < 30;
 
-    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid) {
+    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid
+        && classifier_->Classify(input, armor)) {
         armor.type = (armor.light_center_distance > 3.2) ? ArmorType::LARGE : ArmorType::SMALL;
     } else {
         armor.type = ArmorType::INVALID;

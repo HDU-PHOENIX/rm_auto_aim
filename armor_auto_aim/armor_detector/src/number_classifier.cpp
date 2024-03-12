@@ -20,116 +20,94 @@ NumberClassifier::NumberClassifier(
     }
 }
 
-void NumberClassifier::ExtractNumbers(const cv::Mat& src, std::vector<Armor>& armors) {
-    const int light_length = 12;
-    const int warp_height = 28;
-    const int small_armor_width = 32;
-    const int large_armor_width = 54;
-    const cv::Size roi_size(20, 28);
+void NumberClassifier::ExtractNumbers(const cv::Mat& src, Armor& armor) {
+    // 透视变换
+    cv::Point2f lights_vertices[4] = { armor.left_light.bottom,
+                                       armor.left_light.top,
+                                       armor.right_light.top,
+                                       armor.right_light.bottom };
 
-    for (auto& armor: armors) {
-        // 透视变换
-        cv::Point2f lights_vertices[4] = { armor.left_light.bottom,
-                                           armor.left_light.top,
-                                           armor.right_light.top,
-                                           armor.right_light.bottom };
+    const int top_light_y = (warp_height - light_length) / 2 - 1;
+    const int bottom_light_y = top_light_y + light_length;
+    const int warp_width = armor.type == ArmorType::SMALL ? small_armor_width : large_armor_width;
+    cv::Point2f target_vertices[4] = {
+        cv::Point(0, bottom_light_y),
+        cv::Point(0, top_light_y),
+        cv::Point(warp_width - 1, top_light_y),
+        cv::Point(warp_width - 1, bottom_light_y),
+    };
+    cv::Mat number_image;
+    auto rotation_matrix = cv::getPerspectiveTransform(lights_vertices, target_vertices);
+    cv::warpPerspective(src, number_image, rotation_matrix, cv::Size(warp_width, warp_height));
 
-        const int top_light_y = (warp_height - light_length) / 2 - 1;
-        const int bottom_light_y = top_light_y + light_length;
-        const int warp_width =
-            armor.type == ArmorType::SMALL ? small_armor_width : large_armor_width;
-        cv::Point2f target_vertices[4] = {
-            cv::Point(0, bottom_light_y),
-            cv::Point(0, top_light_y),
-            cv::Point(warp_width - 1, top_light_y),
-            cv::Point(warp_width - 1, bottom_light_y),
-        };
-        cv::Mat number_image;
-        auto rotation_matrix = cv::getPerspectiveTransform(lights_vertices, target_vertices);
-        cv::warpPerspective(src, number_image, rotation_matrix, cv::Size(warp_width, warp_height));
+    // 获取数字 ROI
+    number_image = number_image(cv::Rect(cv::Point((warp_width - roi_size.width) / 2, 0), roi_size));
 
-        // 获取数字 ROI
-        number_image = number_image(cv::Rect(cv::Point((warp_width - roi_size.width) / 2, 0), roi_size));
+    // 二值化
+    cv::cvtColor(number_image, number_image, cv::COLOR_RGB2GRAY);
+    cv::threshold(number_image, number_image, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
 
-        // 二值化
-        cv::cvtColor(number_image, number_image, cv::COLOR_RGB2GRAY);
-        cv::threshold(number_image, number_image, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
-
-        armor.number_image = number_image;
-    }
+    armor.number_image = number_image;
 }
 
-void NumberClassifier::Classify(std::vector<Armor>& armors) {
-    for (auto& armor: armors) {
-        cv::Mat image = armor.number_image.clone();
+bool NumberClassifier::Classify(const cv::Mat& src, Armor& armor) {
+    ExtractNumbers(src, armor);
 
-        // Normalize
-        image = image / 255.0;
+    cv::Mat image = armor.number_image.clone();
 
-        // Create blob from image
-        cv::Mat blob;
-        cv::dnn::blobFromImage(image, blob);
+    // Normalize
+    image = image / 255.0;
 
-        // Set the input blob for the neural network
-        net_.setInput(blob);
-        // Forward pass the image blob through the model
-        cv::Mat outputs = net_.forward();
+    // Create blob from image
+    cv::Mat blob;
+    cv::dnn::blobFromImage(image, blob);
 
-        // Do softmax
-        float max_prob = *std::max_element(outputs.begin<float>(), outputs.end<float>());
-        cv::Mat softmax_prob;
-        cv::exp(outputs - max_prob, softmax_prob);
-        float sum = static_cast<float>(cv::sum(softmax_prob)[0]);
-        softmax_prob /= sum;
+    // Set the input blob for the neural network
+    net_.setInput(blob);
+    // Forward pass the image blob through the model
+    cv::Mat outputs = net_.forward();
 
-        double confidence;
-        cv::Point class_id_point;
-        minMaxLoc(softmax_prob.reshape(1, 1), nullptr, &confidence, nullptr, &class_id_point);
-        int label_id = class_id_point.x;
+    // Do softmax
+    float max_prob = *std::max_element(outputs.begin<float>(), outputs.end<float>());
+    cv::Mat softmax_prob;
+    cv::exp(outputs - max_prob, softmax_prob);
+    float sum = static_cast<float>(cv::sum(softmax_prob)[0]);
+    softmax_prob /= sum;
 
-        armor.classification_confidence = confidence;
-        armor.number = class_names_[label_id];
+    double confidence;
+    cv::Point class_id_point;
+    minMaxLoc(softmax_prob.reshape(1, 1), nullptr, &confidence, nullptr, &class_id_point);
+    int label_id = class_id_point.x;
 
-        std::stringstream result_ss;
-        result_ss << armor.number << ": " << std::fixed << std::setprecision(1)
-                  << armor.classification_confidence * 100.0 << "%";
-        armor.classification_result = result_ss.str();
+    armor.classification_confidence = confidence;
+    armor.number = class_names_[label_id];
+
+    std::stringstream result_ss;
+    result_ss << armor.number << ": " << std::fixed << std::setprecision(1)
+              << armor.classification_confidence * 100.0 << "%";
+    armor.classification_result = result_ss.str();
+
+    // 装甲板置信度过低
+    if (armor.classification_confidence < confidence_threshold_) {
+        return true;
     }
 
-    // erase 删除从 first 到 last 之间
-    // first: remove_if 返回的要 remove 的首个元素的 iterator
-    // last: 装甲板结尾
-    armors.erase(
-        // 返回值真的元素移至末尾，返回首个要 remove 的首个元素的 iterator
-        std::remove_if(
-            armors.begin(),
-            armors.end(),
-            [this](const Armor& armor) {
-                // 装甲板置信度过低
-                if (armor.classification_confidence < confidence_threshold_) {
-                    return true;
-                }
+    // 忽略的装甲板类型
+    for (const auto& ignore_class: ignore_classes_) {
+        if (armor.number == ignore_class) {
+            return true;
+        }
+    }
 
-                // 忽略的装甲板类型
-                for (const auto& ignore_class: ignore_classes_) {
-                    if (armor.number == ignore_class) {
-                        return true;
-                    }
-                }
-
-                // 错误匹配的类型
-                bool mismatch_armor_type = false;
-                if (armor.type == ArmorType::LARGE) {
-                    mismatch_armor_type =
-                        armor.number == "outpost" || armor.number == "2" || armor.number == "guard";
-                } else if (armor.type == ArmorType::SMALL) {
-                    mismatch_armor_type = armor.number == "1" || armor.number == "base";
-                }
-                return mismatch_armor_type;
-            }
-        ),
-        armors.end()
-    );
+    // 错误匹配的类型
+    bool mismatch_armor_type = false;
+    if (armor.type == ArmorType::LARGE) {
+        mismatch_armor_type =
+            armor.number == "outpost" || armor.number == "2" || armor.number == "guard";
+    } else if (armor.type == ArmorType::SMALL) {
+        mismatch_armor_type = armor.number == "1" || armor.number == "base";
+    }
+    return mismatch_armor_type;
 }
 
 void NumberClassifier::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
