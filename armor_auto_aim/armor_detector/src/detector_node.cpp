@@ -26,7 +26,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
-    no_armor_pub_ = create_publisher<auto_aim_interfaces::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
+    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",
@@ -37,31 +37,44 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     last_publish_time_ = this->now();
-    image_sub_ = create_subscription<sensor_msgs::msg::Image>(
-        "/image_pub",
-        rclcpp::SensorDataQoS(),
-        [this](const sensor_msgs::msg::Image::SharedPtr msg) {
-            auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());
-            std::vector<Armor> armors;
 
-            if (debug_) {
-                UpdateDetectorParameters();
-                armors = detector_->DetectArmor(raw_image);
-
-                result_image_ = raw_image.clone();
-                detector_->DrawResult(result_image_);
-                PublishDebugInfo(armors, msg->header);
+    mode_info_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        "communicate/autoaim",
+        100,
+        [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
+            if (msg->data[1] == 0) {
+                detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
+                image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+                    "/image_pub",
+                    rclcpp::SensorDataQoS(),
+                    std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
+                );
             } else {
-                armors = detector_->DetectArmor(raw_image);
+                image_sub_.reset();
             }
-
-            PublishArmors(armors, msg->header);
         }
     );
 }
 
-std::unique_ptr<Detector>
-ArmorDetectorNode::CreateDetector() {
+void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
+    auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());
+    std::vector<Armor> armors;
+
+    if (debug_) {
+        UpdateDetectorParameters();
+        armors = detector_->DetectArmor(raw_image);
+
+        result_image_ = raw_image.clone();
+        detector_->DrawResult(result_image_);
+        PublishDebugInfo(armors, msg->header);
+    } else {
+        armors = detector_->DetectArmor(raw_image);
+    }
+
+    PublishArmors(armors, msg->header);
+}
+
+std::unique_ptr<Detector> ArmorDetectorNode::CreateDetector() {
     rcl_interfaces::msg::ParameterDescriptor param_desc;
     param_desc.integer_range.resize(1);
     param_desc.integer_range[0].step = 1;
@@ -70,6 +83,9 @@ ArmorDetectorNode::CreateDetector() {
     auto&& binary_threshold = declare_parameter("binary_threshold", 100, param_desc);
     auto&& light_contour_threshold = declare_parameter("light_contour_threshold", 100, param_desc);
 
+    // enemy_color 0-红色 1-蓝色，实际上是无效值
+    // 没有收到通信节点的 communicate/autoaim 消息时，并不会进行识别
+    // 收到消息后才启动图片订阅者，并更新 enemy_color
     auto&& enemy_color = declare_parameter("enemy_color", 0); // 0-红色 1-蓝色
     auto&& confidence_threshold = declare_parameter("confidence_threshold", 0.7);
     auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
@@ -183,12 +199,13 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         armors_pub_->publish(armors_msg);
         lost_count_ = 0;
     } else if (++lost_count_ > 5) {
-        auto_aim_interfaces::msg::SerialInfo no_armor_serial_info;
-        no_armor_serial_info.start.set__data('s');
-        no_armor_serial_info.end.set__data('e');
-        no_armor_serial_info.is_find.set__data('0');
-        no_armor_serial_info.can_shoot.set__data('0');
-        no_armor_serial_info.euler = { 0, 0, 0 };
+        communicate::msg::SerialInfo no_armor_msg;
+        no_armor_msg.start.set__data('s');
+        no_armor_msg.end.set__data('e');
+        no_armor_msg.is_find.set__data('0');
+        no_armor_msg.can_shoot.set__data('0');
+        no_armor_msg.euler = { 0, 0, 0 };
+        no_armor_pub_->publish(no_armor_msg);
 
         RCLCPP_DEBUG(this->get_logger(), "No armor detected");
     }

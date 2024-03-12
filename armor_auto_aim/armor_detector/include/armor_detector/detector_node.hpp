@@ -3,6 +3,7 @@
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include "armor_detector/armor.hpp"
@@ -13,6 +14,7 @@
 #include "auto_aim_interfaces/msg/debug_lights.hpp"
 #include "auto_aim_interfaces/msg/ignore_classes.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
+#include "communicate/msg/serial_info.hpp"
 
 namespace armor {
 class ArmorDetectorNode: public rclcpp::Node {
@@ -21,6 +23,8 @@ public:
 
 private:
     std::unique_ptr<Detector> CreateDetector();
+
+    void ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
 
     void CreateDebugPublishers();
 
@@ -53,8 +57,9 @@ private:
     int lost_count_;
     std::unique_ptr<Detector> detector_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
-    rclcpp::Publisher<auto_aim_interfaces::msg::SerialInfo>::SharedPtr no_armor_pub_;
+    rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr mode_info_sub_;
     rclcpp::Subscription<auto_aim_interfaces::msg::IgnoreClasses>::SharedPtr ignore_classes_sub_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
+    rclcpp::Publisher<communicate::msg::SerialInfo>::SharedPtr no_armor_pub_;
 };
 } // namespace armor

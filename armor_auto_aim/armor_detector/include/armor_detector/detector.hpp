@@ -65,6 +65,12 @@ public:
      */
     void UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes);
 
+    /**
+     * @brief 更新敌方颜色
+     * @param enemy_color 敌方颜色
+     */
+    void UpdateEnemyColor(Color enemy_color);
+
 private:
     /**
      * @brief 对输入图片进行预处理

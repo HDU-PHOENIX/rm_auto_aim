@@ -156,6 +156,10 @@ void Detector::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classe
     classifier_->UpdateIgnoreClasses(ignore_classes);
 }
 
+void Detector::UpdateEnemyColor(Color enemy_color) {
+    enemy_color_ = enemy_color;
+}
+
 void Detector::DrawResult(const cv::Mat& input) {
     cv::circle(input, pnp_solver_->GetCameraCenter(), 5, cv::Scalar(255, 0, 0), 2);
 
