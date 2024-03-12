@@ -1,5 +1,3 @@
-// Copyright 2023 wangchi
-
 #ifndef ARMOR_PROCESSOR__TRACKER_HPP_
 #define ARMOR_PROCESSOR__TRACKER_HPP_
 
