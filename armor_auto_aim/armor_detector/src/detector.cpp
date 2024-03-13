@@ -111,8 +111,7 @@ std::vector<Armor> Detector::FilterArmor(const cv::Mat& input, const std::vector
 
 Light Detector::FormLight(const std::vector<cv::Point>& light_contour) {
     Light light(cv::minAreaRect(light_contour));
-    bool is_light = (light.length > light.width * 3) && (light.size.area() > 100);
-    light.valid = is_light;
+    light.valid = (light.length > light.width * 3) && (std::abs(light.tilt_angle) < 25);
 
     debug_lights_.push_back(light);
     return light;
@@ -120,11 +119,13 @@ Light Detector::FormLight(const std::vector<cv::Point>& light_contour) {
 
 Armor Detector::FormArmor(const cv::Mat& input, const Light& left_light, const Light& right_light) {
     Armor armor(left_light, right_light);
-    bool light_height_ratio_valid = armor.light_height_ratio > 0.8;
+    bool light_height_ratio_valid = armor.light_height_ratio < 1.2 && armor.light_height_ratio > 0.8;
     bool light_angle_diff_valid = armor.light_angle_diff < 10;
     bool angle_valid = armor.angle < 30;
+    bool light_center_distance_valid = (armor.light_center_distance > 1 && armor.light_center_distance < 3)
+        || (armor.light_center_distance > 3.5 && armor.light_center_distance < 4.5);
 
-    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid
+    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid && light_center_distance_valid
         && classifier_->Classify(input, armor)) {
         armor.type = (armor.light_center_distance > 3.2) ? ArmorType::LARGE : ArmorType::SMALL;
     } else {

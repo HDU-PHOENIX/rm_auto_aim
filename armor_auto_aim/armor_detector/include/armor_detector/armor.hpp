@@ -70,7 +70,7 @@ struct Light: public cv::RotatedRect {
         bottom = (point[2] + point[3]) / 2;
         length = cv::norm(top - bottom);
         width = cv::norm(point[0] - point[1]);
-        tilt_angle = std::atan2(top.x - bottom.x, top.y - bottom.y) / CV_PI * 180;
+        tilt_angle = std::atan((top.x - bottom.x) / (top.y - bottom.y)) / CV_PI * 180;
     }
 
     cv::Point2f point[4];    // 灯条四个角点坐标
@@ -89,10 +89,8 @@ struct Armor {
         this->right_light = right_light;
         this->center = (left_light.center + right_light.center) / 2;
 
-        light_height_ratio = (left_light.length > right_light.length)
-            ? (left_light.length / right_light.length)
-            : (right_light.length / left_light.length);
-        light_angle_diff = std::abs(left_light.tilt_angle - right_light.tilt_angle);
+        light_height_ratio = left_light.length / right_light.length;
+        light_angle_diff = std::abs(std::abs(left_light.tilt_angle) - std::abs(right_light.tilt_angle));
         cv::Point2f&& diff = left_light.center - right_light.center;
         angle = std::abs(std::atan(diff.y / diff.x)) / CV_PI * 180;
 

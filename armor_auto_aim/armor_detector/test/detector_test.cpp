@@ -36,9 +36,7 @@ TEST(DetectorTest, TestDetectArmor) {
         total_time += detect_time;
 
         cv::Mat result(frame);
-        if (!armors.empty()) {
-            detector.DrawResult(result);
-        }
+        detector.DrawResult(result);
         cv::imshow("result", result);
         cv::waitKey(1);
     }
