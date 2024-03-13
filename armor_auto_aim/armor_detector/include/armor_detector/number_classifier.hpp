@@ -45,6 +45,6 @@ private:
     const int warp_height = 28;
     const int small_armor_width = 32;
     const int large_armor_width = 54;
-    const cv::Size roi_size = cv::Size(24, 28);
+    const cv::Size roi_size = cv::Size(20, 28);
 };
 } // namespace armor
