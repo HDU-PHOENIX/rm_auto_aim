@@ -18,6 +18,8 @@ def parse():
     parse.add_option('-d', '--device', dest='device', type='int', default=0, help='device id')
     parse.add_option('--sn', dest='sn', type='string', default=None, help='serial number of the camera')
     parse.add_option('--grid-size', dest='grid_size', type='float', default=20, help='size of the grid in mm')
+    parse.add_option('--auto-save', dest='auto_save', action='store_true', default=False, help='auto save images')
+    parse.add_option('--auto-save-speed', dest='auto_save_speed', type='float', default=2.0, help='wait time between two saved images (unit: second)')
     return parse.parse_args()
 
 # def 
@@ -27,7 +29,7 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # 定义棋盘格的尺寸（棋盘格内角点）
-    rows, cols = 7, 12
+    rows, cols = 8, 12
     size = (rows, cols)
 
     # 迭代终止条件（最大误差容忍度0.001 + 最大迭代次数30）
@@ -40,16 +42,28 @@ if __name__ == "__main__":
     obj_points = []  # 存储棋盘图像 3D 点向量
     img_points = []  # 存储棋盘图像 2D 点向量
 
+    flash=np.zeros((1024,1280,3),np.uint8)
+    flash.fill(255)
+    flash_weight=0.0
+
+    now=time.time()
+
+    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+
     if options.save and not os.path.exists('outputs'):
         os.mkdir('outputs')
     if not options.sn and not options.cache:
         camera = mindvision.MindVision(1280, 1024)
         options.sn = camera.device_info.GetSn()
+        # camera = cv2.VideoCapture(0)
+        
     if not options.cache:
         source = map(lambda pack: pack[1], camera.get_frames())
     else:
         source = map(cv2.imread, glob.glob('outputs/*.jpg'))
+    # frame=np.zeros((1024,1280,3),np.uint8)
     for frame in source:
+    # while camera.read(frame):
         if not options.cache:
             copy = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -57,16 +71,22 @@ if __name__ == "__main__":
         ret, corners = cv2.findChessboardCornersSB(gray, size, None, cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_EXHAUSTIVE)
         # 绘制并显示角
         cv2.drawChessboardCorners(frame, size, corners, ret)
+        frame=cv2.addWeighted(frame,1-flash_weight,flash,flash_weight,0)
+        if flash_weight > 0:
+            flash_weight -= 0.2
         cv2.imshow('frame', frame)
         key_pressed = cv2.waitKey(0 if options.cache else 1)
-        if ret and key_pressed == ord('s'):
+        if ret and (key_pressed == ord('s') or options.auto_save and time.time()-now>options.auto_save_speed):
+            now=time.time()
             print("Save one image")
+            if not options.cache:
+                flash_weight = 1.0
             if options.save and not options.cache:
                 cv2.imwrite(time.strftime('outputs/%Y-%m-%d-%H-%M-%S.jpg', time.localtime()), copy)
             obj_points.append(obj_p)
             # 细化给定二维点的像素坐标
-            corners2 = cv2.cornerSubPix(gray, corners, (11,11),(-1,-1), criteria)
-            img_points.append(corners2)
+            corners = cv2.cornerSubPix(gray, corners, (9, 9),(-1,-1), criteria)
+            img_points.append(corners)
         elif key_pressed == ord('q'):
             break
     cv2.destroyAllWindows()
