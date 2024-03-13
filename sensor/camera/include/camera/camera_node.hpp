@@ -1,14 +1,10 @@
 #ifndef CAMERA_NODE_HPP
 #define CAMERA_NODE_HPP
 
+#include "camera/inner_shot.hpp"
+#include "camera/mindvision.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-
-#include "auto_aim_interfaces/msg/serial_info.hpp"
-#include "camera/mindvision.hpp"
-#include <memory>
-#include <opencv2/videoio.hpp>
-#include <string>
 
 namespace sensor {
 
@@ -20,26 +16,25 @@ public:
 private:
     void LoopForPublish(); //发布图像
 
+    void InnerShot(); //内部录制视频
+
     void GetImg(); //获取图像
 
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
-    std::shared_ptr<cv::VideoWriter> video_writer_;
-
-    // debug 时间数据
-    rclcpp::Time start_time;
-    rclcpp::Time end_time;
-    rclcpp::Time last_publish_time;
 
     // 原始图像发布者
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
+
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_inner_shot_;
 
     //是否外部输入视频流标志位
     bool videoflag;
     bool inner_shot_flag;
     std::string video_path;
     cv::VideoCapture capture;
-    std::thread thread_for_publish_; //获取图像的线程
+    std::thread thread_for_publish_;    //获取图像的线程
+    std::thread thread_for_inner_shot_; //获取图像的线程
 };
 
 } // namespace sensor

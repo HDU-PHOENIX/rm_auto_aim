@@ -52,7 +52,7 @@ void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::Shared
         img_sub_.reset();
     } else {
         //如果是符模式则订阅图像
-        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS(), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
+        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", 2, std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
     }
     if (msg->data[2] == 0) {
         runes_msg_.motion = 0;
@@ -199,7 +199,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
             no_rune_msg.is_find.set__data('0');
             no_rune_msg.can_shoot.set__data('0');
             no_rune_msg.euler = { 0, 0 };
-            no_rune_pub_->publish(no_rune_msg);
+            // no_rune_pub_->publish(no_rune_msg);
         }
     }
 }

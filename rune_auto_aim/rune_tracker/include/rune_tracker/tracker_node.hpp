@@ -67,11 +67,6 @@ private:
     double bullet_speed;
     int filter_astring_threshold;
     double phase_offset; //相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
-
-    std::ofstream omega_file;
-    std::ofstream omega_time;
-    std::ofstream origin_omega_file;
-    std::ofstream origin_omega_time;
 };
 
 } // namespace rune

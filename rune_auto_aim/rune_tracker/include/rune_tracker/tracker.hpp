@@ -131,7 +131,7 @@ private:
     }
 
     //当delta_angle太大时，认为ceres拟合数据不准确，需要重新拟合
-    void Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data);
+    void Refitting();
 
     void InitCeres(); //初始化ceres求解器
 

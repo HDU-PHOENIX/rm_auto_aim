@@ -1,8 +1,5 @@
 #include "camera/camera_node.hpp"
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/videoio.hpp>
-#include <rclcpp/logging.hpp>
+#include "camera/inner_shot.hpp"
 #include <unistd.h>
 
 namespace sensor {
@@ -22,20 +19,23 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     // 创建发布者
     image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
         "/image_pub",
-        rclcpp::SensorDataQoS()
+        2
     );
 
-    video_writer_ = std::make_shared<cv::VideoWriter>();
     if (inner_shot_flag) {
-        video_writer_->open("./Camera/inner_shot.mp4", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 60, cv::Size(1280, 1024));
+        thread_for_inner_shot_ = std::thread(std::bind(&CameraNode::InnerShot, this));
     }
     frame_ = std::make_shared<cv::Mat>();
     thread_for_publish_ = std::thread(std::bind(&CameraNode::LoopForPublish, this));
 }
 
 CameraNode::~CameraNode() {
-    video_writer_->release();
     RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
+}
+
+void CameraNode::InnerShot() {
+    auto inner_shot = std::make_shared<InnerShotNode>();
+    rclcpp::spin(inner_shot);
 }
 
 void CameraNode::GetImg() {
@@ -55,9 +55,7 @@ void CameraNode::GetImg() {
 }
 
 void CameraNode::LoopForPublish() {
-    // RCLCPP_INFO(this->get_logger(), "isopened %d", video_writer_->isOpened());
     while (rclcpp::ok()) {
-        // usleep(100);
         sensor_msgs::msg::Image::UniquePtr image_msg(new sensor_msgs::msg::Image());
         image_msg->header.stamp = this->now();
         this->GetImg();
@@ -68,10 +66,9 @@ void CameraNode::LoopForPublish() {
         image_msg->is_bigendian = 0u;
         image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame_->step);
         image_msg->data.assign(frame_->datastart, frame_->dataend);
-        if (inner_shot_flag) {
-            video_writer_->write(*frame_);
-        }
+
         image_publisher_->publish(std::move(image_msg));
+        // RCLCPP_INFO(this->get_logger(), "publish image");
     }
 }
 
