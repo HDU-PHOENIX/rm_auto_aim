@@ -7,7 +7,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting RuneTrackerNode!");
     InitParams();
-    tracker_ = std::make_unique<Tracker>(this, 1.5, 1.2, filter_astring_threshold);
+    tracker_ = std::make_unique<Tracker>(this, 3, 2.09, filter_astring_threshold);
     debug_ = this->declare_parameter("debug", false);
 
     if (debug_) {

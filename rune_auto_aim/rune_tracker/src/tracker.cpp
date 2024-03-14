@@ -1,5 +1,5 @@
 #include "rune_tracker/tracker.hpp"
-#define NEW_METHOD true
+#define NEW_METHOD false
 namespace rune {
 Tracker::Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_):
     node_(node) {
@@ -98,7 +98,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         tracker.angle = cere_rotated_angle;
     }
 
-    if ((rclcpp::Time(data->header.stamp) - t_zero).seconds() > 30) {
+    if ((rclcpp::Time(data->header.stamp) - t_zero).seconds() > 30.0) {
         //符的数据过期
         Reset();
         return false;
@@ -110,7 +110,18 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         //角度变换后，需要矫正角度
         cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
         cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
-        // RCLCPP_INFO(node_->get_logger(), "rune_leaf change!");
+        tracker.angle = leaf_angle;
+        tracker.pred_time -= (rclcpp::Time(data->header.stamp) - tracker.timestamp).seconds();
+        tracker.timestamp = data->header.stamp;
+        tracker.pred_angle = Integral(
+            a_omega_phi_b[1],
+            std::vector<double> { a_omega_phi_b[0],
+                                  a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1],
+                                  a_omega_phi_b[3] },
+            (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+            tracker.pred_time
+        );
+        RCLCPP_INFO(node_->get_logger(), "rune_leaf change!");
     }
 #endif
     CeresProcess(data, runes_msg, debug_msg);
@@ -175,7 +186,14 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                 }
                 finish_fitting = false; //连续五次误差超过0.1，则认为需要重新拟合
                 count_cere = 0;
-                Refitting(data);
+                Refitting();
+                pred_angle = Integral(
+                    a_omega_phi_b[1],
+                    std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
+                    (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+                    (delay + (node_->now() - data->header.stamp).seconds())
+                );
+                tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
                 runes_msg.can_shoot = false;
                 return true;
             }
@@ -236,7 +254,7 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
     }
 }
 
-void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
+void Tracker::Refitting() {
     RCLCPP_INFO(node_->get_logger(), "refitting");
     ceres::Problem problem;
     for (auto& i: cere_param_list) {
@@ -263,13 +281,6 @@ void Tracker::Refitting(auto_aim_interfaces::msg::Rune::SharedPtr data) {
     problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
 
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
-    pred_angle = Integral(
-        a_omega_phi_b[1],
-        std::vector<double> { a_omega_phi_b[0], a_omega_phi_b[2] + phase_offset * a_omega_phi_b[1], a_omega_phi_b[3] },
-        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-        (delay + (node_->now() - data->header.stamp).seconds())
-    );
-    tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
 }
 
 bool Tracker::Judge(auto_aim_interfaces::msg::DebugRune& debug_msg) {

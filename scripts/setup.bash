@@ -13,8 +13,8 @@ if [ -d /usr/include/mindvision/ ]; then
 else
     echo ">>> start install mindvision-sdk"
     mkdir mindvision-sdk
-    wget http://10.2.20.150/file/mindvision-sdk.tar.gz -O mindvision-sdk/sdk.tar.gz
-    tar -zxvf mindvision-sdk/sdk.tar.gz --directory=mindvision-sdk
+    wget http://10.2.20.150/file/SDK.zip -O mindvision-sdk/SDK.zip
+    tar -zxvf mindvision-sdk/SDK.zip --directory=mindvision-sdk
     cd mindvision-sdk && sudo bash ./install.sh && cd ..
     echo ">>> successfully install mindvision-sdk"
     rm -r mindvision-sdk

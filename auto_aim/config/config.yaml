@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
-    debug: false
-    show_pic: false
+    debug: true
+    show_pic: true
     camera_matrix: [
         1302.9388992859376, 0, 609.2298064340857,
         0, 2515.6912302455735, 467.0345949712323,
@@ -18,8 +18,8 @@
 /camera_node:
     ros__parameters:
         videoflag: false
-        video_path: "./Camera/new1.mp4"
-        inner_shot_flag: false
+        video_path: "./Camera/new2.mp4"
+        inner_shot_flag: true
 
 /tf2_node:
     ros__parameters:
@@ -48,7 +48,7 @@
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.95 #神经网络置信度阈值
+        confidence_threshold: 0.90 #神经网络置信度阈值
         # model_path: "/model/2023/yolox.onnx" #这里的路径是相对路径
         model_path: "/model/yolox_fp16.onnx"
 
