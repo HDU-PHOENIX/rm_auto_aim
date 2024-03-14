@@ -17,10 +17,10 @@ public:
     ~InnerShotNode();
 
 private:
-    void InnerShotCallback(const sensor_msgs::msg::Image::SharedPtr img_msg); //内部录制视频
+    void InnerShotCallback(const sensor_msgs::msg::Image::SharedPtr img_msg); //鍐呴儴褰曞埗瑙嗛
 
     std::shared_ptr<cv::VideoWriter> video_writer_;
-    //内录视频接收
+    //鍐呭綍瑙嗛鎺ユ敹
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_inner_shot_sub_;
 };
 

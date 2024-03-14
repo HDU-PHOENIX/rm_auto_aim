@@ -21,7 +21,7 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
     DIRECTORY src
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${OpenCV_INCLUDE_DIRS} include)
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} MVSDK)
 
 rclcpp_components_register_node(${PROJECT_NAME}
