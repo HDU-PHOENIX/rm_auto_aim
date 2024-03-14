@@ -35,9 +35,12 @@ class MindVision:
         mvsdk.CameraSetIspOutFormat(hCamera, mvsdk.CAMERA_MEDIA_TYPE_MONO8 if monoCamera else mvsdk.CAMERA_MEDIA_TYPE_BGR8)
         # 相机模式切换成连续采集
         mvsdk.CameraSetTriggerMode(hCamera, 0)
-        # 手动曝光，曝光时间5ms
+        # 手动曝光，曝光时间2ms
         mvsdk.CameraSetAeState(hCamera, 0)
         mvsdk.CameraSetExposureTime(hCamera, 5000)
+        # 白平衡模式设置为手动
+        mvsdk.CameraSetWbMode(hCamera, False)
+        mvsdk.CameraSetOnceWB(hCamera)
         # 让SDK内部取图线程开始工作
         mvsdk.CameraPlay(hCamera)
         # 计算RGB buffer所需的大小，这里直接按照相机的最大分辨率来分配
@@ -48,7 +51,7 @@ class MindVision:
         while True:
             # 从相机取一帧图片
             try:
-                pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 200)
+                pRawData, FrameHead = mvsdk.CameraGetImageBuffer(hCamera, 1000)
                 mvsdk.CameraImageProcess(hCamera, pRawData, pFrameBuffer, FrameHead)
                 mvsdk.CameraReleaseImageBuffer(hCamera, pRawData)
                 # windows下取到的图像数据是上下颠倒的，以BMP格式存放。转换成opencv则需要上下翻转成正的
