@@ -1,8 +1,8 @@
 #!python3
 
 import cv2
+import yaml
 import glob
-import json
 import mindvision
 import numpy as np
 import optparse
@@ -10,6 +10,7 @@ import os
 import pprint
 import time
 import argparse
+
 
 def parse():
     parse = optparse.OptionParser()
@@ -27,9 +28,10 @@ def parse():
 if __name__ == "__main__":
     options, args = parse()
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
+    current_path = os.path.realpath(__file__)# py文件的绝对路径
+    directory_path = os.path.dirname(current_path)# py文件的所在文件夹
     # 定义棋盘格的尺寸（棋盘格内角点）
-    rows, cols = 8, 12
+    rows, cols = 7, 12
     size = (rows, cols)
 
     # 迭代终止条件（最大误差容忍度0.001 + 最大迭代次数30）
@@ -92,11 +94,17 @@ if __name__ == "__main__":
     cv2.destroyAllWindows()
     if len(obj_points) > 0:
         diff, mtx, dist, _, _ = cv2.calibrateCamera(obj_points, img_points, frame.shape[:2][::-1], None, None, criteria=criteria)
-        data = {'intrinsics': [mtx[0, 0], 0, mtx[0, 2], 0, mtx[1, 1], mtx[1, 2], 0, 0, 1],
+        
+        data = {'intrinsics': [float(mtx[0, 0]), 0, float(mtx[0, 2]), 0, float(mtx[1, 1]), float(mtx[1, 2]), 0, 0, 1],
                 'extrinsics': [1.65, 0.1, 0.01],
-                'distortion': [dist[0, 0], dist[0, 1], dist[0, 2], dist[0, 3], dist[0, 4]]}
+                'distortion': [float(dist[0, 0]), float(dist[0, 1]), float(dist[0, 2]), float(dist[0, 3]), float(dist[0, 4])]}
         pprint.PrettyPrinter(indent=4).pprint(data)
-        json.dump(data, open(f'./{options.sn}.json', 'w'), indent=4)
+        with open(f'{directory_path}/../auto_aim/config/config.yaml','r',encoding='utf-8') as file1:
+            yaml_data = yaml.safe_load(file1)# 读取yaml文件
+            with open(f'{directory_path}/../auto_aim/config/config.yaml','w',encoding='utf-8') as file2:
+                yaml_data['/**']['ros__parameters']['camera_matrix'] = data['intrinsics']
+                yaml_data['/**']['ros__parameters']['distortion_coefficients'] = data['distortion']
+                yaml.safe_dump(yaml_data,file2,encoding='utf-8',sort_keys=False,default_flow_style=False)
         print("重投影误差： %lf" % diff)
     else:
         print("no image provide for calibration")

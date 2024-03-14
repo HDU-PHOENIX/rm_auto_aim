@@ -33,13 +33,13 @@ def generate_launch_description():
         package='rclcpp_components',
         executable='component_container',
         composable_node_descriptions=[
-            # ComposableNode(
-            #     package = 'armor_detector',
-            #     plugin = 'armor::ArmorDetectorNode',
-            #     name = 'armor_detector_node',
-            #     extra_arguments = [{"use_intra_process_comms": True}],
-            #     parameters = [config]
-            # ),
+            ComposableNode(
+                package = 'armor_detector',
+                plugin = 'armor::ArmorDetectorNode',
+                name = 'armor_detector_node',
+                extra_arguments = [{"use_intra_process_comms": True}],
+                parameters = [config]
+            ),
             ComposableNode(
                 package = 'rune_detector',
                 plugin = 'rune::RuneDetectorNode',
