@@ -44,20 +44,20 @@
         binary_thres: 160
         gray_thres: 200
         contour_thres: 100
-        enemy_color: 1 # 0-ºìÉ«£¬1-À¶É«
+        enemy_color: 1 # 0-çº¢è‰²ï¼Œ1-è“è‰²
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.90 #Éñ¾­ÍøÂçÖÃĞÅ¶ÈãĞÖµ
-        # model_path: "/model/2023/yolox.onnx" #ÕâÀïµÄÂ·¾¶ÊÇÏà¶ÔÂ·¾¶
+        confidence_threshold: 0.90 #ç¥ç»ç½‘ç»œç½®ä¿¡åº¦é˜ˆå€¼
+        # model_path: "/model/2023/yolox.onnx" #è¿™é‡Œçš„è·¯å¾„æ˜¯ç›¸å¯¹è·¯å¾„
         model_path: "/model/yolox_fp16.onnx"
 
 /rune_tracker_node:
     ros__parameters:
         bullet_speed: 25.0
-        filter_astring_threshold: 20 #ÓÃÓÚ²»¿ÉÓÃÊı¾İµÄ¼ÆÊı£¬µ±Êı¾İÍ»±äÊ±ºò£¬Ôò¹ıÂËÒ»¶¨ÊıÄ¿µÄÊı¾İÖ®ºó¶ªÈë ukf
+        filter_astring_threshold: 20 #ç”¨äºä¸å¯ç”¨æ•°æ®çš„è®¡æ•°ï¼Œå½“æ•°æ®çªå˜æ—¶å€™ï¼Œåˆ™è¿‡æ»¤ä¸€å®šæ•°ç›®çš„æ•°æ®ä¹‹åä¸¢å…¥ ukf
         chasedelay: 0.0
-        phase_offset: 0.0 #//ÏàÎ»²î²¹³¥£¬ÓÃÓÚ²¹³¥¹Û²âµ½µÄ½ÇËÙ¶ÈºÍÂË²¨ºó½ÇËÙ¶ÈµÄÏàÎ»²î
+        phase_offset: 0.0 #//ç›¸ä½å·®è¡¥å¿ï¼Œç”¨äºè¡¥å¿è§‚æµ‹åˆ°çš„è§’é€Ÿåº¦å’Œæ»¤æ³¢åè§’é€Ÿåº¦çš„ç›¸ä½å·®
 
 /shooter_node:
     ros__parameters:
@@ -69,7 +69,7 @@
         correction_of_y: 0.0
         correction_of_z: 0.0
         stop_error: 0.001
-        velocity: 25  #·É»ú×Óµ¯µÄËÙ¶ÈÎª 30m/s
+        velocity: 25  #é£æœºå­å¼¹çš„é€Ÿåº¦ä¸º 30m/s
         number_of_iterations: 60
         yaw_threshold: 0.01
         pitch_threshold: 0.005
