@@ -32,6 +32,7 @@ def generate_launch_description():
         namespace='',
         package='rclcpp_components',
         executable='component_container',
+        arguments = ["--ros-args", "--log-level", "debug"],
         composable_node_descriptions=[
             ComposableNode(
                 package = 'armor_detector',

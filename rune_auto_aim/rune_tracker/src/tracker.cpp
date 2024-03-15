@@ -28,14 +28,14 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
     // RCLCPP_INFO(node_->get_logger(), "leaf_angle %lf", leaf_angle);
-    leaf_angle_diff = leaf_angle - leaf_angle_last;     //符叶角度差
-    CalSmallRune(data, debug_msg);                      //计算小符角速度
-    Judge(debug_msg);                                   //判断顺时针还是逆时针
-    FittingBig(data, runes_msg, debug_msg);             //拟合大符
-    Fitting(runes_msg);                                 //计算预测角度
-    data_last = data;                                   //记录上一帧的数据
-    leaf_angle_last = leaf_angle;                       //记录上一帧的角度
-    cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
+    leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正后的角度差
+    CalSmallRune(data, debug_msg);                                           //计算小符角速度
+    Judge(debug_msg);                                                        //判断顺时针还是逆时针
+    FittingBig(data, runes_msg, debug_msg);                                  //拟合大符
+    Fitting(runes_msg);                                                      //计算预测角度
+    data_last = data;                                                        //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                                            //记录上一帧的角度
+    cv::Point2d symbol(data->symbol.x, data->symbol.y);                      //R标
     rotate_armors.clear();
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
@@ -130,7 +130,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 
 bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (cere_param_list.size() < 100) {
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle - leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         runes_msg.can_shoot = false;
         return false;
@@ -138,7 +138,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
         //TODO:这里可能会有问题后续逻辑得仔细考虑一下
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle_diff) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = fabs(leaf_angle - leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         RCLCPP_INFO(node_->get_logger(), "finish_fitting flag %d", finish_fitting);
         //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性

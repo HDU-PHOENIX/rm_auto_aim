@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    debug: true
+    debug: false
     show_pic: false
     camera_matrix: [
         1302.9388992859376, 0, 609.2298064340857,
@@ -18,7 +18,7 @@
 /camera_node:
     ros__parameters:
         videoflag: false
-        video_path: "./Camera/new2.mp4"
+        video_path: "./Camera/new1.mp4"
         inner_shot_flag: false
 
 /tf2_node:
