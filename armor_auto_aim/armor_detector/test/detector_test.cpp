@@ -1,4 +1,5 @@
 #include "armor_detector/detector.hpp"
+#include "camera/mindvision.hpp"
 #include "gtest/gtest.h"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <iostream>
@@ -8,14 +9,12 @@ TEST(DetectorTest, TestDetectArmor) {
     cv::Mat frame;
     auto&& pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
     std::cout << pkg_path << std::endl;
-    cv::VideoCapture cap(pkg_path + "/model/test.mp4");
-    // cv::namedWindow("result", cv::WINDOW_NORMAL);
-    // cv::resizeWindow("result", 600, 600);
+
+    sensor::MindVision cap(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
 
     auto total_time = 0;
 
-    ASSERT_TRUE(cap.isOpened());
-    while (cap.read(frame)) {
+    while (cap.GetFrame(frame)) {
         armor::Detector detector(
             100,
             100,
@@ -32,7 +31,7 @@ TEST(DetectorTest, TestDetectArmor) {
         auto end_time = std::chrono::steady_clock::now();
 
         auto detect_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-        std::cout << "Time: " << detect_time << "us" << std::endl;
+        // std::cout << "Time: " << detect_time << "us" << std::endl;
         total_time += detect_time;
 
         cv::Mat result(frame);
@@ -40,7 +39,7 @@ TEST(DetectorTest, TestDetectArmor) {
         cv::imshow("result", result);
         cv::waitKey(1);
     }
-    std::cout << "Average time: " << total_time / cap.get(cv::CAP_PROP_FRAME_COUNT) << "us" << std::endl;
+    // std::cout << "Average time: " << total_time / cap.get(cv::CAP_PROP_FRAME_COUNT) << "us" << std::endl;
 
     // armor::Detector detector(100, 100, armor::Color::RED);
     // cv::Mat input = cv::imread("../../armor_detector/test/test2.jpg");
