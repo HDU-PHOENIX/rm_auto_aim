@@ -46,7 +46,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
                 detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
                 image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
                     "/image_pub",
-                    rclcpp::SensorDataQoS(),
+                    2,
                     std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
                 );
             } else {
