@@ -122,8 +122,8 @@ Armor Detector::FormArmor(const cv::Mat& input, const Light& left_light, const L
     bool light_height_ratio_valid = armor.light_height_ratio < 1.2 && armor.light_height_ratio > 0.8;
     bool light_angle_diff_valid = armor.light_angle_diff < 10;
     bool angle_valid = armor.angle < 30;
-    bool light_center_distance_valid = (armor.light_center_distance > 1 && armor.light_center_distance < 3)
-        || (armor.light_center_distance > 3.5 && armor.light_center_distance < 4.5);
+    bool light_center_distance_valid = (armor.light_center_distance > 0.8 && armor.light_center_distance < 3.2)
+        || (armor.light_center_distance > 3.2 && armor.light_center_distance < 5.5);
 
     if (light_height_ratio_valid && light_angle_diff_valid && angle_valid && light_center_distance_valid) {
         armor.type = (armor.light_center_distance > 3.2) ? ArmorType::LARGE : ArmorType::SMALL;
