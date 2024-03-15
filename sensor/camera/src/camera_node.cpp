@@ -1,11 +1,13 @@
 #include "camera/camera_node.hpp"
 #include "camera/inner_shot.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <unistd.h>
 
 namespace sensor {
 
 CameraNode::CameraNode(const rclcpp::NodeOptions& options):
-    Node("camera_node", options) {
+    Node("camera_node", options),
+    MindVision(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config") {
     RCLCPP_INFO(this->get_logger(), "camera_node start");
 
     //是否使用视频流标志位
@@ -52,6 +54,8 @@ void CameraNode::GetImg() {
             exit(-1);
         }
     }
+    cv::imshow("raw", *frame_);
+    cv::waitKey(1);
 }
 
 void CameraNode::LoopForPublish() {

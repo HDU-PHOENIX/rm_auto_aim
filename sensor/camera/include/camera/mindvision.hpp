@@ -9,7 +9,7 @@ namespace sensor {
 
 class MindVision {
 public:
-    MindVision();
+    explicit MindVision(std::string mindvision_config = "");
     ~MindVision();
 
     /**

@@ -9,7 +9,7 @@
 
 namespace sensor {
 
-MindVision::MindVision():
+MindVision::MindVision(std::string mindvision_config):
     i_camera_counts(1),
     i_status(-1) {
     // 相机 SDK 初始化
@@ -86,9 +86,13 @@ MindVision::MindVision():
             CameraSetImageResolution  CameraGetImageResolution 设置/读取分辨率
             CameraSetGamma、CameraSetConrast、CameraSetGain 等设置图像伽马、对比度、RGB 数字增益等等。
     */
-    CameraSetAeState(h_camera, 0);
-    CameraSetExposureTime(h_camera, 5000);
-    CameraSetContrast(h_camera, 100);
+    if (mindvision_config.empty()) {
+        CameraSetAeState(h_camera, 0);
+        CameraSetExposureTime(h_camera, 5000);
+        CameraSetContrast(h_camera, 100);
+    } else {
+        CameraReadParameterFromFile(h_camera, mindvision_config.data());
+    }
 
     if (t_capability.sIspCapacity.bMonoSensor != 0) {
         // channel=1;
