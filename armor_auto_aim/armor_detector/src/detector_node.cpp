@@ -44,7 +44,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
             if (msg->data[1] == 0) {
                 detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
-                image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+                image_sub_ = this->create_subscription<auto_aim_interfaces::msg::Image>(
                     "/image_pub",
                     2,
                     std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
@@ -56,8 +56,8 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 }
 
-void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());
+void ArmorDetectorNode::ImageCallback(const auto_aim_interfaces::msg::Image::SharedPtr msg) {
+    auto&& raw_image = cv::Mat(msg->raw_image.height, msg->raw_image.width, CV_8UC3, msg->raw_image.data.data());
     std::vector<Armor> armors;
 
     if (debug_) {
@@ -71,7 +71,7 @@ void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr m
         armors = detector_->DetectArmor(raw_image);
     }
 
-    PublishArmors(armors, msg->header);
+    PublishArmors(armors, msg);
 }
 
 std::unique_ptr<Detector> ArmorDetectorNode::CreateDetector() {
@@ -182,10 +182,10 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
     armor_marker_pub_->publish(marker_array);
 }
 
-void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
+void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const auto_aim_interfaces::msg::Image::SharedPtr& msg) {
     if (!armors.empty()) {
         auto_aim_interfaces::msg::Armors armors_msg;
-        armors_msg.header = header;
+        armors_msg.header = msg->header;
         for (const auto& armor: armors) {
             auto_aim_interfaces::msg::Armor armor_msg;
             armor_msg.set__number(armor.number);
@@ -200,6 +200,8 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         rclcpp::Time&& now = this->now();
         RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
         last_publish_time_ = now;
+
+        armors_msg.yaw_and_pitch = msg->yaw_and_pitch;
         armors_pub_->publish(armors_msg);
         lost_count_ = 0;
     } else if (++lost_count_ > 5) {
@@ -208,7 +210,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         no_armor_msg.end.set__data('e');
         no_armor_msg.is_find.set__data('0');
         no_armor_msg.can_shoot.set__data('0');
-        no_armor_msg.euler = { 0, 0, 0 };
+        no_armor_msg.euler = { msg->yaw_and_pitch[0], 0, msg->yaw_and_pitch[1] };
         no_armor_pub_->publish(no_armor_msg);
 
         RCLCPP_DEBUG(this->get_logger(), "No armor detected");

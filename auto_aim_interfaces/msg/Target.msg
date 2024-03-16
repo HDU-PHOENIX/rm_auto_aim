@@ -14,3 +14,5 @@ bool can_shoot
 float64 radius_1
 float64 radius_2
 float64 dz
+
+float32[2] yaw_and_pitch

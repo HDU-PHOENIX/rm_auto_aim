@@ -1,10 +1,12 @@
 #ifndef CAMERA_NODE_HPP
 #define CAMERA_NODE_HPP
 
+#include "auto_aim_interfaces/msg/image.hpp"
 #include "camera/inner_shot.hpp"
 #include "camera/mindvision.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 
 namespace sensor {
 
@@ -14,17 +16,21 @@ public:
     ~CameraNode() override;
 
 private:
-    void LoopForPublish(); //发布图像
+    // void LoopForPublish(); //发布图像
 
     void InnerShot(); //内部录制视频
 
     void GetImg(); //获取图像
 
+    void EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
+
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
 
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr euler_sub_;
+
     // 原始图像发布者
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::Image>::SharedPtr image_publisher_;
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_inner_shot_;
 
