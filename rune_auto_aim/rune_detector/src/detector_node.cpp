@@ -41,7 +41,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     }
     no_rune_pub_ = this->create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", 10);
 
-    mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
+    mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("/communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }
 
 void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {

@@ -26,7 +26,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
-    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shooter_info", rclcpp::SensorDataQoS());
+    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shooter_info/left", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",
@@ -39,7 +39,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     last_publish_time_ = this->now();
 
     mode_info_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
-        "communicate/autoaim",
+        "/communicate/autoaim",
         100,
         [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
             if (msg->data[1] == 0) {
