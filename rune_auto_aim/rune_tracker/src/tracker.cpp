@@ -27,7 +27,7 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
 
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
-    // RCLCPP_INFO(node_->get_logger(), "leaf_angle %lf", leaf_angle);
+    RCLCPP_DEBUG(node_->get_logger(), "leaf_angle %lf", leaf_angle);
     leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正后的角度差
     CalSmallRune(data, debug_msg);                                           //计算小符角速度
     Judge(debug_msg);                                                        //判断顺时针还是逆时针

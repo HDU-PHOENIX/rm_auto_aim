@@ -21,11 +21,6 @@ public:
     bool detect(cv::Mat& src, std::vector<RuneObject>& objects);
 
 private:
-    // InferenceEngine::Core ie;
-    // InferenceEngine::CNNNetwork network;                   // 网络
-    // InferenceEngine::ExecutableNetwork executable_network; // 可执行网络
-    // InferenceEngine::InferRequest infer_request;           // 推理请求
-    // InferenceEngine::MemoryBlob::CPtr moutput;
     ov::Core core;
     std::shared_ptr<ov::Model> model; // 网络
     ov::CompiledModel compiled_model; // 可执行网络

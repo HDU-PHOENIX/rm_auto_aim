@@ -67,9 +67,17 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3,
                          img_msg->data.data()); // 把图像信息转换为 cv::Mat 格式
     detector_->detect(img, objects_);           // 把神符识别结果放到 objects_里面
+    RCLCPP_DEBUG(this->get_logger(), "DetectRunes find %ld objects", objects_.size());
+    for (const auto& object: objects_) {
+        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.cls: %d", object.cls);
+        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.prob: %f", object.prob);
+        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.rect: %f %f %f %f", object.rect.x, object.rect.y, object.rect.width, object.rect.height);
+        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.vertices: %f %f %f %f %f %f %f %f %f %f", object.vertices[0].x, object.vertices[0].y, object.vertices[1].x, object.vertices[1].y, object.vertices[2].x, object.vertices[2].y, object.vertices[3].x, object.vertices[3].y, object.vertices[4].x, object.vertices[4].y);
+    }
     runes_msg_.header = rune_marker_.header = img_msg->header;
 
     bool flag1 = false, flag2 = false;    // bool flag3 = false;
+    float max_prob = 0;                   // 未激活符叶最大置信度,防止识别到多个未激活符叶,取prob最大的
     cv::Point2f symbol;                   // 符叶 R 标的位置
     cv::Point2f rune_armor;               // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points; // 未激活符叶的五个点
@@ -103,6 +111,10 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
         } else if (object.cls == 1) {
             // 未激活扇叶 RuneClass::BlueUnActivated or RedUnActivated;
+            max_prob = std::max(max_prob, prob);
+            if (max_prob != prob) {
+                continue;
+            }
             rune_points.clear();
 
             rune_points.emplace_back(object.vertices[1]);
@@ -135,7 +147,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     }
 
     if (show_pic) {
-        cv::circle(img, rune_armor, 6, Colors::Green, -1);          //画出装甲板中心
+        cv::circle(img, rune_armor, 8, Colors::Green, -1);          //画出装甲板中心
         cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
         cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
@@ -148,7 +160,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成
-        // RCLCPP_WARN(this->get_logger(), "find R and Rune_armor");
         cv::Mat rvec, tvec;
         bool success = pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
         if (!success) {

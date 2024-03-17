@@ -54,8 +54,6 @@ void CameraNode::GetImg() {
             exit(-1);
         }
     }
-    cv::imshow("raw", *frame_);
-    cv::waitKey(1);
 }
 
 void CameraNode::LoopForPublish() {
