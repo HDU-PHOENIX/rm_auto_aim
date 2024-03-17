@@ -5,7 +5,7 @@ InnerShotNode::InnerShotNode():
     Node("innershot_node") {
     RCLCPP_INFO(this->get_logger(), "innershot_node start");
     video_writer_ = std::make_shared<cv::VideoWriter>();
-    img_inner_shot_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS(), std::bind(&InnerShotNode::InnerShotCallback, this, std::placeholders::_1));
+    img_inner_shot_sub_ = this->create_subscription<auto_aim_interfaces::msg::Image>("/image_pub", rclcpp::SensorDataQoS(), std::bind(&InnerShotNode::InnerShotCallback, this, std::placeholders::_1));
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm* now_tm = std::localtime(&t);
@@ -14,8 +14,8 @@ InnerShotNode::InnerShotNode():
     video_writer_->open("./Camera/" + name + ".mp4", cv::VideoWriter::fourcc('m', 'p', '4', 'v'), 60, cv::Size(1280, 1024));
 }
 
-void InnerShotNode::InnerShotCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
-    cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::TYPE_8UC3);
+void InnerShotNode::InnerShotCallback(const auto_aim_interfaces::msg::Image::SharedPtr img_msg) {
+    cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img_msg->raw_image, sensor_msgs::image_encodings::TYPE_8UC3);
     cv::Mat& img = cv_ptr->image;
     video_writer_->write(img);
 }

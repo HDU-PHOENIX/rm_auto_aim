@@ -32,7 +32,7 @@ private:
     // 原始图像发布者
     rclcpp::Publisher<auto_aim_interfaces::msg::Image>::SharedPtr image_publisher_;
 
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_inner_shot_;
+    rclcpp::Publisher<auto_aim_interfaces::msg::Image>::SharedPtr img_inner_shot_;
 
     //是否外部输入视频流标志位
     bool videoflag;
