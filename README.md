@@ -30,7 +30,7 @@ git submodule update # git pull 之后使用需要使用此命令同步子模块
 ### Compile
 
 ```shell
-colcon build
+colcon build --symlink-install   # 软链接
 source install/setup.sh
 ```
 

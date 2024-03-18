@@ -54,13 +54,7 @@ void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::Shared
         //如果是符模式则订阅图像
         img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", 2, std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
     }
-    if (msg->data[2] == 0) {
-        runes_msg_.motion = 0;
-    } else if (msg->data[2] == 1) {
-        runes_msg_.motion = 1;
-    } else if (msg->data[2] == 2) {
-        runes_msg_.motion = 2;
-    }
+    runes_msg_.motion = msg->data[2];
 }
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
