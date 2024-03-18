@@ -210,7 +210,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const au
         no_armor_msg.end.set__data('e');
         no_armor_msg.is_find.set__data('0');
         no_armor_msg.can_shoot.set__data('0');
-        no_armor_msg.euler = { msg->yaw_and_pitch[0], 0, msg->yaw_and_pitch[1] };
+        no_armor_msg.euler = { msg->yaw_and_pitch[0], msg->yaw_and_pitch[1] };
         no_armor_pub_->publish(no_armor_msg);
 
         RCLCPP_DEBUG(this->get_logger(), "No armor detected");

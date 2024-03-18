@@ -48,7 +48,7 @@ void CameraNode::InnerShot() {
 
 void CameraNode::EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
     auto_aim_interfaces::msg::Image::UniquePtr image_msg(new auto_aim_interfaces::msg::Image());
-    image_msg->header.stamp = this->now();
+    image_msg->header.stamp = msg->header.stamp;
     this->GetImg();
     image_msg->header.frame_id = "camera";
     image_msg->raw_image.height = frame_->rows;
@@ -80,8 +80,8 @@ void CameraNode::GetImg() {
             exit(-1);
         }
     }
-    cv::imshow("raw", *frame_);
-    cv::waitKey(1);
+    // cv::imshow("raw", *frame_);
+    // cv::waitKey(1);
 }
 
 // void CameraNode::LoopForPublish() {
