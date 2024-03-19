@@ -156,6 +156,7 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
         debug_armor_msg.set__light_height_ratio(armor.light_height_ratio);
         debug_armor_msg.set__light_angle_diff(armor.light_angle_diff);
         debug_armor_msg.set__angle(armor.angle);
+        debug_armor_msg.set__classifier_valid(armor.classifier_valid);
         debug_armors_msg.data.push_back(debug_armor_msg);
     }
 
@@ -198,7 +199,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const au
         }
 
         rclcpp::Time&& now = this->now();
-        RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
+        RCLCPP_INFO(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
         last_publish_time_ = now;
 
         armors_msg.yaw_and_pitch = msg->yaw_and_pitch;
@@ -213,7 +214,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const au
         no_armor_msg.euler = { msg->yaw_and_pitch[0], msg->yaw_and_pitch[1] };
         no_armor_pub_->publish(no_armor_msg);
 
-        RCLCPP_DEBUG(this->get_logger(), "No armor detected");
+        RCLCPP_INFO(this->get_logger(), "No armor detected");
     }
 }
 

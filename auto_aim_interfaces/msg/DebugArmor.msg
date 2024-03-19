@@ -4,3 +4,4 @@ float32 light_center_distance
 float32 light_height_ratio
 float32 light_angle_diff
 float32 angle
+bool classifier_valid

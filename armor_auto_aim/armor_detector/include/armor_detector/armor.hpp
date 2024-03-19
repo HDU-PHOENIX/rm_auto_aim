@@ -111,6 +111,7 @@ struct Armor {
     std::string number;
     float classification_confidence;
     std::string classification_result;
+    bool classifier_valid;
 
     struct {
         float x, y, z;
