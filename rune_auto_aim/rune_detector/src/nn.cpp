@@ -1,6 +1,4 @@
 #include "rune_detector/nn.h"
-#include <rclcpp/logger.hpp>
-#include <rclcpp/logging.hpp>
 namespace rune {
 
 // static constexpr int INPUT_W = 640;    // Width of input
@@ -283,6 +281,7 @@ NeuralNetwork::~NeuralNetwork() {
 
 //TODO:change to your dir
 bool NeuralNetwork::Init(std::string path) {
+    std::cout << "Start initialize onnx model..." << std::endl;
     // Setting Configuration Values.
     core.set_property("CPU", ov::enable_profiling(true));
 
@@ -342,22 +341,53 @@ bool NeuralNetwork::Init(std::string path) {
     return true;
 }
 
-bool NeuralNetwork::detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>& objects) {
-    if (src.empty()) {
-        return false;
-    }
-    cv::Mat pr_img = scaledResize(src, transfrom_matrix);
+bool NeuralNetwork::Init(std::string xml_path, std::string bin_path) {
+    std::cout << "Start initialize IR model..." << std::endl;
+    // Setting Configuration Values.
+    core.set_property("CPU", ov::enable_profiling(true));
+
+    // Step 1.Create openvino runtime core
+    model = core.read_model(xml_path, bin_path);
+
+    // Preprocessing.
+    ov::preprocess::PrePostProcessor ppp(model);
+    ppp.input().tensor().set_element_type(ov::element::f32);
+
+    // set output precision.
+    ppp.output().tensor().set_element_type(ov::element::f32);
+
+    // 将预处理融入原始模型.
+    ppp.build();
+
+    // Step 2. Compile the model
+    compiled_model = core.compile_model(
+        model,
+        "CPU",
+        { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY), ov::hint::num_requests(2) }
+        // "AUTO:GPU,CPU",
+        // ov::hint::inference_precision(ov::element::u8)
+    );
+
+    // compiled_model.set_property(ov::device::priorities("GPU"));
+
+    // Step 3. Create an Inference Request
+    infer_request = compiled_model.create_infer_request();
+    return true;
+}
+
+float* NeuralNetwork::AsyncImageDetect(cv::Mat& frame) {
+    cv::Mat pr_img = scaledResize(frame, transfrom_matrix);
     cv::Mat pre;
     cv::Mat pre_split[3];
     pr_img.convertTo(pre, CV_32F);
     cv::split(pre, pre_split);
+
     // Get input tensor by index
     input_tensor = infer_request.get_input_tensor(0);
     // 准备输入
     infer_request.set_input_tensor(input_tensor);
 
     float* tensor_data = input_tensor.data<float_t>();
-
     auto img_offset = INPUT_H * INPUT_W;
     // Copy img into tensor
     for (int c = 0; c < 3; c++)
@@ -365,45 +395,49 @@ bool NeuralNetwork::detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>&
         memcpy(tensor_data, pre_split[c].data, INPUT_H * INPUT_W * sizeof(float));
         tensor_data += img_offset;
     }
-    // auto st = std::chrono::steady_clock::now();
-    // 推理
-    infer_request.infer();
-    // auto end = std::chrono::steady_clock::now();
-    // double infer_dt = std::chrono::duration<double,std::milli>(end - st).count();
-    // cout << "infer_time:" << infer_dt << endl;
-
+    infer_request.infer(); //同步推理
     // 处理推理结果
     ov::Tensor output_tensor = infer_request.get_output_tensor();
     float* output = output_tensor.data<float_t>();
-
-    decodeOutputs(output, objects, transfrom_matrix);
-    for (auto object = objects.begin(); object != objects.end(); ++object)
-    {
-        if ((*object).pts.size() >= 10) {
-            auto N = (*object).pts.size();
-            cv::Point2f pts_final[5];
-
-            for (long unsigned int i = 0; i < N; i++) {
-                pts_final[i % 5] += (*object).pts[i];
-            }
-
-            for (int i = 0; i < 5; i++) {
-                pts_final[i].x = pts_final[i].x / (N / 5);
-                pts_final[i].y = pts_final[i].y / (N / 5);
-            }
-
-            (*object).vertices[0] = pts_final[0];
-            (*object).vertices[1] = pts_final[1];
-            (*object).vertices[2] = pts_final[2];
-            (*object).vertices[3] = pts_final[3];
-            (*object).vertices[4] = pts_final[4];
-        }
-        // (*object).area = (int)(calcTetragonArea((*object).vertices));
-    }
-    if (objects.size() != 0)
-        return true;
-    else
-        return false;
+    return output;
 }
 
+bool NeuralNetwork::Detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>& objects) {
+    if (src.empty()) {
+        return false;
+    }
+    try {
+        decodeOutputs(AsyncImageDetect(src), objects, transfrom_matrix);
+        for (auto object = objects.begin(); object != objects.end(); ++object)
+        {
+            if ((*object).pts.size() >= 10) {
+                auto N = (*object).pts.size();
+                cv::Point2f pts_final[5];
+
+                for (long unsigned int i = 0; i < N; i++) {
+                    pts_final[i % 5] += (*object).pts[i];
+                }
+
+                for (int i = 0; i < 5; i++) {
+                    pts_final[i].x = pts_final[i].x / (N / 5);
+                    pts_final[i].y = pts_final[i].y / (N / 5);
+                }
+
+                (*object).vertices[0] = pts_final[0];
+                (*object).vertices[1] = pts_final[1];
+                (*object).vertices[2] = pts_final[2];
+                (*object).vertices[3] = pts_final[3];
+                (*object).vertices[4] = pts_final[4];
+            }
+            // (*object).area = (int)(calcTetragonArea((*object).vertices));
+        }
+        if (objects.size() != 0)
+            return true;
+        else
+            return false;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << '\n';
+        return false;
+    }
+}
 } // namespace rune

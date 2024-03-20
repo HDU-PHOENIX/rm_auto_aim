@@ -1,9 +1,7 @@
 #pragma once
 
-#include <concepts>
-
-#include "containers.hpp"
 #include "type_traits.hpp"
+#include <concepts>
 
 // ^\s+concept\s+[^_]\w+
 

@@ -77,7 +77,6 @@ private:
 
     // 神符识别器
     std::shared_ptr<NeuralNetwork> detector_;
-    std::vector<rune::NeuralNetwork::RuneObject> objects_;
     double confidence_threshold_; // 神经网络置信度阈值
 
     // 自定义的神符信息
@@ -91,17 +90,12 @@ private:
     // 可视化标记发布者
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
 
-    // 相机信息订阅者
-    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cam_info_sub_;
-    // 相机中心
-    cv::Point2f cam_center_;
-    // 相机信息
-    std::shared_ptr<sensor_msgs::msg::CameraInfo> cam_info_;
     // PnP 解算器
     std::unique_ptr<PnPSolver> pnp_solver_;
 
     //模型路径
     std::string model_path;
+    std::string bin_path;
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;

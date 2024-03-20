@@ -1,4 +1,5 @@
 #include <Eigen/Core>
+#include <condition_variable>
 #include <opencv2/opencv.hpp>
 #include <openvino/openvino.hpp>
 
@@ -17,10 +18,12 @@ public:
 
     NeuralNetwork();
     ~NeuralNetwork();
-    bool Init(std::string path);
-    bool detect(cv::Mat& src, std::vector<RuneObject>& objects);
+    bool Init(std::string path);                           //onnx模型路径
+    bool Init(std::string xml_path, std::string bin_path); //xml模型路径和bin模型路径
+    bool Detect(cv::Mat& src, std::vector<RuneObject>& objects);
 
 private:
+    float* AsyncImageDetect(cv::Mat& frame);
     ov::Core core;
     std::shared_ptr<ov::Model> model; // 网络
     ov::CompiledModel compiled_model; // 可执行网络

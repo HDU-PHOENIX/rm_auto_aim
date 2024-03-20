@@ -7,8 +7,8 @@
 #include "auto_aim_interfaces/msg/target.hpp"
 #include <rclcpp/rclcpp.hpp>
 
-#include "point.hpp"                 //添加Angle方法
-#include "ring_buffer_statistic.hpp" //添加RingBufferStatistic模版类
+#include "point.hpp" //添加Angle方法
+#include "statistic.hpp"
 #include "ukf_plus.h"
 #include <opencv2/core/types.hpp> //提供Point Point2d/2f
 #include <rune_detector/sizes.hpp>
@@ -124,8 +124,6 @@ private:
     }
     void Reset() {
         speed.Clear();
-        speeds.Clear();
-        angles.Clear();
         ukf_->Clear();
         cere_param_list.clear();
     }
@@ -172,10 +170,8 @@ private:
     std::vector<cv::Point2d> rotate_armors;              //旋转后的装甲板坐标
 
     double cere_rotated_angle;
-    rclcpp::Time t_zero;                           //时间起点
-    RingBufferStatistic<double, 1 << 3> angles {}; //符叶角度
-    RingBufferStatistic<double, 1 << 3> speeds {}; //角速度
-    Statistic<double> speed;                       //符叶角速度
+    rclcpp::Time t_zero;     //时间起点
+    Statistic<double> speed; //符叶角速度
 
     bool finish_fitting; //完成拟合的标志
     // count_cant_use用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入ukf

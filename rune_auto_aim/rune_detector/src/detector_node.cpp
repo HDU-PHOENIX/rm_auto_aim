@@ -8,10 +8,10 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
     model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
+    bin_path = this->declare_parameter("bin_path", "/model/2023/yolox.bin");      // 模型路径
     detector_ = InitDetector();                                                   // 初始化神符识别器
     pnp_solver_ = nullptr;                                                        // 初始化 pnp 求解器
-
-    debug_ = this->declare_parameter("debug", false); // debug 模式
+    debug_ = this->declare_parameter("debug", false);                             // debug 模式
 
     show_pic = this->declare_parameter("show_pic", false);
 
@@ -60,14 +60,8 @@ void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::Shared
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
     auto&& img = cv::Mat(img_msg->height, img_msg->width, CV_8UC3,
                          img_msg->data.data()); // 把图像信息转换为 cv::Mat 格式
-    detector_->detect(img, objects_);           // 把神符识别结果放到 objects_里面
-    RCLCPP_DEBUG(this->get_logger(), "DetectRunes find %ld objects", objects_.size());
-    for (const auto& object: objects_) {
-        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.cls: %d", object.cls);
-        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.prob: %f", object.prob);
-        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.rect: %f %f %f %f", object.rect.x, object.rect.y, object.rect.width, object.rect.height);
-        RCLCPP_DEBUG(this->get_logger(), "DetectRunes object.vertices: %f %f %f %f %f %f %f %f %f %f", object.vertices[0].x, object.vertices[0].y, object.vertices[1].x, object.vertices[1].y, object.vertices[2].x, object.vertices[2].y, object.vertices[3].x, object.vertices[3].y, object.vertices[4].x, object.vertices[4].y);
-    }
+    std::vector<rune::NeuralNetwork::RuneObject> objects;
+    detector_->Detect(img, objects); // 把神符识别结果放到 objects里面
     runes_msg_.header = rune_marker_.header = img_msg->header;
 
     bool flag1 = false, flag2 = false;    // bool flag3 = false;
@@ -75,8 +69,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     cv::Point2f symbol;                   // 符叶 R 标的位置
     cv::Point2f rune_armor;               // 符叶未激活装甲板中心
     std::vector<cv::Point2d> rune_points; // 未激活符叶的五个点
-                                          ///------------------------生成扇叶对象----------------------------------------------
-    for (const auto& object: objects_) {
+    for (const auto& object: objects) {
         // 遍历所有的神符识别结果，把 R 标和未激活的符叶的信息画出来
         auto prob = object.prob;
         if (prob < confidence_threshold_) {
@@ -141,25 +134,22 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
     }
 
     if (show_pic) {
-        cv::circle(img, rune_armor, 8, Colors::Green, -1);          //画出装甲板中心
-        cv::circle(img, symbol, 6, Colors::Green, -1);              //画出 R 标中心
-        cv::circle(img, cv::Point2f(640, 512), 2, Colors::Blue, 3); // 图像中心点
+        cv::circle(img, rune_armor, 8, Colors::Green, -1);                            //画出装甲板中心
+        cv::circle(img, symbol, 6, Colors::Green, -1);                                //画出 R 标中心
+        cv::circle(img, cv::Point2f(img.cols / 2, img.rows / 2), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);
     }
 
-    // if (debug_) {
-    //     PublishImg(img, img_msg); // 发布图片
-    // }
+    if (debug_) {
+        PublishImg(img, img_msg); // 发布图片
+    }
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成
         cv::Mat rvec, tvec;
         bool success = pnp_solver_->SolvePnP(rune_points, rvec, tvec, PNP_ITERATION); // 输出旋转向量和平移向量
-        if (!success) {
-            RCLCPP_WARN(this->get_logger(), "PnP failed!");
-            return false;
-        } else {
+        if (success) {
             runes_msg_.pose_c.position.x = tvec.at<double>(0);
             runes_msg_.pose_c.position.y = tvec.at<double>(1);
             runes_msg_.pose_c.position.z = tvec.at<double>(2); // 未激活符叶 相机坐标系下的位置
@@ -180,9 +170,10 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             rune_marker_.pose = runes_msg_.pose_c;
             return true;
         }
-    } else {
+        RCLCPP_WARN(this->get_logger(), "PnP failed!");
         return false;
     }
+    return false;
 }
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
@@ -223,8 +214,7 @@ std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();
     auto pkg_path = ament_index_cpp::get_package_share_directory("rune_detector");
     auto model_load_path = pkg_path + model_path;
-    detector->Init(model_load_path);
-
+    detector->Init(model_load_path, pkg_path + bin_path);
     return detector;
 }
 
