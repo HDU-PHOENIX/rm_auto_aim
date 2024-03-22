@@ -23,7 +23,7 @@ public:
     bool Detect(cv::Mat& src, std::vector<RuneObject>& objects);
 
 private:
-    float* AsyncImageDetect(cv::Mat& frame);
+    float* SyncImageDetect(cv::Mat& frame);
     ov::Core core;
     std::shared_ptr<ov::Model> model; // 网络
     ov::CompiledModel compiled_model; // 可执行网络

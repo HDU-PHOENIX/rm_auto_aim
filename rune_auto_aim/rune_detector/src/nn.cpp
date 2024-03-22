@@ -9,7 +9,7 @@ static constexpr int NUM_CLASSES = 3; // Number of classes
 static constexpr int NUM_COLORS = 2;  // Number of color
 static constexpr int TOPK = 128;      // TopK
 static constexpr float NMS_THRESH = 0.1;
-static constexpr float BBOX_CONF_THRESH = 0.9;
+static constexpr float BBOX_CONF_THRESH = 0.70;
 static constexpr float MERGE_CONF_ERROR = 0.15;
 static constexpr float MERGE_MIN_IOU = 0.1;
 
@@ -283,7 +283,7 @@ NeuralNetwork::~NeuralNetwork() {
 bool NeuralNetwork::Init(std::string path) {
     std::cout << "Start initialize onnx model..." << std::endl;
     // Setting Configuration Values.
-    core.set_property("CPU", ov::enable_profiling(true));
+    core.set_property("CPU", { ov::enable_profiling(true) });
 
     // Step 1.Create openvino runtime core
     model = core.read_model(path);
@@ -363,7 +363,7 @@ bool NeuralNetwork::Init(std::string xml_path, std::string bin_path) {
     compiled_model = core.compile_model(
         model,
         "CPU",
-        { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY), ov::hint::num_requests(2) }
+        { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY) }
         // "AUTO:GPU,CPU",
         // ov::hint::inference_precision(ov::element::u8)
     );
@@ -375,7 +375,7 @@ bool NeuralNetwork::Init(std::string xml_path, std::string bin_path) {
     return true;
 }
 
-float* NeuralNetwork::AsyncImageDetect(cv::Mat& frame) {
+float* NeuralNetwork::SyncImageDetect(cv::Mat& frame) {
     cv::Mat pr_img = scaledResize(frame, transfrom_matrix);
     cv::Mat pre;
     cv::Mat pre_split[3];
@@ -406,38 +406,33 @@ bool NeuralNetwork::Detect(cv::Mat& src, std::vector<NeuralNetwork::RuneObject>&
     if (src.empty()) {
         return false;
     }
-    try {
-        decodeOutputs(AsyncImageDetect(src), objects, transfrom_matrix);
-        for (auto object = objects.begin(); object != objects.end(); ++object)
-        {
-            if ((*object).pts.size() >= 10) {
-                auto N = (*object).pts.size();
-                cv::Point2f pts_final[5];
+    decodeOutputs(SyncImageDetect(src), objects, transfrom_matrix);
+    for (auto object = objects.begin(); object != objects.end(); ++object)
+    {
+        if ((*object).pts.size() >= 10) {
+            auto N = (*object).pts.size();
+            cv::Point2f pts_final[5];
 
-                for (long unsigned int i = 0; i < N; i++) {
-                    pts_final[i % 5] += (*object).pts[i];
-                }
-
-                for (int i = 0; i < 5; i++) {
-                    pts_final[i].x = pts_final[i].x / (N / 5);
-                    pts_final[i].y = pts_final[i].y / (N / 5);
-                }
-
-                (*object).vertices[0] = pts_final[0];
-                (*object).vertices[1] = pts_final[1];
-                (*object).vertices[2] = pts_final[2];
-                (*object).vertices[3] = pts_final[3];
-                (*object).vertices[4] = pts_final[4];
+            for (long unsigned int i = 0; i < N; i++) {
+                pts_final[i % 5] += (*object).pts[i];
             }
-            // (*object).area = (int)(calcTetragonArea((*object).vertices));
+
+            for (int i = 0; i < 5; i++) {
+                pts_final[i].x = pts_final[i].x / (N / 5);
+                pts_final[i].y = pts_final[i].y / (N / 5);
+            }
+
+            (*object).vertices[0] = pts_final[0];
+            (*object).vertices[1] = pts_final[1];
+            (*object).vertices[2] = pts_final[2];
+            (*object).vertices[3] = pts_final[3];
+            (*object).vertices[4] = pts_final[4];
         }
-        if (objects.size() != 0)
-            return true;
-        else
-            return false;
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << '\n';
-        return false;
+        // (*object).area = (int)(calcTetragonArea((*object).vertices));
     }
+    if (objects.size() != 0)
+        return true;
+    else
+        return false;
 }
 } // namespace rune

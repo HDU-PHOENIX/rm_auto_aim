@@ -52,7 +52,7 @@ void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::Shared
         img_sub_.reset();
     } else {
         //如果是符模式则订阅图像
-        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", 2, std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
+        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS().keep_last(2), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
     }
     runes_msg_.motion = msg->data[2];
 }
@@ -129,13 +129,13 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
         for (auto vertice: object.vertices) {
             // 画出五个关键点
-            cv::circle(img, vertice, 5, Colors::Green, -1);
+            cv::circle(img, vertice, 4, Colors::Green, -1);
         }
     }
 
     if (show_pic) {
-        cv::circle(img, rune_armor, 8, Colors::Green, -1);                            //画出装甲板中心
-        cv::circle(img, symbol, 6, Colors::Green, -1);                                //画出 R 标中心
+        cv::circle(img, rune_armor, 4, Colors::Green, -1);                            //画出装甲板中心
+        cv::circle(img, symbol, 4, Colors::Green, -1);                                //画出 R 标中心
         cv::circle(img, cv::Point2f(img.cols / 2, img.rows / 2), 2, Colors::Blue, 3); // 图像中心点
         cv::imshow("tmp", img);
         cv::waitKey(1);

@@ -21,7 +21,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     // 创建发布者
     image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
         "/image_pub",
-        2
+        rclcpp::SensorDataQoS().keep_last(2)
     );
 
     if (inner_shot_flag) {
