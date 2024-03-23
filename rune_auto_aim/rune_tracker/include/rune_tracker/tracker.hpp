@@ -175,6 +175,16 @@ private:
         }
     }
 
+    //计算前后两帧符叶角度差
+    double AngleCorrect(double& leaf_angle, double& leaf_angle_last) {
+        double diff = fabs(leaf_angle - leaf_angle_last);
+        if (diff > M_PI)
+        {
+            diff = 2 * M_PI - diff;
+        }
+        return diff;
+    }
+
     Filter* ukf_; // ukf滤波器
     double delay; //理论延迟和追踪延迟之和
 
