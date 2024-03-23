@@ -164,7 +164,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     {
         // odom 系下计算 car position 和 yaw 的预测位置
         // auto&& flytime = target_msg.position.x / bullet_speed_;
-        auto&& flytime = 0.5;
+        auto&& flytime = 0.1;
         //这里飞机的向下的速度需要处理，这里忽略傾角
         //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
         auto predict_car_state = tracker_->target_state;
