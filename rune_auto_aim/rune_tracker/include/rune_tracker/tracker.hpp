@@ -161,6 +161,20 @@ private:
         return theta2 - theta1;
     };
 
+    //theta为当前角度，cere_rotated_angle为基准角度
+    double AngleRevise(double& theta, double& cere_rotated_angle) {
+        if (cere_rotated_angle > 0 && theta < cere_rotated_angle - M_PI)
+        {
+            return 2 * M_PI + theta - cere_rotated_angle;
+        } else if (cere_rotated_angle < 0 && theta > cere_rotated_angle + M_PI)
+        {
+            return -2 * M_PI + theta - cere_rotated_angle;
+        } else
+        {
+            return theta - cere_rotated_angle;
+        }
+    }
+
     Filter* ukf_; // ukf滤波器
     double delay; //理论延迟和追踪延迟之和
 

@@ -98,7 +98,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         return false;
     }
 #if !NEW_METHOD
-    if (abs(leaf_angle - leaf_angle_last) > 0.4) {
+    if (abs(leaf_angle - leaf_angle_last) > 0.4 && abs(leaf_angle - leaf_angle_last) < 5.2) {
         //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
         cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
         //角度变换后，需要矫正角度
@@ -230,8 +230,8 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
         MeasurementPackage package = MeasurementPackage(
             (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
             MeasurementPackage::SensorType::LASER,
-            Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(theta - cere_rotated_angle),
-                              RUNE_ARMOR_TO_SYMBOL * sin(theta - cere_rotated_angle) }
+            Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(AngleRevise(theta, cere_rotated_angle)),
+                              RUNE_ARMOR_TO_SYMBOL * sin(AngleRevise(theta, cere_rotated_angle)) }
         );
         //将传感器的坐标数据丢入UKF
         //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
