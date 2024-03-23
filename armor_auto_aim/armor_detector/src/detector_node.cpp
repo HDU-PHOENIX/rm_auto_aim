@@ -46,7 +46,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
                 detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
                 image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
                     "/image_pub",
-                    2,
+                    rclcpp::SensorDataQoS().keep_last(2),
                     std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
                 );
             } else {
@@ -198,7 +198,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         }
 
         rclcpp::Time&& now = this->now();
-        RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
+        RCLCPP_INFO(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
         last_publish_time_ = now;
         armors_pub_->publish(armors_msg);
         lost_count_ = 0;
@@ -211,7 +211,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         no_armor_msg.euler = { 0, 0, 0 };
         no_armor_pub_->publish(no_armor_msg);
 
-        RCLCPP_DEBUG(this->get_logger(), "No armor detected");
+        RCLCPP_INFO(this->get_logger(), "No armor detected");
     }
 }
 
