@@ -38,22 +38,29 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     last_publish_time_ = this->now();
 
-    mode_info_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
-        "/communicate/autoaim",
-        100,
-        [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
-            if (msg->data[1] == 0) {
-                detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
-                image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-                    "/image_pub",
-                    rclcpp::SensorDataQoS().keep_last(2),
-                    std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
-                );
-            } else {
-                image_sub_.reset();
-            }
-        }
+    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        "/image_pub",
+        rclcpp::SensorDataQoS().keep_last(2),
+        std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );
+
+    // mode_info_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+    //     "/communicate/autoaim",
+    //     100,
+    //     [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
+    //         RCLCPP_INFO(this->get_logger(), "Armor received autoaim message: %d %d", msg->data[0], msg->data[1]);
+    //         if (msg->data[1] == 0) {
+    //             detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
+    //             image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+    //                 "/image_pub",
+    //                 rclcpp::SensorDataQoS().keep_last(2),
+    //                 std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
+    //             );
+    //         } else {
+    //             image_sub_.reset();
+    //         }
+    //     }
+    // );
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
@@ -197,9 +204,6 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
             armors_msg.armors.push_back(armor_msg);
         }
 
-        rclcpp::Time&& now = this->now();
-        RCLCPP_INFO(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
-        last_publish_time_ = now;
         armors_pub_->publish(armors_msg);
         lost_count_ = 0;
     } else if (++lost_count_ > 5) {
@@ -213,6 +217,10 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
 
         RCLCPP_INFO(this->get_logger(), "No armor detected");
     }
+
+    rclcpp::Time&& now = this->now();
+    RCLCPP_INFO(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
+    last_publish_time_ = now;
 }
 
 void ArmorDetectorNode::InitMarkers() {
