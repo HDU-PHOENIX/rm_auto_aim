@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace armor {
 
@@ -112,9 +113,7 @@ struct Armor {
     float classification_confidence;
     std::string classification_result;
 
-    struct {
-        float x, y, z;
-    } position;
+    geometry_msgs::msg::Pose pose;
 
     float distance_to_image_center;
 };

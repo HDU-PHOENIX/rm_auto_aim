@@ -1,4 +1,5 @@
 #include "armor_detector/armor.hpp"
+#include <geometry_msgs/msg/pose.hpp>
 
 namespace armor {
 

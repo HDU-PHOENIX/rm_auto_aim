@@ -172,11 +172,9 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
         if (armor.type != ArmorType::INVALID) {
             // armor_marker_.id++;
             armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
-            armor_marker_.pose.position.x = armor.position.x;
-            armor_marker_.pose.position.y = armor.position.y;
-            armor_marker_.pose.position.z = armor.position.z;
+            armor_marker_.pose = armor.pose;
             text_marker_.id++;
-            text_marker_.pose.position = armor_marker_.pose.position;
+            text_marker_.pose.position = armor.pose.position;
             text_marker_.pose.position.y -= 0.1;
             text_marker_.text = armor.classification_result;
             marker_array.markers.emplace_back(armor_marker_);
@@ -198,9 +196,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
             armor_msg.set__number(armor.number);
             armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
             armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
-            armor_msg.pose.position.set__x(armor.position.x);
-            armor_msg.pose.position.set__y(armor.position.y);
-            armor_msg.pose.position.set__z(armor.position.z);
+            armor_msg.set__pose(armor.pose);
             armors_msg.armors.push_back(armor_msg);
         }
 
