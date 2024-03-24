@@ -38,6 +38,9 @@
     ros__parameters:
         odom2shooter_r: 0.059 # odom to shooter ratio
         shooter2camera_tvec: [0.11, 0, 0.04]
+        # omni
+        # odom2shooter_r: 0.056
+        # shooter2camera_tvec: [0.03805, 0, 0.0295]
         fix: 0.1
         shooter_coordinate: "shooter"
         camera_coordinate: "camera"
