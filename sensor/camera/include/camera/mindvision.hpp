@@ -14,13 +14,6 @@ public:
 
     /**
      * @brief 获取图像
-     * @param frame 用于保存图像的 cv::Mat
-     * @return bool 是否成功获取图像
-     */
-    bool GetFrame(cv::Mat& frame);
-
-    /**
-     * @brief 获取图像
      * @param frame 用于保存图像的 std::shared_ptr<cv::Mat>
      * @return bool 是否成功获取图像
      */

@@ -103,30 +103,6 @@ MindVision::MindVision(std::string mindvision_config):
     }
 }
 
-bool MindVision::GetFrame(cv::Mat& frame) {
-    // 获取缓存区图像
-
-    if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
-        return false;
-    }
-
-    // 图像处理
-    CameraImageProcess(h_camera, pby_buffer, g_p_rgb_buffer, &s_frame_info);
-
-    // 构造
-    cv::Mat(
-        cvSize(s_frame_info.iWidth, s_frame_info.iHeight),
-        s_frame_info.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
-        g_p_rgb_buffer
-    )
-        .copyTo(frame);
-
-    //在成功调用 CameraGetImageBuffer 后，必须调用 CameraReleaseImageBuffer 来释放获得的 buffer。
-    //否则再次调用 CameraGetImageBuffer 时，程序将被挂起一直阻塞，直到其他线程中调用 CameraReleaseImageBuffer 来释放了 buffer
-    CameraReleaseImageBuffer(h_camera, pby_buffer);
-    return true;
-}
-
 bool MindVision::GetFrame(std::shared_ptr<cv::Mat>& frame) {
     // 获取缓存区图像
     if (CameraGetImageBuffer(h_camera, &s_frame_info, &pby_buffer, 1000) != CAMERA_STATUS_SUCCESS) {
