@@ -1,5 +1,4 @@
 #include <Eigen/Core>
-#include <condition_variable>
 #include <opencv2/opencv.hpp>
 #include <openvino/openvino.hpp>
 
@@ -18,8 +17,7 @@ public:
 
     NeuralNetwork();
     ~NeuralNetwork();
-    bool Init(std::string path);                           //onnx模型路径
-    bool Init(std::string xml_path, std::string bin_path); //xml模型路径和bin模型路径
+    bool Init(std::string path); //模型路径
     bool Detect(cv::Mat& src, std::vector<RuneObject>& objects);
 
 private:

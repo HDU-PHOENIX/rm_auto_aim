@@ -8,7 +8,6 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "Starting DetectorNode!");
     confidence_threshold_ = this->declare_parameter("confidence_threshold", 0.9); // 置信度阈值
     model_path = this->declare_parameter("model_path", "/model/yolox_fp16.onnx"); // 模型路径
-    bin_path = this->declare_parameter("bin_path", "/model/2023/yolox.bin");      // 模型路径
     detector_ = InitDetector();                                                   // 初始化神符识别器
     pnp_solver_ = nullptr;                                                        // 初始化 pnp 求解器
     debug_ = this->declare_parameter("debug", false);                             // debug 模式
@@ -214,7 +213,7 @@ std::shared_ptr<NeuralNetwork> RuneDetectorNode::InitDetector() {
     auto&& detector = std::make_shared<NeuralNetwork>();
     auto pkg_path = ament_index_cpp::get_package_share_directory("rune_detector");
     auto model_load_path = pkg_path + model_path;
-    detector->Init(model_load_path, pkg_path + bin_path);
+    detector->Init(model_load_path);
     return detector;
 }
 

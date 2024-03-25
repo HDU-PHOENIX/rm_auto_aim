@@ -95,7 +95,6 @@ private:
 
     //模型路径
     std::string model_path;
-    std::string bin_path;
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;

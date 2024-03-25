@@ -9,9 +9,9 @@ static constexpr int NUM_CLASSES = 3; // Number of classes
 static constexpr int NUM_COLORS = 2;  // Number of color
 static constexpr int TOPK = 128;      // TopK
 static constexpr float NMS_THRESH = 0.1;
-static constexpr float BBOX_CONF_THRESH = 0.70;
+static constexpr float BBOX_CONF_THRESH = 0.40;
 static constexpr float MERGE_CONF_ERROR = 0.15;
-static constexpr float MERGE_MIN_IOU = 0.1;
+static constexpr float MERGE_MIN_IOU = 0.2;
 
 struct GridAndStride {
     int grid0;
@@ -281,7 +281,7 @@ NeuralNetwork::~NeuralNetwork() {
 
 //TODO:change to your dir
 bool NeuralNetwork::Init(std::string path) {
-    std::cout << "Start initialize onnx model..." << std::endl;
+    std::cout << "Start initialize model..." << std::endl;
     // Setting Configuration Values.
     core.set_property("CPU", { ov::enable_profiling(true) });
 
@@ -338,40 +338,6 @@ bool NeuralNetwork::Init(std::string path) {
     // const float output_buffer = output.data<const float>();
     // output_buffer[] - accessing output tensor data
 
-    return true;
-}
-
-bool NeuralNetwork::Init(std::string xml_path, std::string bin_path) {
-    std::cout << "Start initialize IR model..." << std::endl;
-    // Setting Configuration Values.
-    core.set_property("CPU", ov::enable_profiling(true));
-
-    // Step 1.Create openvino runtime core
-    model = core.read_model(xml_path, bin_path);
-
-    // Preprocessing.
-    ov::preprocess::PrePostProcessor ppp(model);
-    ppp.input().tensor().set_element_type(ov::element::f32);
-
-    // set output precision.
-    ppp.output().tensor().set_element_type(ov::element::f32);
-
-    // 将预处理融入原始模型.
-    ppp.build();
-
-    // Step 2. Compile the model
-    compiled_model = core.compile_model(
-        model,
-        "CPU",
-        { ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY) }
-        // "AUTO:GPU,CPU",
-        // ov::hint::inference_precision(ov::element::u8)
-    );
-
-    // compiled_model.set_property(ov::device::priorities("GPU"));
-
-    // Step 3. Create an Inference Request
-    infer_request = compiled_model.create_infer_request();
     return true;
 }
 
