@@ -6,7 +6,7 @@
 
 TEST(DetectorTest, TestDetectArmor) {
     // read video
-    cv::Mat frame;
+    std::shared_ptr<cv::Mat> frame;
     auto&& pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
     std::cout << pkg_path << std::endl;
 
@@ -27,14 +27,14 @@ TEST(DetectorTest, TestDetectArmor) {
             std::vector<std::string> { "negative" }
         );
         auto start_time = std::chrono::steady_clock::now();
-        std::vector<armor::Armor> armors = detector.DetectArmor(frame);
+        std::vector<armor::Armor> armors = detector.DetectArmor(*frame);
         auto end_time = std::chrono::steady_clock::now();
 
         auto detect_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
         // std::cout << "Time: " << detect_time << "us" << std::endl;
         total_time += detect_time;
 
-        cv::Mat result(frame);
+        cv::Mat result(*frame);
         detector.DrawResult(result);
         cv::imshow("result", result);
         cv::waitKey(1);

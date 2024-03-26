@@ -160,6 +160,7 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
         debug_armor_msg.set__center_x(armor.center.x);
         debug_armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
         debug_armor_msg.set__light_center_distance(armor.light_center_distance);
+        debug_armor_msg.set__classification_result(armor.classification_result);
         debug_armor_msg.set__light_height_ratio(armor.light_height_ratio);
         debug_armor_msg.set__light_angle_diff(armor.light_angle_diff);
         debug_armor_msg.set__angle(armor.angle);

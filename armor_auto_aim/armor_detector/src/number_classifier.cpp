@@ -89,12 +89,14 @@ bool NumberClassifier::Classify(const cv::Mat& src, Armor& armor) {
 
     // 装甲板置信度过低
     if (armor.classification_confidence < confidence_threshold_) {
+        armor.classification_result = "confidence too low";
         return false;
     }
 
     // 忽略的装甲板类型
     for (const auto& ignore_class: ignore_classes_) {
         if (armor.number == ignore_class) {
+            armor.classification_result = "ignore class";
             return false;
         }
     }
@@ -102,12 +104,17 @@ bool NumberClassifier::Classify(const cv::Mat& src, Armor& armor) {
     // 错误匹配的类型
     bool mismatch_armor_type = false;
     if (armor.type == ArmorType::LARGE) {
-        mismatch_armor_type =
-            armor.number == "outpost" || armor.number == "2" || armor.number == "guard";
+        mismatch_armor_type = armor.number == "outpost" || armor.number == "2" || armor.number == "guard";
     } else if (armor.type == ArmorType::SMALL) {
         mismatch_armor_type = armor.number == "1" || armor.number == "base";
     }
-    return !mismatch_armor_type;
+    if (mismatch_armor_type) {
+        armor.classification_result = "mismatch armor type";
+        return false;
+    }
+
+    armor.classification_result = "success";
+    return true;
 }
 
 void NumberClassifier::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {

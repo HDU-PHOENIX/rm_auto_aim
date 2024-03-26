@@ -81,6 +81,7 @@ struct Light: public cv::RotatedRect {
     float length;            // 灯条长度
     float width;             // 灯条宽度
     float tilt_angle;        // 灯条倾斜角度，相对于垂直面，向右倾斜为正
+    std::string classification_result;
 };
 
 struct Armor {
