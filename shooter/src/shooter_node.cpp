@@ -8,7 +8,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
     debug_ = this->declare_parameter("debug", false);
-    absolute_angle_ = this->declare_parameter("absolute_angle", false);
+    use_absolute_angle_ = this->declare_parameter("use_absolute_angle_", false);
 
     if (debug_) {
         InitMarker();
@@ -40,7 +40,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
                 static_cast<float>(yaw_and_pitch[0]),
                 static_cast<float>(yaw_and_pitch[1])
             };
-            if (absolute_angle_) {
+            if (use_absolute_angle_) {
                 serial_info.euler[0] += msg->yaw_and_pitch[0];
                 serial_info.euler[1] += msg->yaw_and_pitch[1];
             }
@@ -123,7 +123,7 @@ std::unique_ptr<Shooter> ShooterNode::InitShooter() {
     auto correction_of_y = declare_parameter("correction_of_y", 0.0, param_desc);
     auto correction_of_z = declare_parameter("correction_of_z", 0.0, param_desc);
     auto stop_error = declare_parameter("stop_error", 0.001);
-    auto velocity = declare_parameter("velocity", 25);
+    auto velocity = declare_parameter("bullet_speed", 25);
     int r_k_iter = declare_parameter("R_K_iter", 60);
     return std::make_unique<Shooter>(
         gravity,

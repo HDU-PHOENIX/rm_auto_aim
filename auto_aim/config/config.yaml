@@ -2,7 +2,10 @@
   ros__parameters:
     debug: true
     show_pic: false
-    
+    use_absolute_angle: false
+    enemy_color: 0 # 0-红色，1-蓝色
+    bullet_speed: 25.0
+
     ### balance camera 0
     # camera_matrix: [
     #     2037.896656, 0.000000, 646.715271,
@@ -116,14 +119,12 @@
 
 /rune_tracker_node:
     ros__parameters:
-        bullet_speed: 25.0
         filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
         chasedelay: 0.0
         phase_offset: 0.0 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
 
 /shooter_node:
     ros__parameters:
-        absolute_angle: false
         gravity: 9.781
         mode: 115 # small:115 big:98 light:108
         k_of_small: 0.01903
@@ -132,7 +133,6 @@
         correction_of_y: 0.0
         correction_of_z: 0.0
         stop_error: 0.001
-        velocity: 25  #飞机子弹的速度为 30m/s
         number_of_iterations: 60
         yaw_threshold: 0.01
         pitch_threshold: 0.005
