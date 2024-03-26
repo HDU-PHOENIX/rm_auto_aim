@@ -29,7 +29,8 @@ private:
     double pitch_threshold_;
 
     rclcpp::Time last_shoot_time;
-    bool debug_; //debug标志符
+    bool debug_;          //debug标志符
+    bool absolute_angle_; //是否使用绝对角度
 };
 
 } // namespace auto_aim

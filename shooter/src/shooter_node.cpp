@@ -8,6 +8,8 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
     debug_ = this->declare_parameter("debug", false);
+    absolute_angle_ = this->declare_parameter("absolute_angle", false);
+
     if (debug_) {
         InitMarker();
         marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -34,7 +36,15 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
 
             serial_info.speed = msg->v_yaw;
             ShootingJudge(yaw_and_pitch, serial_info, msg);
-            serial_info.euler = { static_cast<float>(yaw_and_pitch[0]), static_cast<float>(yaw_and_pitch[1]) };
+            serial_info.euler = {
+                static_cast<float>(yaw_and_pitch[0]),
+                static_cast<float>(yaw_and_pitch[1])
+            };
+            if (absolute_angle_) {
+                serial_info.euler[0] += msg->yaw_and_pitch[0];
+                serial_info.euler[1] += msg->yaw_and_pitch[1];
+            }
+
             serial_info.start.set__data('s');
             serial_info.end.set__data('e');
             serial_info.is_find.set__data('1');

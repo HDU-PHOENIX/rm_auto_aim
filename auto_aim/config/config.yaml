@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    debug: false
+    debug: true
     show_pic: false
     
     ### balance camera 0
@@ -105,7 +105,7 @@
         binary_thres: 160
         gray_thres: 200
         contour_thres: 100
-        enemy_color: 1 # 0-红色，1-蓝色
+        enemy_color: 0 # 0-红色，1-蓝色
 
 /rune_detector_node:
     ros__parameters:
@@ -123,6 +123,7 @@
 
 /shooter_node:
     ros__parameters:
+        absolute_angle: false
         gravity: 9.781
         mode: 115 # small:115 big:98 light:108
         k_of_small: 0.01903

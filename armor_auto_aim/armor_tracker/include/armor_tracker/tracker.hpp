@@ -19,9 +19,11 @@
 
 namespace armor {
 
-enum class ArmorsNum { NORMAL_4 = 4,
-                       BALANCE_2 = 2,
-                       OUTPOST_3 = 3 };
+enum class ArmorsNum {
+    NORMAL_4 = 4,
+    BALANCE_2 = 2,
+    OUTPOST_3 = 3
+};
 
 // 装甲追踪器类
 class Tracker {

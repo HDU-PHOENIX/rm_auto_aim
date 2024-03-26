@@ -13,6 +13,7 @@
 #include "auto_aim_interfaces/msg/debug_armors.hpp"
 #include "auto_aim_interfaces/msg/debug_lights.hpp"
 #include "auto_aim_interfaces/msg/ignore_classes.hpp"
+#include "auto_aim_interfaces/msg/image.hpp"
 #include "auto_aim_interfaces/msg/serial_info.hpp"
 #include "communicate/msg/serial_info.hpp"
 
@@ -24,7 +25,7 @@ public:
 private:
     std::unique_ptr<Detector> CreateDetector();
 
-    void ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
+    void ImageCallback(const auto_aim_interfaces::msg::Image::SharedPtr msg);
 
     void CreateDebugPublishers();
 
@@ -34,7 +35,7 @@ private:
 
     void PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header);
 
-    void PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header);
+    void PublishArmors(const std::vector<Armor>& armors, const auto_aim_interfaces::msg::Image::SharedPtr& msg);
 
     void InitMarkers();
 
@@ -56,7 +57,7 @@ private:
 
     int lost_count_;
     std::unique_ptr<Detector> detector_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+    rclcpp::Subscription<auto_aim_interfaces::msg::Image>::SharedPtr image_sub_;
     rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr mode_info_sub_;
     rclcpp::Subscription<auto_aim_interfaces::msg::IgnoreClasses>::SharedPtr ignore_classes_sub_;
     rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
