@@ -58,6 +58,8 @@ private:
     // 子弹速度
     double bullet_speed_;
 
+    double max_v_yaw_;
+
     // 装甲板距离车中心（ odom 中心 ）的水平最大距离
     double max_armor_distance_;
 

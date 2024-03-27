@@ -21,6 +21,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     tracker_ = std::make_unique<Tracker>(max_match_distance, max_match_yaw_diff);
     tracker_->tracking_thres = this->declare_parameter("tracker.tracking_thres", 5);
     lost_time_thres_ = this->declare_parameter("tracker.lost_time_thres", 0.3);
+    max_v_yaw_ = this->declare_parameter("tracker.max_v_yaw", 0.6);
 
     tracker_->ekf = this->CreateEKF();
 
@@ -163,8 +164,8 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
     {
         // odom 系下计算 car position 和 yaw 的预测位置
-        // auto&& flytime = target_msg.position.x / bullet_speed_;
-        auto&& flytime = 0.1;
+        auto&& flytime = target_msg.position.x / bullet_speed_;
+        // auto&& flytime = 0.1;
         //这里飞机的向下的速度需要处理，这里忽略傾角
         //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
         auto predict_car_state = tracker_->target_state;
@@ -174,6 +175,12 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
 
         auto predict_armor_position = tracker_->GetArmorPositionFromState(predict_car_state);
+
+        // 如果预测的角速度过大，直接使用预测的车中心位置
+        if (target_msg.v_yaw > max_v_yaw_) {
+            predict_armor_position = { predict_car_state.x(), predict_car_state.y(), predict_car_state.z() };
+        }
+
         geometry_msgs::msg::Point predict_armor_position_msg;
         predict_armor_position_msg.x = predict_armor_position.x();
         predict_armor_position_msg.y = predict_armor_position.y();

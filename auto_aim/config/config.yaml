@@ -110,6 +110,12 @@
         contour_thres: 100
         enemy_color: 0 # 0-红色，1-蓝色
 
+/armor_tracker_node:
+    ros__parameters:
+        tracker.tracking_thres: 5
+        tracker.lost_time_thres: 0.3
+        tracker.max_v_yaw: 0.6
+
 /rune_detector_node:
     ros__parameters:
         confidence_threshold: 0.90 #神经网络置信度阈值
