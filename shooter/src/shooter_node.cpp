@@ -8,7 +8,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
     debug_ = this->declare_parameter("debug", false);
-    use_absolute_angle_ = this->declare_parameter("use_absolute_angle_", false);
+    use_absolute_angle_ = this->declare_parameter("use_absolute_angle", false);
 
     if (debug_) {
         InitMarker();
@@ -28,6 +28,10 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
+            if (!msg->tracking) {
+                return;
+            }
+
             //接收 shooter 坐标系下的坐标
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
@@ -74,8 +78,10 @@ void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialIn
     yaw_and_pitch[0] = abs(yaw_and_pitch[0]) < yaw_threshold_ ? 0 : yaw_and_pitch[0];
     yaw_and_pitch[1] = abs(yaw_and_pitch[1]) < pitch_threshold_ ? 0 : yaw_and_pitch[1];
 
-    yaw_and_pitch[0] = std::clamp(yaw_and_pitch[0], -0.1, 0.1);
-    yaw_and_pitch[1] = std::clamp(yaw_and_pitch[1], -0.1, 0.1);
+    if (!use_absolute_angle_) {
+        yaw_and_pitch[0] = std::clamp(yaw_and_pitch[0], -0.1, 0.1);
+        yaw_and_pitch[1] = std::clamp(yaw_and_pitch[1], -0.1, 0.1);
+    }
     serial_info.can_shoot.set__data(abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05 ? '1' : '0');
 
     return;
@@ -123,7 +129,7 @@ std::unique_ptr<Shooter> ShooterNode::InitShooter() {
     auto correction_of_y = declare_parameter("correction_of_y", 0.0, param_desc);
     auto correction_of_z = declare_parameter("correction_of_z", 0.0, param_desc);
     auto stop_error = declare_parameter("stop_error", 0.001);
-    auto velocity = declare_parameter("bullet_speed", 25);
+    auto velocity = declare_parameter("bullet_speed", 25.0);
     int r_k_iter = declare_parameter("R_K_iter", 60);
     return std::make_unique<Shooter>(
         gravity,
