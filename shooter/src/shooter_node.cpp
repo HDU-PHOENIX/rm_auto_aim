@@ -47,6 +47,16 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             if (use_absolute_angle_) {
                 serial_info.euler[0] += msg->yaw_and_pitch[0];
                 serial_info.euler[1] += msg->yaw_and_pitch[1];
+
+                // 防止绝对角度越界
+                for (auto& euler: serial_info.euler) {
+                    if (euler > M_PI) {
+                        euler -= (2 * M_PI);
+                    }
+                    if (euler < -M_PI) {
+                        euler += (2 * M_PI);
+                    }
+                }
             }
 
             serial_info.start.set__data('s');
