@@ -51,6 +51,7 @@ void CameraNode::EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg
     image_msg->header.stamp = msg->header.stamp;
     this->GetImg();
     image_msg->header.frame_id = "camera";
+    image_msg->color = msg->header.frame_id;
     image_msg->raw_image.height = frame_->rows;
     image_msg->raw_image.width = frame_->cols;
     image_msg->raw_image.encoding = "bgr8";

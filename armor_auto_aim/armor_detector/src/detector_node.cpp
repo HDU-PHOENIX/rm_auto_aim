@@ -65,6 +65,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 }
 
 void ArmorDetectorNode::ImageCallback(const auto_aim_interfaces::msg::Image::SharedPtr msg) {
+    detector_->UpdateEnemyColor(msg->color == "r" ? Color::RED : Color::BLUE);
     auto&& raw_image = cv::Mat(msg->raw_image.height, msg->raw_image.width, CV_8UC3, msg->raw_image.data.data());
     std::vector<Armor> armors;
 
