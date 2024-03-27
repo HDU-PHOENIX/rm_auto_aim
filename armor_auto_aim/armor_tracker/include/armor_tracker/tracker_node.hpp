@@ -57,6 +57,7 @@ private:
 
     // 子弹速度
     double bullet_speed_;
+    double flytime_offset_;
 
     double max_v_yaw_;
 

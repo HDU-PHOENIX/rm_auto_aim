@@ -115,6 +115,7 @@
         tracker.tracking_thres: 5
         tracker.lost_time_thres: 0.3
         tracker.max_v_yaw: 0.6
+        tracker.flytime_offset: 0.1
 
 /rune_detector_node:
     ros__parameters:

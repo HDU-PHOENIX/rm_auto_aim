@@ -22,6 +22,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     tracker_->tracking_thres = this->declare_parameter("tracker.tracking_thres", 5);
     lost_time_thres_ = this->declare_parameter("tracker.lost_time_thres", 0.3);
     max_v_yaw_ = this->declare_parameter("tracker.max_v_yaw", 0.6);
+    flytime_offset_ = this->declare_parameter("tracker.flytime_offset", 0.1);
 
     tracker_->ekf = this->CreateEKF();
 
@@ -164,7 +165,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
     {
         // odom 系下计算 car position 和 yaw 的预测位置
-        auto&& flytime = target_msg.position.x / bullet_speed_;
+        auto&& flytime = sqrt(pow(target_msg.position.x, 2) + pow(target_msg.position.y, 2) + pow(target_msg.position.z, 2)) / bullet_speed_ + flytime_offset_;
         // auto&& flytime = 0.1;
         //这里飞机的向下的速度需要处理，这里忽略傾角
         //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
