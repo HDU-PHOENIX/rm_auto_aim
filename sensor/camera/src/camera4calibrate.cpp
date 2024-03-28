@@ -1,5 +1,4 @@
 #include "camera/camera4calibrate.hpp"
-#include "opencv2/opencv.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <unistd.h>
 
@@ -43,9 +42,6 @@ void CameraForCalibrate::LoopForPublish() {
         image_msg->is_bigendian = 0u;
         image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame_->step);
         image_msg->data.assign(frame_->datastart, frame_->dataend);
-
-        cv::imshow("raw", *frame_);
-        cv::waitKey(1);
 
         image_publisher_->publish(std::move(image_msg));
         // RCLCPP_INFO(this->get_logger(), "publish image");
