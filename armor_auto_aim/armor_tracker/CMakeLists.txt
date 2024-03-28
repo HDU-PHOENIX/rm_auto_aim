@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(armor_tracker)
 
-# Use C++14
-set(CMAKE_CXX_STANDARD 14)
+# Use C++20
+SET(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # By adding -Wall and -Werror, the compiler does not ignore warnings anymore,
