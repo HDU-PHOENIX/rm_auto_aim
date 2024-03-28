@@ -29,6 +29,10 @@ rclcpp_components_register_node(${PROJECT_NAME}
     EXECUTABLE camera_node
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+    PLUGIN sensor::CameraForCalibrate
+    EXECUTABLE camera_for_calibrate_node
+)
 #############
 ## Testing ##
 ######### ####
