@@ -7,14 +7,8 @@
     bullet_speed: 25.0
 
     ### balance camera 0
-    # camera_matrix: [
-    #     2037.896656, 0.000000, 646.715271,
-    #     0.000000, 2031.535911, 199.005256,
-    #     0.000000, 0.000000, 1.000000
-    # ]
-    # distortion_coefficients: [
-    #     -0.113860, 0.338427, 0.003268, -0.000971, 0.000000
-    # ]
+    # camera_matrix: [2147.4482502081296, 0.0, 610.8796357349283, 0.0, 2139.2158573191978, 452.44695289747506, 0.0, 0.0, 1.0]
+    # distortion_coefficients: [0.014259845606874209, -0.22750693946613146, -0.004126797468007286, -0.002715723823503455, 0.0]
 
     ### plane camera 1
     # camera_matrix: [
@@ -27,14 +21,8 @@
     # ]
 
     ### omni camera 2
-    camera_matrix: [
-        2038.085307, 0.000000, 601.169184,
-        0.000000, 2030.777579, 196.714765,
-        0.000000, 0.000000, 1.000000
-    ]
-    distortion_coefficients: [
-        -0.097210, -0.008465, 0.006698, -0.004951, 0.000000
-    ]
+    camera_matrix: [1623.105565042202, 0.0, 655.673413537912, 0.0, 1617.7489171679433, 540.7858370758917, 0.0, 0.0, 1.0]
+    distortion_coefficients: [-0.051431926319480306, 0.165968020630758, 0.003155568211952706, -0.0018267557107600118, 0.0]
 
     ### hero camera 3
     # camera_matrix: [
@@ -84,11 +72,12 @@
 
 /tf2_node:
     ros__parameters:
-        odom2shooter_r: 0.059 # odom to shooter ratio
-        shooter2camera_tvec: [0.11, 0, 0.04]
+        # balance
+        # odom2shooter_r: 0.059 # odom to shooter ratio
+        # shooter2camera_tvec: [0.11, 0, 0.04]
         # omni
-        # odom2shooter_r: 0.056
-        # shooter2camera_tvec: [0.03805, 0, 0.0295]
+        odom2shooter_r: 0.056
+        shooter2camera_tvec: [0.03805, 0, 0.0295]
         fix: 0.1
         shooter_coordinate: "shooter"
         camera_coordinate: "camera"
