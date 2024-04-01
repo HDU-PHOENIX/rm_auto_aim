@@ -71,20 +71,20 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
 }
 
 void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
+    // rune
     if (data->mode) {
-        if ((sqrt(yaw_and_pitch[0] * yaw_and_pitch[0] + yaw_and_pitch[1] * yaw_and_pitch[1]) < 0.05) && data->can_shoot)
-        {
-            if ((rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) //确保子弹不会没有飞到就开下一枪
-            {
+        if ((std::hypot(yaw_and_pitch[0], yaw_and_pitch[1]) < 0.05) && data->can_shoot) {
+            if ((rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) { //确保子弹不会没有飞到就开下一枪
                 serial_info.can_shoot.set__data('1');
                 last_shoot_time = data->header.stamp;
+                return;
             }
-            serial_info.can_shoot.set__data('0');
-        } else {
-            serial_info.can_shoot.set__data('0');
-        }
+        serial_info.can_shoot.set__data('0');
         return;
+        }
     }
+    
+    // armor  
     yaw_and_pitch[0] = abs(yaw_and_pitch[0]) < yaw_threshold_ ? 0 : yaw_and_pitch[0];
     yaw_and_pitch[1] = abs(yaw_and_pitch[1]) < pitch_threshold_ ? 0 : yaw_and_pitch[1];
 
