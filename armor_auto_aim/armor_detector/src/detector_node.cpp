@@ -208,8 +208,6 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const au
     if (armors.empty()) {
         if (++lost_count_ > 5) {
             communicate::msg::SerialInfo no_armor_msg;
-            no_armor_msg.start.set__data('s');
-            no_armor_msg.end.set__data('e');
             no_armor_msg.is_find.set__data('0');
             no_armor_msg.can_shoot.set__data('0');
             no_armor_msg.euler = {

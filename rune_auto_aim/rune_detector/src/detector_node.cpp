@@ -189,8 +189,6 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
             //如果没有检测到符叶则发布yaw roll pitch为0数据
             RCLCPP_DEBUG(this->get_logger(), "DetectRunes find nothing");
             communicate::msg::SerialInfo no_rune_msg;
-            no_rune_msg.start.set__data('s');
-            no_rune_msg.end.set__data('e');
             no_rune_msg.is_find.set__data('0');
             no_rune_msg.can_shoot.set__data('0');
             no_rune_msg.euler = { 0, 0 };
