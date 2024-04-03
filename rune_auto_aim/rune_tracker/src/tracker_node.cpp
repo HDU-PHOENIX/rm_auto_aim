@@ -55,10 +55,36 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         "/tracker/target",
         rclcpp::SensorDataQoS()
     );
+    no_target_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
+        "/shoot_info/left",
+        10
+    );
 }
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
+    auto&& transform_stamped = tf2_buffer_->lookupTransform("shooter", target_frame_, rune_ptr->header.stamp, tf2::durationFromSec(0.01));
+    try {
+        // 四元数转换为欧拉角计算yaw和pitch
+        tf2::Quaternion quat_tf; // tf2的四元数对象
+        tf2::fromMsg(transform_stamped.transform.rotation, quat_tf);
+        // 将消息中的四元数（geometry_msgs/Quaternion）转换为一个四元数对象；
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(quat_tf).getRPY(roll, pitch, yaw);
+        // 将四元数对象，转换为欧拉角
+        runes_msg_.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
+    } catch (const tf2::TransformException& ex) {
+        RCLCPP_ERROR(this->get_logger(), "Error while transforming  %s", ex.what());
+        return;
+    }
+    if (rune_ptr->is_find == false) {
+        communicate::msg::SerialInfo no_target_msg;
+        no_target_msg.is_find.set__data('0');
+        no_target_msg.can_shoot.set__data('0');
+        no_target_msg.euler = { runes_msg_.origin_yaw_and_pitch[0], runes_msg_.origin_yaw_and_pitch[1] };
+        no_target_pub_->publish(no_target_msg);
+        return;
+    }
     rune_ptr->speed = this->get_parameter("bullet_speed").as_double();
     rune_ptr->chasedelay = this->get_parameter("chasedelay").as_double();
     rune_ptr->phase_offset = this->get_parameter("phase_offset").as_double();
@@ -67,7 +93,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
     if (pnp_solver_->SolvePnP(tracker_->GetRotatedRune(), rvec, tvec, PNP_ITERATION)) {
     } else {
-        RCLCPP_INFO(this->get_logger(), "rune_tracker solve pnp failed");
+        RCLCPP_ERROR(this->get_logger(), "rune_tracker solve pnp failed");
     }
     geometry_msgs::msg::PoseStamped ps;
     ps.header = rune_ptr->header;

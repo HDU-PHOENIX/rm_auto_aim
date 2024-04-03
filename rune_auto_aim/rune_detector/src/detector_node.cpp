@@ -38,8 +38,6 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    no_rune_pub_ = this->create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", 10);
-
     mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("/communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
 }
 
@@ -132,16 +130,11 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         }
     }
 
-    if (show_pic) {
+    if (debug_ && show_pic) {
         cv::circle(img, rune_armor, 4, Colors::Green, -1);                            //画出装甲板中心
         cv::circle(img, symbol, 4, Colors::Green, -1);                                //画出 R 标中心
         cv::circle(img, cv::Point2f(img.cols / 2, img.rows / 2), 2, Colors::Blue, 3); // 图像中心点
-        cv::imshow("tmp", img);
-        cv::waitKey(1);
-    }
-
-    if (debug_) {
-        PublishImg(img, img_msg); // 发布图片
+        PublishImg(img, img_msg);                                                     // 发布图片
     }
 
     if (flag1 && flag2) {
@@ -159,10 +152,9 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 runes_msg_.rune_points[i].x = rune_points[i].x;
                 runes_msg_.rune_points[i].y = rune_points[i].y;
             }
-            runes_msg_.symbol.x = symbol.x; // R 标位置 图像左上角为原点
-            runes_msg_.symbol.y = symbol.y; // R 标位置 图像左上角为原点
-            runes_msg_.header.frame_id = "camera";
-            runes_msg_.find = true; // 找到符叶
+            runes_msg_.symbol.x = symbol.x;        // R 标位置 图像左上角为原点
+            runes_msg_.symbol.y = symbol.y;        // R 标位置 图像左上角为原点
+            runes_msg_.header.frame_id = "camera"; // 设置坐标系
 
             // Fill the markers
             rune_marker_.header.frame_id = "camera";
@@ -177,23 +169,14 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
 
 void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr img_msg) {
     if (pnp_solver_ == nullptr) {
-        RCLCPP_DEBUG(this->get_logger(), "pnp_solver_ is nullptr");
+        RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
     } else {
         //检测图片 如果检测到了符叶则发布符叶信息
-        if (DetectRunes(img_msg)) {
-            if (debug_) {
-                PublishMarkers(); // 发布标记
-            }
-            runes_pub_->publish(runes_msg_); // 发布神符信息
-        } else {
-            //如果没有检测到符叶则发布yaw roll pitch为0数据
-            RCLCPP_DEBUG(this->get_logger(), "DetectRunes find nothing");
-            communicate::msg::SerialInfo no_rune_msg;
-            no_rune_msg.is_find.set__data('0');
-            no_rune_msg.can_shoot.set__data('0');
-            no_rune_msg.euler = { 0, 0 };
-            no_rune_pub_->publish(no_rune_msg);
+        runes_msg_.is_find = DetectRunes(img_msg) ? true : false;
+        if (debug_) {
+            PublishMarkers(); // 发布标记
         }
+        runes_pub_->publish(runes_msg_);
     }
 }
 

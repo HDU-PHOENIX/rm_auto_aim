@@ -51,7 +51,7 @@ void UKF_PLUS::Init(bool verbose, bool use_laser, bool use_radar, double std_a, 
     // Process noise standard deviation longitudinal acceleration in m/s^2
     std_a_ = std_a;
 
-    // Process noise standard deviation yaw acceleration in rad/s^2
+    // Process noise standard deviation yaw acceleration in rad/s^2 偏航加速度噪声（也称为角加速度）
     std_yawdd_ = std_yawdd;
 
     // DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.

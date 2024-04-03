@@ -28,10 +28,6 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
-            if (!msg->tracking) {
-                return;
-            }
-
             //接收 shooter 坐标系下的坐标
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             //输入 shooter 坐标系下的坐标 输出 yaw 和 pitch
@@ -39,14 +35,16 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             communicate::msg::SerialInfo serial_info;
 
             serial_info.speed = msg->v_yaw;
-            ShootingJudge(yaw_and_pitch, serial_info, msg);
+            serial_info.can_shoot.set__data('0');
+            //mode: rune true auto_aim false
+            msg->mode ? RuneShootingJudge(yaw_and_pitch, serial_info, msg) : ShootingJudge(yaw_and_pitch, serial_info);
             serial_info.euler = {
                 static_cast<float>(yaw_and_pitch[0]),
                 static_cast<float>(yaw_and_pitch[1])
             };
             if (use_absolute_angle_) {
-                serial_info.euler[0] += msg->yaw_and_pitch[0];
-                serial_info.euler[1] += msg->yaw_and_pitch[1];
+                serial_info.euler[0] += msg->origin_yaw_and_pitch[0];
+                serial_info.euler[1] += msg->origin_yaw_and_pitch[1];
 
                 // 防止绝对角度越界
                 for (auto& euler: serial_info.euler) {
@@ -67,20 +65,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     );
 }
 
-void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
-    // rune
-    if (data->mode) {
-        if ((std::hypot(yaw_and_pitch[0], yaw_and_pitch[1]) < 0.05) && data->can_shoot) {
-            if ((rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) { //确保子弹不会没有飞到就开下一枪
-                serial_info.can_shoot.set__data('1');
-                last_shoot_time = data->header.stamp;
-                return;
-            }
-            serial_info.can_shoot.set__data('0');
-            return;
-        }
-    }
-
+void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info) {
     // armor
     yaw_and_pitch[0] = abs(yaw_and_pitch[0]) < yaw_threshold_ ? 0 : yaw_and_pitch[0];
     yaw_and_pitch[1] = abs(yaw_and_pitch[1]) < pitch_threshold_ ? 0 : yaw_and_pitch[1];
@@ -90,7 +75,18 @@ void ShooterNode::ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialIn
         yaw_and_pitch[1] = std::clamp(yaw_and_pitch[1], -0.1, 0.1);
     }
     serial_info.can_shoot.set__data(abs(yaw_and_pitch[0]) < 0.05 && abs(yaw_and_pitch[1]) < 0.05 ? '1' : '0');
+    return;
+}
 
+void ShooterNode::RuneShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data) {
+    // rune
+    //解算欧拉角收敛且tracker算法认为可以射击
+    if ((std::hypot(yaw_and_pitch[0], yaw_and_pitch[1]) < 0.05) && data->can_shoot
+        && (rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) {
+        //确保子弹不会没有飞到就开下一枪
+        serial_info.can_shoot.set__data('1');
+        last_shoot_time = data->header.stamp;
+    }
     return;
 }
 

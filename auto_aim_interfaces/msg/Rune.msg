@@ -7,5 +7,5 @@ float32 speed
 float64 chasedelay
 float64 phase_offset
 
-bool find
+bool is_find
 int32 motion

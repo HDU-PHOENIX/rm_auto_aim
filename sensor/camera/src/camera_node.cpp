@@ -17,7 +17,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
 
     euler_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "/communicate/gyro/left",
-        rclcpp::SensorDataQoS(),
+        rclcpp::SensorDataQoS().keep_last(2),
         std::bind(&CameraNode::EulerCallback, this, std::placeholders::_1)
     );
 

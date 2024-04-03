@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "auto_aim_interfaces/msg/rune.hpp"
-#include "communicate/msg/serial_info.hpp"
 
 #include "pnp_solver.hpp"
 
@@ -98,9 +97,6 @@ private:
 
     // 图像订阅者
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr img_sub_;
-
-    //没有识别到神符时发布的信息
-    rclcpp::Publisher<communicate::msg::SerialInfo>::SharedPtr no_rune_pub_;
 
     rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr mode_switch_sub_;
 };

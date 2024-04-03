@@ -16,7 +16,8 @@ public:
 
 private:
     // 射击判断
-    void ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data);
+    void ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info);
+    void RuneShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data);
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;                                              //发射解算器
     visualization_msgs::msg::Marker marker;                                         //marker可视化

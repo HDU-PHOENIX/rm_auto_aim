@@ -15,4 +15,4 @@ float64 radius_1
 float64 radius_2
 float64 dz
 
-float32[2] yaw_and_pitch
+float32[2] origin_yaw_and_pitch

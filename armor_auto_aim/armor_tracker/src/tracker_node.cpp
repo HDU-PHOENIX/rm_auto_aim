@@ -209,7 +209,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         target_msg.yaw = predict_car_state(6);
         target_msg.v_yaw = predict_car_state(7);
 
-        target_msg.yaw_and_pitch = armors_msg->yaw_and_pitch;
+        target_msg.origin_yaw_and_pitch = armors_msg->yaw_and_pitch;
         target_pub_->publish(target_msg);
     }
 }
