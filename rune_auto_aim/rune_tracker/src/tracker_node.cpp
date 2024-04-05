@@ -78,6 +78,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         return;
     }
     if (rune_ptr->is_find == false) {
+        RCLCPP_INFO(this->get_logger(), "No target found");
         communicate::msg::SerialInfo no_target_msg;
         no_target_msg.is_find.set__data('0');
         no_target_msg.can_shoot.set__data('0');
@@ -142,7 +143,6 @@ void RuneTrackerNode::CreateDebugPublisher() {
 }
 void RuneTrackerNode::PublishDebugInfo() {
     debug_msg_.header.stamp = this->now();
-    debug_msg_.delay = delay;
     debug_msg_.rotate_angle = tracker_->GetRotateAngle();
     debug_msg_.phase_offset = phase_offset;
     double* tmp = tracker_->GetFittingPara();

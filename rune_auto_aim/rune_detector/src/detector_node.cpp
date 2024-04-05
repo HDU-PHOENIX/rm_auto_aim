@@ -44,6 +44,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
 void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
     // 符模式 0：不可激活 1：小符 2:大符
     // 模式 0：自瞄 1：符
+    RCLCPP_INFO(this->get_logger(), "mode switch to rune");
     if (msg->data[1] == 0) {
         //如果是自瞄模式则取消订阅图像
         img_sub_.reset();
@@ -124,9 +125,11 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             continue;
         }
 
-        for (auto vertice: object.vertices) {
-            // 画出五个关键点
-            cv::circle(img, vertice, 4, Colors::Green, -1);
+        if (show_pic) {
+            for (auto vertice: object.vertices) {
+                // 画出五个关键点
+                cv::circle(img, vertice, 4, Colors::Green, -1);
+            }
         }
     }
 

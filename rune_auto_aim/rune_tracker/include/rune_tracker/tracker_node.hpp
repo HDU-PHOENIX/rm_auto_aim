@@ -66,7 +66,6 @@ private:
     //debug信息
     auto_aim_interfaces::msg::DebugRune debug_msg_;
 
-    double delay;      //理论延迟和追踪延迟之和
     double chasedelay; //追踪延迟 从launch参数给定
     double bullet_speed;
     int filter_astring_threshold;

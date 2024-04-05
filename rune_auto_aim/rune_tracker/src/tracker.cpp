@@ -11,7 +11,7 @@ Tracker::Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& 
 
 void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     auto&& theory_delay = data->pose_c.position.z / data->speed;
-    runes_msg.delay = delay = theory_delay + data->chasedelay;
+    debug_msg.delay = runes_msg.delay = delay = theory_delay + data->chasedelay;
     runes_msg.header = data->header; //时间戳赋值
     phase_offset = data->phase_offset;
     if (data->motion == 0) {
@@ -124,7 +124,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 
 bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (cere_param_list.size() < 100) {
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = AngleCorrect(leaf_angle, leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(leaf_angle - leaf_angle_last, 0, 36_deg / 2) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         runes_msg.can_shoot = false;
         return false;
@@ -132,7 +132,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
         //TODO:这里可能会有问题后续逻辑得仔细考虑一下
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = AngleCorrect(leaf_angle, leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(leaf_angle - leaf_angle_last, 0, 36_deg / 2) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
         RCLCPP_DEBUG(node_->get_logger(), "finish_fitting flag %d", finish_fitting);
         //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性
@@ -206,45 +206,44 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
 }
 
 void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
-    if (leaf_angular_velocity < 4) {
-        //如果这一帧和上一针时间差大于0.15s，则认为这一帧的数据不可用
-        if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
-                .seconds()
-            > 0.15) {
-            count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
-        }
-        count_cant_use--;
+    //如果这一帧和上一针时间差大于0.15s，则认为这一帧的数据不可用
+    if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
+            .seconds()
+        > 0.15) {
+        count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
+    }
+    count_cant_use--;
 #if NEW_METHOD
-        MeasurementPackage package = MeasurementPackage(
-            (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-            MeasurementPackage::SensorType::LASER,
-            Eigen::Vector2d { leaf_angular_velocity, 0 }
-        );
-        //直接输入角速度，然后进行滤波
-        ukf_->ProcessMeasurement(package); //估计当前真实的状态
-        double&& omega = 1.0 * abs(ukf_->x_(0));
-        debug_msg.big_rune_speed = omega;
+    MeasurementPackage package = MeasurementPackage(
+        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+        MeasurementPackage::SensorType::LASER,
+        Eigen::Vector2d { leaf_angular_velocity, 0 }
+    );
+    //直接输入角速度，然后进行滤波
+    ukf_->ProcessMeasurement(package); //估计当前真实的状态
+    double&& omega = 1.0 * abs(ukf_->x_(0));
+    debug_msg.big_rune_speed = omega;
 #else
-        // 用二维坐标拟合
-        auto&& theta = leaf_angle;
-        MeasurementPackage package = MeasurementPackage(
-            (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-            MeasurementPackage::SensorType::LASER,
-            Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(AngleRevise(theta, cere_rotated_angle)),
-                              RUNE_ARMOR_TO_SYMBOL * sin(AngleRevise(theta, cere_rotated_angle)) }
-        );
-        //将传感器的坐标数据丢入UKF
-        //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
+    // 用二维坐标拟合
+    auto&& theta = leaf_angle;
+    MeasurementPackage package = MeasurementPackage(
+        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
+        MeasurementPackage::SensorType::LASER,
+        Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(AngleRevise(theta, cere_rotated_angle)),
+                          RUNE_ARMOR_TO_SYMBOL * sin(AngleRevise(theta, cere_rotated_angle)) }
+    );
+    debug_msg.small_rune_speed = AngleRevise(theta, cere_rotated_angle);
+    //将传感器的坐标数据丢入UKF
+    //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
 
-        ukf_->ProcessMeasurement(package);                              //估计当前真实的状态
-        double&& omega = 1.0 * abs(ukf_->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
-        debug_msg.big_rune_speed = omega;
+    ukf_->ProcessMeasurement(package);                              //估计当前真实的状态
+    double&& omega = 1.0 * abs(ukf_->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
+    debug_msg.big_rune_speed = omega;
 #endif
-        if (count_cant_use <= 0) {
-            cere_param_list.push_back(CereParam {
-                .omega = omega,
-                .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() });
-        }
+    if (count_cant_use <= 0) {
+        cere_param_list.push_back(CereParam {
+            .omega = omega,
+            .time = (rclcpp::Time(data->header.stamp) - t_zero).seconds() });
     }
 }
 
