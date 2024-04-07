@@ -69,7 +69,8 @@ private:
     double chasedelay; //追踪延迟 从launch参数给定
     double bullet_speed;
     int filter_astring_threshold;
-    double phase_offset; //相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
+    double phase_offset;       //相位差补偿,用于补偿观测到的角速度和滤波后角速度的相位差
+    double std_a_, std_yawdd_; //ukf的过程噪声
 };
 
 } // namespace rune

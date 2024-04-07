@@ -67,7 +67,7 @@
 /camera_node:
     ros__parameters:
         videoflag: false
-        video_path: "./Camera/new1.mp4"
+        video_path: "./Camera/new6.mp4"
         inner_shot_flag: false
 
 /tf2_node:
@@ -108,7 +108,7 @@
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.90 #神经网络置信度阈值
+        confidence_threshold: 0.60 #神经网络置信度阈值
         # model_path: "/model/2023/yolox.onnx" #这里的路径是相对路径
         model_path: "/model/2023/yolox.xml"
 
@@ -116,7 +116,9 @@
     ros__parameters:
         filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
         chasedelay: 0.0
-        phase_offset: 0.0 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
+        phase_offset: 0.22 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
+        std_a: 3.0 #//加速度的标准差
+        std_yawdd: 2.09 #//角加速度的标准差
 
 /shooter_node:
     ros__parameters:

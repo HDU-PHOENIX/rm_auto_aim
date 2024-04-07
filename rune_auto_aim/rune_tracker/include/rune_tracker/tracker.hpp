@@ -20,7 +20,7 @@ namespace rune {
 // 装甲板追踪器类
 class Tracker {
 public:
-    Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_);
+    Tracker(rclcpp::Node* node, double& std_a_, double& std_yawdd_, int& filter_astring_threshold_);
     using Rune = auto_aim_interfaces::msg::Rune;
 
     //node调用tracker功能函数

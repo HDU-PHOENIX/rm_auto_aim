@@ -1,7 +1,7 @@
 #include "rune_tracker/tracker.hpp"
 #define NEW_METHOD false
 namespace rune {
-Tracker::Tracker(rclcpp::Node* node, double&& std_a_, double&& std_yawdd_, int& filter_astring_threshold_):
+Tracker::Tracker(rclcpp::Node* node, double& std_a_, double& std_yawdd_, int& filter_astring_threshold_):
     node_(node) {
     RCLCPP_INFO(node_->get_logger(), "Starting RuneTracker!");
     ukf_ = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
@@ -144,10 +144,13 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
             {
                 tracker.pred_angle *= -1;
             }
-            delta_angle = fabs(leaf_angle - (tracker.angle + tracker.pred_angle));
+            //posteriori_angle 为预测的角度
+            double posteriori_angle = (tracker.angle + tracker.pred_angle) > M_PI ? (tracker.angle + tracker.pred_angle) - 2 * M_PI : (tracker.angle + tracker.pred_angle);
+            posteriori_angle = posteriori_angle < -M_PI ? posteriori_angle + 2 * M_PI : posteriori_angle;
+            delta_angle = fabs(leaf_angle - posteriori_angle);
             delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
             debug_msg.delta_angle = delta_angle;
-            if (delta_angle < 0.15) {
+            if (delta_angle < 0.10) {
                 //误差小,则认为拟合良好
                 RCLCPP_DEBUG(node_->get_logger(), "error small");
                 pred_angle = Integral(
@@ -232,7 +235,7 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
         Eigen::Vector2d { RUNE_ARMOR_TO_SYMBOL * cos(AngleRevise(theta, cere_rotated_angle)),
                           RUNE_ARMOR_TO_SYMBOL * sin(AngleRevise(theta, cere_rotated_angle)) }
     );
-    debug_msg.small_rune_speed = AngleRevise(theta, cere_rotated_angle);
+    debug_msg.small_rune_speed = AngleRevise(theta, cere_rotated_angle); //大符模式下用小符角速度查看符叶角度变化曲线
     //将传感器的坐标数据丢入UKF
     //ukf输入坐标，输出估计的状态向量x_为[pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
 
@@ -259,7 +262,7 @@ void Tracker::Refitting() {
                     i.omega
                 )
             ),
-            new ceres::CauchyLoss(0.1),
+            new ceres::CauchyLoss(0.4),
             a_omega_phi_b
         );
     }

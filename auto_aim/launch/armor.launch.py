@@ -92,7 +92,7 @@ def generate_launch_description():
             ComposableNode(
                 package='auto_aim',
                 plugin='auto_aim::TF2Node',
-                name='tf_tree_node',
+                name='tf2_node',
                 extra_arguments=[{"use_intra_process_comms": True}],
                 parameters = [config]
             )

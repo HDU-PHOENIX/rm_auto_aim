@@ -7,7 +7,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     // 打印信息，表示节点已启动
     RCLCPP_INFO(this->get_logger(), "Starting RuneTrackerNode!");
     InitParams();
-    tracker_ = std::make_unique<Tracker>(this, 3, 2.09, filter_astring_threshold);
+    tracker_ = std::make_unique<Tracker>(this, std_a_, std_yawdd_, filter_astring_threshold);
     debug_ = this->declare_parameter("debug", false);
 
     if (debug_) {
@@ -38,7 +38,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
     // 订阅器和过滤器
     runes_sub_.subscribe(this, "/detector/runes", rmw_qos_profile_sensor_data);
-    target_frame_ = this->declare_parameter("target_frame", "shooter");
+    target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
         runes_sub_,                         // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
@@ -102,8 +102,8 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     ps.pose.position.y = runes_msg_.pc.position.y = tvec.at<double>(1);
     ps.pose.position.z = runes_msg_.pc.position.z = tvec.at<double>(2);
     try {
-        // 将装甲板位置从 相机坐标系 转换到 shooter（目标坐标系）
-        // 此后装甲板信息中的 armor.pose 为装甲板在 shooter 系中的位置
+        // 将装甲板位置从 相机坐标系 转换到 odom（目标坐标系）
+        // 此后装甲板信息中的 armor.pose 为装甲板在 odom 系中的位置
         runes_msg_.pw.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
     } catch (const tf2::ExtrapolationException& ex) {
         RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
@@ -166,7 +166,7 @@ void RuneTrackerNode::InitParams() {
     param_desc.floating_point_range[0].to_value = 1;
     chasedelay = this->declare_parameter("chasedelay", 0.0, param_desc); //设置chasedelay的默认值0.0
     param_desc.floating_point_range.resize(1);
-    param_desc.floating_point_range[0].step = 0.1;
+    param_desc.floating_point_range[0].step = 0.01;
     param_desc.floating_point_range[0].from_value = -3.0;
     param_desc.floating_point_range[0].to_value = 3.0;
     phase_offset = this->declare_parameter("phase_offset", 0.0, param_desc); //设置phaseoffset的默认值0.0
@@ -176,6 +176,8 @@ void RuneTrackerNode::InitParams() {
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 30;
     filter_astring_threshold = this->declare_parameter("filter_astring_threshold", 0, param_desc);
+    std_a_ = this->declare_parameter("std_a", 5.0);
+    std_yawdd_ = this->declare_parameter("std_yawdd", 5.0);
 }
 
 } // namespace rune

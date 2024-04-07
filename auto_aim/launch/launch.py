@@ -32,7 +32,7 @@ def generate_launch_description():
         namespace='',
         package='rclcpp_components',
         executable='component_container',
-        arguments = ["--ros-args", "--log-level", "debug"],
+        # arguments = ["--ros-args", "--log-level", "debug"],
         composable_node_descriptions=[
             ComposableNode(
                 package = 'armor_detector',
@@ -107,7 +107,7 @@ def generate_launch_description():
             ComposableNode(
                 package='auto_aim',
                 plugin='auto_aim::TF2Node',
-                name='tf_tree_node',
+                name='tf2_node',
                 extra_arguments=[{"use_intra_process_comms": True}],
                 parameters = [config]
             )
