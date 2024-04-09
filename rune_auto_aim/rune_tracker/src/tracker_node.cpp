@@ -63,8 +63,8 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
-    auto&& transform_stamped = tf2_buffer_->lookupTransform("shooter", target_frame_, rune_ptr->header.stamp, tf2::durationFromSec(0.01));
     try {
+        auto&& transform_stamped = tf2_buffer_->lookupTransform(target_frame_, "shooter", tf2::TimePointZero);
         // 四元数转换为欧拉角计算yaw和pitch
         tf2::Quaternion quat_tf; // tf2的四元数对象
         tf2::fromMsg(transform_stamped.transform.rotation, quat_tf);
@@ -73,7 +73,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         tf2::Matrix3x3(quat_tf).getRPY(roll, pitch, yaw);
         // 将四元数对象，转换为欧拉角
         runes_msg_.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
-    } catch (const tf2::TransformException& ex) {
+    } catch (const tf2::LookupException& ex) {
         RCLCPP_ERROR(this->get_logger(), "Error while transforming  %s", ex.what());
         return;
     }
