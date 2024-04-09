@@ -38,21 +38,8 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/rune_detector/marker", 10);
         debug_img_pub_ = image_transport::create_publisher(this, "/rune_detector/debug_img");
     }
-    mode_switch_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("/communicate/autoaim", 100, std::bind(&RuneDetectorNode::ModeSwitchCB, this, std::placeholders::_1));
-}
 
-void RuneDetectorNode::ModeSwitchCB(const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
-    // 符模式 0：不可激活 1：小符 2:大符
-    // 模式 0：自瞄 1：符
-    RCLCPP_INFO(this->get_logger(), "mode switch to rune");
-    if (msg->data[1] == 0) {
-        //如果是自瞄模式则取消订阅图像
-        img_sub_.reset();
-    } else {
-        //如果是符模式则订阅图像
-        img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_pub", rclcpp::SensorDataQoS().keep_last(2), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
-    }
-    runes_msg_.motion = msg->data[2];
+    img_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_rune", rclcpp::SensorDataQoS().keep_last(2), std::bind(&RuneDetectorNode::ImageCallback, this, std::placeholders::_1));
 }
 
 bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img_msg) {
@@ -174,7 +161,9 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
     if (pnp_solver_ == nullptr) {
         RCLCPP_WARN(this->get_logger(), "pnp_solver_ is nullptr");
     } else {
-        //检测图片 如果检测到了符叶则发布符叶信息
+        // 检测图片 如果检测到了符叶则发布符叶信息
+        // 符模式 0：不可激活 1：小符 2:大符
+        runes_msg_.motion = img_msg->header.frame_id == "1" ? 1 : 2;
         runes_msg_.is_find = DetectRunes(img_msg) ? true : false;
         if (debug_) {
             PublishMarkers(); // 发布标记
