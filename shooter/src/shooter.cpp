@@ -83,7 +83,7 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
         }
     }
     pitch_new = pitch_new / 180 * M_PI;
-    double&& yaw = atan(xyz[1] / xyz[0]);
+    double&& yaw = atan2(xyz[1] , xyz[0]);
     shoot_pw_ = { xyz[0], xyz[1] - correction_of_x_, vertical_tmp - correction_of_y_ };
     return Eigen::Vector2d(yaw, pitch_new * -1); //pitch向上为负
 }

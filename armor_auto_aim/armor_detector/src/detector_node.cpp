@@ -38,34 +38,17 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     last_publish_time_ = this->now();
 
-image_sub_ = this->create_subscription<auto_aim_interfaces::msg::Image>(
-        "/camera/armor_image",
+    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        "/image_pub",
         rclcpp::SensorDataQoS().keep_last(2),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );
-
-    // mode_info_sub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
-    //     "/communicate/autoaim",
-    //     100,
-    //     [this](const std_msgs::msg::Int32MultiArray::SharedPtr msg) {
-    //         RCLCPP_INFO(this->get_logger(), "Armor received autoaim message: %d %d", msg->data[0], msg->data[1]);
-    //         if (msg->data[1] == 0) {
-    //             detector_->UpdateEnemyColor(msg->data[0] == 0 ? Color::RED : Color::BLUE);
-    //             image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-    //                 "/image_pub",
-    //                 rclcpp::SensorDataQoS().keep_last(2),
-    //                 std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
-    //             );
-    //         } else {
-    //             image_sub_.reset();
-    //         }
-    //     }
-    // );
 }
 
-void ArmorDetectorNode::ImageCallback(const auto_aim_interfaces::msg::Image::SharedPtr msg) {
-    detector_->UpdateEnemyColor(msg->color == "r" ? Color::RED : Color::BLUE);
-    auto&& raw_image = cv::Mat(msg->raw_image.height, msg->raw_image.width, CV_8UC3, msg->raw_image.data.data());
+void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
+    detector_->UpdateEnemyColor(msg->header.frame_id == "0" ? Color::RED : Color::BLUE);
+    msg->header.frame_id = "camera";
+    auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());
     std::vector<Armor> armors;
 
     if (debug_) {
@@ -79,7 +62,7 @@ void ArmorDetectorNode::ImageCallback(const auto_aim_interfaces::msg::Image::Sha
         armors = detector_->DetectArmor(raw_image);
     }
 
-    PublishArmors(armors, msg);
+    PublishArmors(armors, msg->header);
 }
 
 std::unique_ptr<Detector> ArmorDetectorNode::CreateDetector() {
@@ -189,10 +172,10 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
     armor_marker_pub_->publish(marker_array);
 }
 
-void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const auto_aim_interfaces::msg::Image::SharedPtr& msg) {
+void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
     if (!armors.empty()) {
         auto_aim_interfaces::msg::Armors armors_msg;
-        armors_msg.header = msg->header;
+        armors_msg.header = header;
         for (const auto& armor: armors) {
             auto_aim_interfaces::msg::Armor armor_msg;
             armor_msg.set__number(armor.number);
@@ -202,17 +185,16 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const au
             armors_msg.armors.push_back(armor_msg);
         }
 
-        armors_msg.yaw_and_pitch = msg->yaw_and_pitch;
         armors_pub_->publish(armors_msg);
         lost_count_ = 0;
     } else if (++lost_count_ > 5) {
         communicate::msg::SerialInfo no_armor_msg;
         no_armor_msg.is_find.set__data('0');
         no_armor_msg.can_shoot.set__data('0');
-        no_armor_msg.euler = {
-            msg->yaw_and_pitch[0],
-            msg->yaw_and_pitch[1]
-        };
+        // no_armor_msg.euler = {
+        //     msg->yaw_and_pitch[0],
+        //     msg->yaw_and_pitch[1]
+        // };
         no_armor_pub_->publish(no_armor_msg);
     }
 
