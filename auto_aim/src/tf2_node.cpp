@@ -16,7 +16,6 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
         std::vector<double> { 0.0, 0.0, 0.0 }
     );
     this->odom2shooter_r_ = declare_parameter("odom2shooter_r", 0.5);
-    this->fix_ = declare_parameter("fix", 0.1);
     this->shooter_coordinate = declare_parameter("shooter_coordinate", "shooter");
     this->camera_coordinate = declare_parameter("camera_coordinate", "camera");
     this->odom_coordinate = declare_parameter("odom_coordinate", "odom");
@@ -68,10 +67,6 @@ TF2Node::TF2Node(const rclcpp::NodeOptions& options):
                 }(),
                 tf2::Vector3(shooter2camera_tvec_[0], shooter2camera_tvec_[1], shooter2camera_tvec_[2])
             );
-
-            last_yaw_ = yaw;
-            last_pitch_ = pitch;
-            // RCLCPP_INFO_STREAM(this->get_logger(), "timestamp: " << timestamp.sec << " " << timestamp.nanosec);
         }
     );
 }

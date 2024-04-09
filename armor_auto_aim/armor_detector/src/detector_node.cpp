@@ -27,7 +27,6 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
     no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", 10);
-    use_absolute_angle_ = declare_parameter("use_absolute_angle", false);
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",
@@ -39,7 +38,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
     last_publish_time_ = this->now();
 
-    image_sub_ = this->create_subscription<auto_aim_interfaces::msg::Image>(
+image_sub_ = this->create_subscription<auto_aim_interfaces::msg::Image>(
         "/camera/armor_image",
         rclcpp::SensorDataQoS().keep_last(2),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
@@ -173,7 +172,7 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
     for (const auto& armor: armors) {
         // Fill the markers
         if (armor.type != ArmorType::INVALID) {
-            // armor_marker_.id++;
+            armor_marker_.id++;
             armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
             armor_marker_.pose = armor.pose;
             text_marker_.id++;
@@ -191,35 +190,30 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
 }
 
 void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const auto_aim_interfaces::msg::Image::SharedPtr& msg) {
-    auto_aim_interfaces::msg::Armors armors_msg;
-    armors_msg.header = msg->header;
-    for (const auto& armor: armors) {
-        auto_aim_interfaces::msg::Armor armor_msg;
-        armor_msg.set__number(armor.number);
-        armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
-        armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
-        armor_msg.set__pose(armor.pose);
-        armors_msg.armors.push_back(armor_msg);
-    }
-
-    armors_msg.yaw_and_pitch = msg->yaw_and_pitch;
-    armors_pub_->publish(armors_msg);
-
-    if (armors.empty()) {
-        if (++lost_count_ > 5) {
-            communicate::msg::SerialInfo no_armor_msg;
-            no_armor_msg.is_find.set__data('0');
-            no_armor_msg.can_shoot.set__data('0');
-            no_armor_msg.euler = {
-                use_absolute_angle_ ? msg->yaw_and_pitch[0] : 0,
-                use_absolute_angle_ ? msg->yaw_and_pitch[1] : 0
-            };
-            no_armor_pub_->publish(no_armor_msg);
+    if (!armors.empty()) {
+        auto_aim_interfaces::msg::Armors armors_msg;
+        armors_msg.header = msg->header;
+        for (const auto& armor: armors) {
+            auto_aim_interfaces::msg::Armor armor_msg;
+            armor_msg.set__number(armor.number);
+            armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
+            armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
+            armor_msg.set__pose(armor.pose);
+            armors_msg.armors.push_back(armor_msg);
         }
 
-        RCLCPP_DEBUG(this->get_logger(), "No armor detected");
-    } else {
+        armors_msg.yaw_and_pitch = msg->yaw_and_pitch;
+        armors_pub_->publish(armors_msg);
         lost_count_ = 0;
+    } else if (++lost_count_ > 5) {
+        communicate::msg::SerialInfo no_armor_msg;
+        no_armor_msg.is_find.set__data('0');
+        no_armor_msg.can_shoot.set__data('0');
+        no_armor_msg.euler = {
+            msg->yaw_and_pitch[0],
+            msg->yaw_and_pitch[1]
+        };
+        no_armor_pub_->publish(no_armor_msg);
     }
 
     rclcpp::Time&& now = this->now();

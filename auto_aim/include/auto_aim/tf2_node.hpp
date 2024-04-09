@@ -40,9 +40,6 @@ private:
     std::vector<double> shooter2camera_tvec_; // 枪口坐标系到相机坐标系的平移向量
     double odom2shooter_r_;                   // 枪口到 odom 坐标系的距离
 
-    double fix_;                  // 修正系数
-    double yaw_fix_ = 0;          // yaw 修正系数
-    float last_yaw_, last_pitch_; // 上一次的欧拉角
     std::string shooter_coordinate, camera_coordinate, odom_coordinate;
 };
 } // namespace auto_aim

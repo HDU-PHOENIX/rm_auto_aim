@@ -2,12 +2,11 @@
   ros__parameters:
     debug: false
     show_pic: false
-    use_absolute_angle: false
     enemy_color: 0 # 0-红色，1-蓝色
-    bullet_speed: 25.0
+    bullet_speed: 27.0
 
     ### balance camera 0
-    # camera_matrix: [2147.4482502081296, 0.0, 610.8796357349283, 0.0, 2139.2158573191978, 452.44695289747506, 0.0, 0.0, 1.0]
+    # camera_matrix: [2147.4482502081296, 0.0, 725.8796357349283, 0.0, 2139.2158573191978, 222.44695289747506, 0.0, 0.0, 1.0]
     # distortion_coefficients: [0.014259845606874209, -0.22750693946613146, -0.004126797468007286, -0.002715723823503455, 0.0]
 
     ### plane camera 1
@@ -21,7 +20,7 @@
     # ]
 
     ### omni camera 2
-    camera_matrix: [1623.105565042202, 0.0, 655.673413537912, 0.0, 1617.7489171679433, 540.7858370758917, 0.0, 0.0, 1.0]
+    camera_matrix: [1623.105565042202, 0.0, 650.673413537912, 0.0, 1617.7489171679433, 225.7858370758917, 0.0, 0.0, 1.0]
     distortion_coefficients: [-0.051431926319480306, 0.165968020630758, 0.003155568211952706, -0.0018267557107600118, 0.0]
 
     ### hero camera 3
@@ -78,7 +77,6 @@
         # omni
         odom2shooter_r: 0.056
         shooter2camera_tvec: [0.03805, 0, 0.0295]
-        fix: 0.1
         shooter_coordinate: "shooter"
         camera_coordinate: "camera"
         odom_coordinate: "odom"
@@ -97,7 +95,6 @@
         binary_thres: 160
         gray_thres: 200
         contour_thres: 100
-        enemy_color: 0 # 0-红色，1-蓝色
 
 /armor_tracker_node:
     ros__parameters:
@@ -131,5 +128,5 @@
         correction_of_z: 0.0
         stop_error: 0.001
         number_of_iterations: 60
-        yaw_threshold: 0.01
+        yaw_threshold: 0.02
         pitch_threshold: 0.005

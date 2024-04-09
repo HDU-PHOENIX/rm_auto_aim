@@ -16,8 +16,7 @@ public:
 
 private:
     // 射击判断
-    void ShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info);
-    void RuneShootingJudge(auto&& yaw_and_pitch, communicate::msg::SerialInfo& serial_info, const auto_aim_interfaces::msg::Target::SharedPtr& data);
+    void ShootingJudge(const Eigen::Vector2d& yaw_and_pitch, const auto_aim_interfaces::msg::Target::SharedPtr& data, communicate::msg::SerialInfo& serial_info);
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;                                              //发射解算器
     visualization_msgs::msg::Marker marker;                                         //marker可视化
@@ -31,7 +30,6 @@ private:
 
     rclcpp::Time last_shoot_time;
     bool debug_;              //debug标志符
-    bool use_absolute_angle_; //是否使用绝对角度
 };
 
 } // namespace auto_aim

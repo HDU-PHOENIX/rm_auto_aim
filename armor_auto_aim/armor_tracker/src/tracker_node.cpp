@@ -61,7 +61,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
         armors_sub_,                        // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
         target_frame_,                      // frame this filter should attempt to transform to
-        1000,                               // size of the tf2 cache
+        100,                                // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
         std::chrono::milliseconds(1)        // timeout
@@ -161,12 +161,10 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     last_time_ = time;
 
     PublishMarkers(target_msg);
-    // target_pub_->publish(target_msg);
 
     {
         // odom 系下计算 car position 和 yaw 的预测位置
-        auto&& flytime = sqrt(pow(target_msg.position.x, 2) + pow(target_msg.position.y, 2) + pow(target_msg.position.z, 2)) / bullet_speed_ + flytime_offset_;
-        // auto&& flytime = 0.1;
+        auto&& flytime = std::hypot(target_msg.position.x, target_msg.position.y, target_msg.position.z) / bullet_speed_ + flytime_offset_;
         //这里飞机的向下的速度需要处理，这里忽略傾角
         //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
         auto predict_car_state = tracker_->target_state;
@@ -175,41 +173,36 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         predict_car_state(4) += target_msg.velocity.z * flytime; // z predict
         predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
 
-        auto predict_armor_position = tracker_->GetArmorPositionFromState(predict_car_state);
+        auto predict_armor_position = tracker_->ChooseArmor(
+            CarState {
+                predict_car_state(0),
+                predict_car_state(2),
+                predict_car_state(4),
+                predict_car_state(6),
+                tracker_->dz,
+                { target_msg.radius_1,
+                  target_msg.radius_2 } },
+            tracker_->tracked_armors_num
+        );
 
-        // 如果预测的角速度过大，直接使用预测的车中心位置
-        if (target_msg.v_yaw > max_v_yaw_) {
-            predict_armor_position = { predict_car_state.x(), predict_car_state.y(), predict_car_state.z() };
-        }
-
-        geometry_msgs::msg::Point predict_armor_position_msg;
-        predict_armor_position_msg.x = predict_armor_position.x();
-        predict_armor_position_msg.y = predict_armor_position.y();
-        predict_armor_position_msg.z = predict_armor_position.z();
-
-        // target_msg.position.x = predict_armor_position.x();
-        // target_msg.position.y = predict_armor_position.y();
-        // target_msg.position.z = predict_armor_position.z();
-        // target_msg.yaw = predict_car_state(6);
-
-        geometry_msgs::msg::PoseStamped ps;
-        ps.header = armors_msg->header;
-        ps.header.frame_id = "odom";
-        ps.pose.position = predict_armor_position_msg;
-        // 后续用不到旋转，且不影响 position 的转换，所以删除相关计算
-        try {
-            auto shooter_ps = tf2_buffer_->transform(ps, "shooter");
-            target_msg.header = shooter_ps.header;
-            target_msg.pw = shooter_ps.pose;
-        } catch (const tf2::ExtrapolationException& ex) {
-            RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
-            return;
-        }
         target_msg.mode = false; // armor: false, rune: true
         target_msg.yaw = predict_car_state(6);
         target_msg.v_yaw = predict_car_state(7);
-
+        target_msg.pw.position.x = predict_armor_position.x();
+        target_msg.pw.position.y = predict_armor_position.y();
+        target_msg.pw.position.z = predict_armor_position.z();
         target_msg.origin_yaw_and_pitch = armors_msg->yaw_and_pitch;
+
+        double roll, pitch, yaw;
+        auto transform = tf2_buffer_->lookupTransform( "odom", "shooter", tf2::TimePointZero).transform;
+        tf2::Matrix3x3(
+            tf2::Quaternion(
+                transform.rotation.x,
+                transform.rotation.y,
+                transform.rotation.z, transform.rotation.w
+            )
+        ).getRPY(roll, pitch, yaw);
+        target_msg.origin_yaw_and_pitch = {static_cast<float>(yaw), static_cast<float>(pitch)};
         target_pub_->publish(target_msg);
     }
 }

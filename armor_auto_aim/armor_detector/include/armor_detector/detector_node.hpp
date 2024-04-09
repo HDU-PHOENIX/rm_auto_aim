@@ -40,7 +40,6 @@ private:
     void InitMarkers();
 
     bool debug_;
-    bool use_absolute_angle_;
     std::shared_ptr<rclcpp::ParameterEventHandler> debug_param_sub_;
     std::shared_ptr<rclcpp::ParameterCallbackHandle> debug_cb_handle_;
     rclcpp::Publisher<auto_aim_interfaces::msg::DebugLights>::SharedPtr debug_lights_pub_;

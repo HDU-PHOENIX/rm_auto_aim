@@ -48,7 +48,7 @@ void CameraNode::InnerShot() {
 
 void CameraNode::EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
     auto_aim_interfaces::msg::Image::UniquePtr image_msg(new auto_aim_interfaces::msg::Image());
-    image_msg->header.stamp = msg->header.stamp;
+    image_msg->header.stamp = this->now() + rclcpp::Duration(std::chrono::milliseconds(1));
     this->GetImg();
     image_msg->header.frame_id = "camera";
     image_msg->color = msg->header.frame_id;
