@@ -65,9 +65,11 @@ void ShooterNode::ShootingJudge(
             last_shoot_time = data->header.stamp;
         }
     } else {
-        // TODO: 根据距离计算
-        if (abs(yaw_and_pitch[0] - data->origin_yaw_and_pitch[0]) < 0.03
-            && abs(yaw_and_pitch[1] - data->origin_yaw_and_pitch[1]) < 0.03) {
+        // armor
+        // TODO: 参数还需根据实际调整
+        double distance = std::sqrt(data->pw.position.x * data->pw.position.x + data->pw.position.y * data->pw.position.y + data->pw.position.z * data->pw.position.z);
+        if (abs(yaw_and_pitch[0] - data->origin_yaw_and_pitch[0]) * distance < 0.03
+            && abs(yaw_and_pitch[1] - data->origin_yaw_and_pitch[1]) * distance < 0.03) {
             serial_info.can_shoot.set__data('1');
         }
     }
