@@ -57,8 +57,8 @@ void ShooterNode::ShootingJudge(
     if (data->mode) {
         // rune
         //解算欧拉角收敛且tracker算法认为可以射击
-        // TODO: 减去
-        if ((std::hypot(yaw_and_pitch[0], yaw_and_pitch[1]) < 0.05) && data->can_shoot
+        if ((std::hypot(abs(yaw_and_pitch[0] - data->origin_yaw_and_pitch[0]), abs(yaw_and_pitch[1] - data->origin_yaw_and_pitch[1])) < 0.05)
+            && data->can_shoot
             && (rclcpp::Time(data->header.stamp) - last_shoot_time).seconds() > data->delay) {
             //确保子弹不会没有飞到就开下一枪
             serial_info.can_shoot.set__data('1');

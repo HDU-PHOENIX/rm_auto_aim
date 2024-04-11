@@ -67,7 +67,6 @@
     ros__parameters:
         videoflag: false
         video_path: "./Camera/new6.mp4"
-        inner_shot_flag: false
 
 /tf2_node:
     ros__parameters:
@@ -101,7 +100,7 @@
         tracker.tracking_thres: 5
         tracker.lost_time_thres: 0.3
         tracker.max_v_yaw: 0.6
-        tracker.flytime_offset: 0.1
+        tracker.flytime_offset: 0.0
 
 /rune_detector_node:
     ros__parameters:
