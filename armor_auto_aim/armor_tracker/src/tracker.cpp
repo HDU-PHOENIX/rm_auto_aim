@@ -226,52 +226,32 @@ Eigen::Vector3d Tracker::GetArmorPositionFromState(const Eigen::VectorXd& x) {
 }
 
 Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const ArmorsNum& armor_id) {
+    auto armor_number = static_cast<int>(armor_id);
     std::vector<ArmorPosition> armors_position;
     ArmorPosition best_armor;
     best_armor.distance_square = 1e9;
-    if (armor_id == ArmorsNum::BALANCE_2) {
-        for (int i = 0; i < 2; i++) {
-            double yaw = car_state.yaw + i * M_PI;
-            armors_position.emplace_back(
-                car_state.x - car_state.r[0] * cos(yaw),
-                car_state.y - car_state.r[0] * sin(yaw),
-                car_state.z,
-                yaw
-            );
-        }
-        // TODO: 平衡装甲板
 
-    } else if (armor_id == ArmorsNum::OUTPOST_3) {
-        for (int i = 0; i < 3; i++) {
-            double yaw = car_state.yaw + i * (2 * M_PI / 3);
-            armors_position.emplace_back(
-                car_state.x - car_state.r[0] * cos(yaw),
-                car_state.y - car_state.r[0] * sin(yaw),
-                car_state.z,
-                yaw
-            );
-        }
-        // TODO: 前哨站装甲板选择
-
-    } else {
-        for (int i = 0; i < 3; i++) {
-            double yaw = car_state.yaw + i * (M_PI / 2);
-            armors_position.emplace_back(
-                car_state.x - car_state.r[0] * cos(yaw),
-                car_state.y - car_state.r[0] * sin(yaw),
-                car_state.z + car_state.dz * (i % 2),
-                yaw
-            );
-        }
+    // 迭代每一块装甲板
+    for (int i = 0; i < armor_number; i++) {
+        double yaw = car_state.yaw + i * (2 * M_PI / armor_number);
+        armors_position.emplace_back(
+            car_state.x - car_state.r[0] * cos(yaw),
+            car_state.y - car_state.r[0] * sin(yaw),
+            car_state.z,
+            yaw
+        );
     }
 
+    // 选择距离最近的装甲板
     for (auto armor: armors_position) {
         if (armor.distance_square < best_armor.distance_square) {
             best_armor = armor;
         }
     }
 
-    return Eigen::Vector3d(best_armor.x, best_armor.y, best_armor.z);
+    // TODO: 后续可以考虑传入枪管 yaw，更具最小的 yaw 选择最佳装甲板
+
+    return {best_armor.x, best_armor.y, best_armor.z};
 };
 
 } // namespace armor
