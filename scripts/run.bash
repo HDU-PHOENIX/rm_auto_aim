@@ -9,7 +9,7 @@ echo -e "auto_aim pid: $pid2\n\n"
 
 sleep 3
 
-ros2 launch communicate launch.py &
+bash ./communicate/reset.bash &
 pid1=$!
 echo -e "communicate_node pid: $pid1\n\n"
 

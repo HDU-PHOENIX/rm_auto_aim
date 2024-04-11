@@ -37,14 +37,20 @@ def generate_launch_description():
                 package = 'armor_detector',
                 plugin = 'armor::ArmorDetectorNode',
                 name = 'armor_detector_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
+                extra_arguments = [{
+                    "use_intra_process_comms": True,
+                    "respawn": True,
+                }],
                 parameters = [config]
             ),
             ComposableNode(
                 package = 'camera',
                 plugin = 'sensor::CameraNode',
                 name = 'camera_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
+                extra_arguments = [{
+                    "use_intra_process_comms": True,
+                    "respawn": True,
+                }],
                 parameters = [config]
             )
         ]
@@ -61,7 +67,10 @@ def generate_launch_description():
                 package = 'armor_tracker',
                 plugin = 'armor::ArmorTrackerNode',
                 name = 'armor_tracker_node',
-                extra_arguments = [{"use_intra_process_comms": True}],
+                extra_arguments = [{
+                    "use_intra_process_comms": True,
+                    "respawn": True,
+                }],
                 parameters = [config]
             )
         ]
@@ -77,7 +86,10 @@ def generate_launch_description():
                 package='shooter',
                 plugin='auto_aim::ShooterNode',
                 name='shooter_node',
-                extra_arguments=[{"use_intra_process_comms": True}],
+                extra_arguments = [{
+                    "use_intra_process_comms": True,
+                    "respawn": True,
+                }],
                 parameters = [config]
             )
         ]
@@ -93,7 +105,10 @@ def generate_launch_description():
                 package='auto_aim',
                 plugin='auto_aim::TF2Node',
                 name='tf2_node',
-                extra_arguments=[{"use_intra_process_comms": True}],
+                extra_arguments = [{
+                    "use_intra_process_comms": True,
+                    "respawn": True,
+                }],
                 parameters = [config]
             )
         ]

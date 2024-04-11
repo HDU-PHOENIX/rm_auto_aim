@@ -86,7 +86,6 @@ void CameraNode::GetImg() {
     } else {
         if (!this->GetFrame(frame_)) {
             RCLCPP_ERROR(this->get_logger(), "mindvision get image failed");
-            exit(-1);
         }
     }
 }
