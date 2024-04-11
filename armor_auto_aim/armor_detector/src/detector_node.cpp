@@ -26,7 +26,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
-    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", 10);
+    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",

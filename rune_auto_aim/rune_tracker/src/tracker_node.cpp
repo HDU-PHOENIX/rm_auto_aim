@@ -57,7 +57,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
     );
     no_target_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
         "/shoot_info/left",
-        10
+        rclcpp::SensorDataQoS()
     );
 }
 

@@ -19,7 +19,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
     shooter_info_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
         "/shoot_info/left",
-        10
+        rclcpp::SensorDataQoS()
     );
     target_sub_ = this->create_subscription<auto_aim_interfaces::msg::Target>(
         "/tracker/target",
