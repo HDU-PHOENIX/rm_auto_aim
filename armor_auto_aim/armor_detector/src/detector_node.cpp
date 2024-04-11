@@ -39,7 +39,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     last_publish_time_ = this->now();
 
     image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/image_pub",
+        "/image_for_armor",
         rclcpp::SensorDataQoS().keep_last(2),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );
