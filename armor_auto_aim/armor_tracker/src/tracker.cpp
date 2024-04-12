@@ -229,7 +229,7 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const ArmorsNum&
     auto armor_number = static_cast<int>(armor_id);
     std::vector<ArmorPosition> armors_position;
     ArmorPosition best_armor;
-    best_armor.distance_square = 1e9;
+    best_armor.distance_square = std::numeric_limits<float>::max();
 
     // 迭代每一块装甲板
     for (int i = 0; i < armor_number; i++) {

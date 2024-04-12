@@ -38,9 +38,8 @@ struct ArmorPosition {
         x(x),
         y(y),
         z(z),
-        yaw(yaw) {
-        distance_square = x * x + y * y + z * z;
-    }
+        yaw(yaw),
+        distance_square(x * x + y * y) {};
 };
 
 struct CarState {
