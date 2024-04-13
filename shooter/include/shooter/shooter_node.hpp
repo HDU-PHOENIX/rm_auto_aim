@@ -15,8 +15,9 @@ public:
     void InitMarker();
 
 private:
+    void Start();
     // 射击判断
-    void ShootingJudge(const Eigen::Vector2d& yaw_and_pitch, const auto_aim_interfaces::msg::Target::SharedPtr& data, communicate::msg::SerialInfo& serial_info);
+    void ShootingJudge(communicate::msg::SerialInfo& serial_info);
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;                                              //发射解算器
     visualization_msgs::msg::Marker marker;                                         //marker可视化
@@ -29,7 +30,22 @@ private:
     double pitch_threshold_;
 
     rclcpp::Time last_shoot_time;
-    bool debug_;              //debug标志符
+    bool debug_; //debug标志符
+
+    float delay_;     //延迟时间
+    bool updateflag_; //更新标志符
+    bool rune_shoot_permit_;
+    struct Record {
+        float target_yaw_and_pitch[2] = { 0, 0 };
+        float now_yaw_and_pitch[2] = { 0, 0 };
+        bool Empty() {
+            return target_yaw_and_pitch[0] == 0 && target_yaw_and_pitch[1] == 0;
+        }
+    } record_last_, record_last_last_; //记录上一次的yaw和pitch
+    float target_yaw_and_pitch_[2];    //当前目标yaw和pitch
+    float now_yaw_and_pitch_[2];       //当前车自身yaw和pitch
+    std::thread shoot_thread_;
+    bool mode_;
 };
 
 } // namespace auto_aim
