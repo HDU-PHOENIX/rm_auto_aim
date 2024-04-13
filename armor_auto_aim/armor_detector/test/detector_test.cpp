@@ -14,18 +14,19 @@ TEST(DetectorTest, TestDetectArmor) {
 
     auto total_time = 0;
 
+    armor::Detector detector(
+        armor::DetectorParam {
+            { 100, 100 },
+            { 100, 100 } },
+        pkg_path + "/model/mlp.onnx",
+        pkg_path + "/model/label.txt",
+        0.7,
+        std::vector<double> { 1302.9388992859376, 0, 609.2298064340857, 0, 2515.6912302455735, 467.0345949712323, 0, 0, 1 },
+        std::vector<double> { 0.9716178021093913, -22.20834732244382, -0.19838225091062828, -0.08828110807170159, 96.16902256363146 },
+        armor::Color::BLUE,
+        std::vector<std::string> { "negative" }
+    );
     while (cap.GetFrame(frame)) {
-        armor::Detector detector(
-            100,
-            100,
-            armor::Color::BLUE,
-            pkg_path + "/model/mlp.onnx",
-            pkg_path + "/model/label.txt",
-            0.7,
-            std::vector<double> { 1302.9388992859376, 0, 609.2298064340857, 0, 2515.6912302455735, 467.0345949712323, 0, 0, 1 },
-            std::vector<double> { 0.9716178021093913, -22.20834732244382, -0.19838225091062828, -0.08828110807170159, 96.16902256363146 },
-            std::vector<std::string> { "negative" }
-        );
         auto start_time = std::chrono::steady_clock::now();
         std::vector<armor::Armor> armors = detector.DetectArmor(*frame);
         auto end_time = std::chrono::steady_clock::now();

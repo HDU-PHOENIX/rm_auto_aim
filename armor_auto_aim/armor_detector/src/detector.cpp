@@ -2,19 +2,17 @@
 
 namespace armor {
 Detector::Detector(
-    int binary_threshold,
-    int light_contour_threshold,
-    Color enemy_color,
+    DetectorParam detector_param,
     std::string model_path,
     std::string label_path,
     float confidence_threshold,
     const std::vector<double>& camera_matrix,
     const std::vector<double>& distortion_coefficients,
+    Color enemy_color,
     std::vector<std::string> ignore_classes,
     cv::Mat kernel
 ):
-    binary_threshold_(binary_threshold),
-    light_contour_threshold_(light_contour_threshold),
+    detector_param_(detector_param),
     enemy_color_(enemy_color),
     kernel_(kernel) {
     this->classifier_ = std::make_unique<NumberClassifier>(model_path, label_path, confidence_threshold, ignore_classes);
@@ -22,15 +20,13 @@ Detector::Detector(
 }
 
 Detector::Detector(
-    int binary_threshold,
-    int light_contour_threshold,
-    Color enemy_color,
+    DetectorParam detector_param,
     std::unique_ptr<NumberClassifier> classifier,
     std::unique_ptr<PnPSolver> pnp_solver,
+    Color enemy_color,
     cv::Mat kernel
 ):
-    binary_threshold_(binary_threshold),
-    light_contour_threshold_(light_contour_threshold),
+    detector_param_(detector_param),
     enemy_color_(enemy_color),
     kernel_(kernel),
     classifier_(std::move(classifier)),
@@ -53,7 +49,7 @@ std::vector<Armor> Detector::DetectArmor(const cv::Mat& input) {
 cv::Mat Detector::PreprocessImage(const cv::Mat& input) {
     cv::Mat gray, binary;
     cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
-    cv::threshold(gray, binary, this->binary_threshold_, 255, cv::THRESH_BINARY);
+    cv::threshold(gray, binary, detector_param_.binary_threshold[static_cast<int>(enemy_color_)], 255, cv::THRESH_BINARY);
     return binary;
 }
 
@@ -68,7 +64,7 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     } else {
         cv::subtract(channels_[0], channels_[2], color_mask_);
     }
-    cv::threshold(color_mask_, light_contour_binary_image_, light_contour_threshold_, 255, cv::THRESH_BINARY);
+    cv::threshold(color_mask_, light_contour_binary_image_, detector_param_.light_contour_threshold[static_cast<int>(enemy_color_)], 255, cv::THRESH_BINARY);
     cv::dilate(light_contour_binary_image_, light_contour_binary_image_, kernel_);
     cv::bitwise_and(preprocessed_image_, light_contour_binary_image_, light_contour_binary_image_);
 
@@ -156,10 +152,6 @@ cv::Mat Detector::GetAllNumbersImage() {
 
 void Detector::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
     classifier_->UpdateIgnoreClasses(ignore_classes);
-}
-
-void Detector::UpdateEnemyColor(Color enemy_color) {
-    enemy_color_ = enemy_color;
 }
 
 void Detector::DrawResult(const cv::Mat& input) {

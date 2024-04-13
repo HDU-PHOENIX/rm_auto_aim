@@ -6,27 +6,30 @@
 
 namespace armor {
 
+struct DetectorParam {
+    int binary_threshold[2];
+    int light_contour_threshold[2];
+};
+
 class Detector {
 public:
     Detector(
-        int binary_threshold,
-        int light_contour_threshold,
-        Color enemy_color,
+        DetectorParam detector_param,
         std::string model_path,
         std::string label_path,
         float confidence_threshold,
         const std::vector<double>& camera_matrix,
         const std::vector<double>& distortion_coefficients,
-        std::vector<std::string> ignore_classes = {},
+        Color enemy_color = Color::BLUE,
+        std::vector<std::string> ignore_classes = { "negative" },
         cv::Mat kernel = cv::Mat::ones(5, 5, CV_8U)
     );
 
     Detector(
-        int binary_threshold,
-        int light_contour_threshold,
-        Color enemy_color,
+        DetectorParam detector_param,
         std::unique_ptr<NumberClassifier> classifier,
         std::unique_ptr<PnPSolver> pnp_solver,
+        Color enemy_color = Color::BLUE,
         cv::Mat kernel = cv::Mat::ones(5, 5, CV_8U)
     );
 
@@ -69,7 +72,13 @@ public:
      * @brief 更新敌方颜色
      * @param enemy_color 敌方颜色
      */
-    void UpdateEnemyColor(Color enemy_color);
+    inline void UpdateEnemyColor(const Color& enemy_color) {
+        enemy_color_ = enemy_color;
+    }
+
+    inline void UpdateDetectorParam(const DetectorParam& detector_param) {
+        detector_param_ = detector_param;
+    }
 
 private:
     /**
@@ -108,12 +117,11 @@ private:
      */
     Armor FormArmor(const cv::Mat& input, const Light& left_light, const Light& right_light);
 
+    DetectorParam detector_param_;
     cv::Mat preprocessed_image_;         // 预处理后的图片
     cv::Mat channels_[3];                // 通道相减模式下的三通道图
     cv::Mat color_mask_;                 // 敌方颜色通道 - 己方颜色通道后的图
     cv::Mat light_contour_binary_image_; // 灯条轮廓为白的二值图
-    int binary_threshold_;               // 原图二值化阈值
-    int light_contour_threshold_;        // 对通道相减后的灯条轮廓图进行二值化的阈值
     Color enemy_color_;                  // 敌方颜色
     cv::Mat kernel_;                     // 膨胀核
 

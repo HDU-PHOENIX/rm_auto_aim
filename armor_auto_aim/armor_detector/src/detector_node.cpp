@@ -71,31 +71,31 @@ std::unique_ptr<Detector> ArmorDetectorNode::CreateDetector() {
     param_desc.integer_range[0].step = 1;
     param_desc.integer_range[0].from_value = 0;
     param_desc.integer_range[0].to_value = 255;
-    auto&& binary_threshold = declare_parameter("binary_threshold", 100, param_desc);
-    auto&& light_contour_threshold = declare_parameter("light_contour_threshold", 100, param_desc);
+    int&& binary_threshold_red = declare_parameter("binary_threshold_red", 100, param_desc);
+    int&& light_contour_threshold_red = declare_parameter("light_contour_threshold_red", 100, param_desc);
+    int&& binary_threshold_blue = declare_parameter("binary_threshold_blue", 100, param_desc);
+    int&& light_contour_threshold_blue = declare_parameter("light_contour_threshold_blue", 100, param_desc);
+    DetectorParam detector_param {
+        { binary_threshold_red,
+          binary_threshold_blue },
+        { light_contour_threshold_red,
+          light_contour_threshold_blue }
+    };
 
-    // enemy_color 0-红色 1-蓝色，实际上是无效值
-    // 没有收到通信节点的 communicate/autoaim 消息时，并不会进行识别
-    // 收到消息后才启动图片订阅者，并更新 enemy_color
-    auto&& enemy_color = declare_parameter("enemy_color", 0); // 0-红色 1-蓝色
     auto&& confidence_threshold = declare_parameter("confidence_threshold", 0.7);
     auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
     auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
     auto&& pkg_path = ament_index_cpp::get_package_share_directory("armor_detector");
     auto&& model_path = declare_parameter("model_path", "/model/mlp.onnx");
     auto&& label_path = declare_parameter("label_path", "/model/label.txt");
-    auto&& ignore_classes = declare_parameter("ignore_classes", std::vector<std::string> { "negative" });
 
     return std::make_unique<Detector>(
-        binary_threshold,
-        light_contour_threshold,
-        enemy_color == 0 ? Color::RED : Color::BLUE,
+        detector_param,
         pkg_path + model_path,
         pkg_path + label_path,
         confidence_threshold,
         camera_matrix,
-        distortion_coefficients,
-        ignore_classes
+        distortion_coefficients
     );
 }
 
@@ -117,7 +117,20 @@ void ArmorDetectorNode::DestroyDebugPublishers() {
     result_img_pub_.shutdown();
 }
 
-void ArmorDetectorNode::UpdateDetectorParameters() {}
+void ArmorDetectorNode::UpdateDetectorParameters() {
+    int&& binary_threshold_red = get_parameter("binary_threshold_red").as_int();
+    int&& light_contour_threshold_red = get_parameter("light_contour_threshold_red").as_int();
+    int&& binary_threshold_blue = get_parameter("binary_threshold_blue").as_int();
+    int&& light_contour_threshold_blue = get_parameter("light_contour_threshold_blue").as_int();
+
+    detector_->UpdateDetectorParam(
+        DetectorParam {
+            { binary_threshold_red,
+              binary_threshold_blue },
+            { light_contour_threshold_red,
+              light_contour_threshold_blue } }
+    );
+}
 
 void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
     binary_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetBinaryImage()).toImageMsg());

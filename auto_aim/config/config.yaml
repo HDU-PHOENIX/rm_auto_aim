@@ -6,9 +6,8 @@
     bullet_speed: 27.0
 
     ### balance camera 0
-    # camera_matrix: [2147.4482502081296, 0.0, 725.8796357349283, 0.0, 2139.2158573191978, 222.44695289747506, 0.0, 0.0, 1.0]
-    # distortion_coefficients: [0.014259845606874209, -0.22750693946613146, -0.004126797468007286, -0.002715723823503455, 0.0]
-
+    # camera_matrix: [2097.493333644595, 0.0, 706.5615761242506, 0.0, 2092.719718931199, 195.76478478477716, 0.0, 0.0, 1.0]
+    # distortion_coefficients: [-0.024906302374063632, 0.22070800030122006, 0.0006914404063304794, 0.007401472698630369, 0.0]
     ### plane camera 1
     # camera_matrix: [
     #     2055.094493, 0.000000, 664.381065,
@@ -91,9 +90,7 @@
 
 /armor_detector_node:
     ros__parameters:
-        binary_thres: 160
-        gray_thres: 200
-        contour_thres: 100
+        binary_threshold_red: 50
 
 /armor_tracker_node:
     ros__parameters:
