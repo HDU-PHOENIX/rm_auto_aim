@@ -55,10 +55,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         "/tracker/target",
         rclcpp::SensorDataQoS()
     );
-    no_target_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
-        "/shoot_info/left",
-        rclcpp::SensorDataQoS()
-    );
 }
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
@@ -79,13 +75,11 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     }
     if (rune_ptr->is_find == false) {
         RCLCPP_INFO(this->get_logger(), "No target found");
-        communicate::msg::SerialInfo no_target_msg;
-        no_target_msg.is_find.set__data('0');
-        no_target_msg.can_shoot.set__data('0');
-        no_target_msg.euler = { runes_msg_.origin_yaw_and_pitch[0], runes_msg_.origin_yaw_and_pitch[1] };
-        no_target_pub_->publish(no_target_msg);
+        runes_msg_.is_find = false;
+        target_pub_->publish(runes_msg_);
         return;
     }
+    runes_msg_.is_find = true;
     rune_ptr->speed = this->get_parameter("bullet_speed").as_double();
     rune_ptr->chasedelay = this->get_parameter("chasedelay").as_double();
     rune_ptr->phase_offset = this->get_parameter("phase_offset").as_double();

@@ -164,6 +164,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         // 检测图片 如果检测到了符叶则发布符叶信息
         // 符模式 0：不可激活 1：小符 2:大符
         runes_msg_.motion = img_msg->header.frame_id == "1" ? 1 : 2;
+        img_msg->header.frame_id = "camera";
         runes_msg_.is_find = DetectRunes(img_msg) ? true : false;
         if (debug_) {
             PublishMarkers(); // 发布标记

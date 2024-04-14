@@ -3,7 +3,6 @@
 // ROS
 #include "auto_aim_interfaces/msg/debug_rune.hpp"
 #include "auto_aim_interfaces/msg/target.hpp"
-#include "communicate/msg/serial_info.hpp"
 #include <message_filters/subscriber.h>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -52,9 +51,6 @@ private:
     std::shared_ptr<tf2_filter> tf2_filter_;
 
     rclcpp::Publisher<auto_aim_interfaces::msg::Target>::SharedPtr target_pub_; //向shooter节点发送数据
-
-    //没有识别到神符时发布的信息
-    rclcpp::Publisher<communicate::msg::SerialInfo>::SharedPtr no_target_pub_;
 
     auto_aim_interfaces::msg::Target runes_msg_; //自定义的神符信息
 

@@ -2,6 +2,7 @@
 #include "communicate/msg/serial_info.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "shooter/shooter.hpp"
+#include <chrono>
 #include <memory>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
@@ -18,6 +19,8 @@ private:
     void Start();
     // 射击判断
     void ShootingJudge(communicate::msg::SerialInfo& serial_info);
+
+    void AngleRevise(float& yaw, float& pitch);
     std::unique_ptr<Shooter> InitShooter();
     std::unique_ptr<Shooter> shooter_;                                              //发射解算器
     visualization_msgs::msg::Marker marker;                                         //marker可视化
@@ -32,20 +35,29 @@ private:
     rclcpp::Time last_shoot_time;
     bool debug_; //debug标志符
 
+    communicate::msg::SerialInfo serial_info_;
+
     float delay_;     //延迟时间
     bool updateflag_; //更新标志符
     bool rune_shoot_permit_;
     struct Record {
+        rclcpp::Time time;
         float target_yaw_and_pitch[2] = { 0, 0 };
         float now_yaw_and_pitch[2] = { 0, 0 };
         bool Empty() {
             return target_yaw_and_pitch[0] == 0 && target_yaw_and_pitch[1] == 0;
         }
+        void Clear() {
+            target_yaw_and_pitch[0] = 0;
+            target_yaw_and_pitch[1] = 0;
+        }
+
     } record_last_, record_last_last_; //记录上一次的yaw和pitch
     float target_yaw_and_pitch_[2];    //当前目标yaw和pitch
     float now_yaw_and_pitch_[2];       //当前车自身yaw和pitch
-    std::thread shoot_thread_;
     bool mode_;
+    int insert_count_; //连续插值次数
+    rclcpp::TimerBase::SharedPtr timer_;
 };
 
 } // namespace auto_aim

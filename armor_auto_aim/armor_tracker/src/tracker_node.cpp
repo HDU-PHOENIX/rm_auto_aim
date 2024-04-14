@@ -194,15 +194,17 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         target_msg.origin_yaw_and_pitch = armors_msg->yaw_and_pitch;
 
         double roll, pitch, yaw;
-        auto transform = tf2_buffer_->lookupTransform( "odom", "shooter", tf2::TimePointZero).transform;
+        auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
         tf2::Matrix3x3(
             tf2::Quaternion(
                 transform.rotation.x,
                 transform.rotation.y,
-                transform.rotation.z, transform.rotation.w
+                transform.rotation.z,
+                transform.rotation.w
             )
-        ).getRPY(roll, pitch, yaw);
-        target_msg.origin_yaw_and_pitch = {static_cast<float>(yaw), static_cast<float>(pitch)};
+        )
+            .getRPY(roll, pitch, yaw);
+        target_msg.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
         target_pub_->publish(target_msg);
     }
 }

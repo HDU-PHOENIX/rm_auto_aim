@@ -6,7 +6,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
     RCLCPP_INFO(this->get_logger(), "ShooterNode has been initialized.");
     shooter_ = InitShooter();
     debug_ = this->declare_parameter("debug", true);
-
+    insert_count_ = 0;
     if (debug_) {
         InitMarker();
         marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -25,7 +25,13 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         "/tracker/target",
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
+            // RCLCPP_INFO(this->get_logger(), "ShooterNode update data");
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
+            if (!msg->is_find || !msg->tracking) {
+                serial_info_.is_find.set__data('0');
+                return;
+            }
+            serial_info_.is_find.set__data('1');
             Eigen::Vector2d yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
             for (auto& euler: yaw_and_pitch) {
                 if (euler > M_PI) {
@@ -37,47 +43,59 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             mode_ = msg->mode;
             delay_ = msg->delay;
             rune_shoot_permit_ = msg->can_shoot;
-            target_yaw_and_pitch_[0] = yaw_and_pitch[0];
-            target_yaw_and_pitch_[1] = yaw_and_pitch[1];
-            now_yaw_and_pitch_[0] = static_cast<float>(msg->origin_yaw_and_pitch[0]);
-            now_yaw_and_pitch_[1] = static_cast<float>(msg->origin_yaw_and_pitch[1]);
+            record_last_last_ = record_last_;
+            record_last_.target_yaw_and_pitch[0] = target_yaw_and_pitch_[0] = yaw_and_pitch[0];
+            record_last_.target_yaw_and_pitch[1] = target_yaw_and_pitch_[1] = yaw_and_pitch[1]; //记录当前的yaw和pitch
+            //记录当前自身车yaw和pitch
+            record_last_.now_yaw_and_pitch[0] = now_yaw_and_pitch_[0] = static_cast<float>(msg->origin_yaw_and_pitch[0]);
+            record_last_.now_yaw_and_pitch[1] = now_yaw_and_pitch_[1] = static_cast<float>(msg->origin_yaw_and_pitch[1]);
+            record_last_.time = this->now();
+            updateflag_ = true;
         }
 
     );
-    shoot_thread_ = std::thread(std::bind(&ShooterNode::Start, this));
-    shoot_thread_.detach();
+    using namespace std::chrono_literals;
+    timer_ = this->create_wall_timer(5ms, std::bind(&ShooterNode::Start, this));
 }
 
 void ShooterNode::Start() {
-    rclcpp::Rate rate(300); //定频率
-    while (rclcpp::ok()) {
-        rclcpp::spin_some(this->get_node_base_interface()); //回调更新数据
-        rate.sleep();
-        if (record_last_.Empty() && record_last_last_.Empty()) {
-            continue; //如果没有数据则跳过
+    // RCLCPP_INFO(this->get_logger(), "ShooterNode is running.");
+    if (updateflag_) {
+        insert_count_ = 0;
+        serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
+    } else {
+        if (record_last_.Empty() || record_last_last_.Empty()) {
+            // RCLCPP_INFO(this->get_logger(), "No data in the past two times.");
+            //如果过去两次都没有数据，直接跳过
+            return;
         }
-        communicate::msg::SerialInfo serial_info;
-        serial_info.is_find.set__data('1');
-        updateflag_ = (record_last_.target_yaw_and_pitch[0] == target_yaw_and_pitch_[0] && record_last_.target_yaw_and_pitch[1] == target_yaw_and_pitch_[1]) ? false : true;
-
-        if (updateflag_) {
-            serial_info.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
-            record_last_last_ = record_last_;
-            record_last_.target_yaw_and_pitch[0] = target_yaw_and_pitch_[0];
-            record_last_.target_yaw_and_pitch[1] = target_yaw_and_pitch_[1]; //记录当前的yaw和pitch
-            record_last_.now_yaw_and_pitch[0] = now_yaw_and_pitch_[0];
-            record_last_.now_yaw_and_pitch[1] = now_yaw_and_pitch_[1]; //记录当前自身车yaw和pitch
-        } else {
-            float yaw_error = record_last_.target_yaw_and_pitch[0] - record_last_last_.now_yaw_and_pitch[0];
-            float pitch_error = record_last_.target_yaw_and_pitch[1] - record_last_last_.now_yaw_and_pitch[1];
-            serial_info.euler = { static_cast<float>(yaw_error + target_yaw_and_pitch_[0]), static_cast<float>(pitch_error + target_yaw_and_pitch_[1]) };
+        if (insert_count_ > 5) {
+            record_last_last_.Clear();
+            record_last_.Clear();
+            insert_count_ = 0;
+            return;
         }
-        ShootingJudge(serial_info);
-        shooter_info_pub_->publish(serial_info);
-        if (debug_) {
-            PublishMarkers(shooter_->GetShootPw(), this->now());
-        }
+        //线性插值
+        float yaw_error = record_last_.target_yaw_and_pitch[0] - record_last_last_.now_yaw_and_pitch[0];
+        float pitch_error = record_last_.target_yaw_and_pitch[1] - record_last_last_.now_yaw_and_pitch[1];
+        float dt = (record_last_.time - record_last_last_.time).seconds(); //时间差
+        target_yaw_and_pitch_[0] = record_last_.target_yaw_and_pitch[0] + (yaw_error / dt * (this->now() - record_last_.time).seconds());
+        target_yaw_and_pitch_[1] = record_last_.target_yaw_and_pitch[1] + (pitch_error / dt * (this->now() - record_last_.time).seconds());
+        AngleRevise(target_yaw_and_pitch_[0], target_yaw_and_pitch_[1]);
+        yaw_error = record_last_.now_yaw_and_pitch[0] - record_last_last_.now_yaw_and_pitch[0];
+        pitch_error = record_last_.now_yaw_and_pitch[1] - record_last_last_.now_yaw_and_pitch[1];
+        now_yaw_and_pitch_[0] = record_last_.now_yaw_and_pitch[0] + (yaw_error / dt * (this->now() - record_last_.time).seconds());
+        now_yaw_and_pitch_[1] = record_last_.now_yaw_and_pitch[1] + (pitch_error / dt * (this->now() - record_last_.time).seconds());
+        AngleRevise(now_yaw_and_pitch_[0], now_yaw_and_pitch_[1]);
+        serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
+        insert_count_++;
     }
+    ShootingJudge(serial_info_); //射击判断
+    shooter_info_pub_->publish(serial_info_);
+    if (debug_) {
+        PublishMarkers(shooter_->GetShootPw(), this->now());
+    }
+    updateflag_ = false;
 }
 
 void ShooterNode::ShootingJudge(
@@ -99,6 +117,19 @@ void ShooterNode::ShootingJudge(
             && abs(target_yaw_and_pitch_[1] - now_yaw_and_pitch_[1]) < 0.03) {
             serial_info.can_shoot.set__data('1');
         }
+    }
+}
+
+void ShooterNode::AngleRevise(float& yaw, float& pitch) {
+    if (yaw > M_PI) {
+        yaw -= 2 * M_PI;
+    } else if (yaw < -M_PI) {
+        yaw += 2 * M_PI;
+    }
+    if (pitch > M_PI) {
+        pitch -= 2 * M_PI;
+    } else if (pitch < -M_PI) {
+        pitch += 2 * M_PI;
     }
 }
 
