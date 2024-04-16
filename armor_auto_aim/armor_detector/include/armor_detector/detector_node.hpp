@@ -13,9 +13,6 @@
 #include "auto_aim_interfaces/msg/debug_armors.hpp"
 #include "auto_aim_interfaces/msg/debug_lights.hpp"
 #include "auto_aim_interfaces/msg/ignore_classes.hpp"
-#include "auto_aim_interfaces/msg/image.hpp"
-#include "auto_aim_interfaces/msg/serial_info.hpp"
-#include "communicate/msg/serial_info.hpp"
 
 namespace armor {
 class ArmorDetectorNode: public rclcpp::Node {
@@ -55,11 +52,9 @@ private:
     visualization_msgs::msg::Marker text_marker_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr armor_marker_pub_;
 
-    int lost_count_;
     std::unique_ptr<Detector> detector_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Subscription<auto_aim_interfaces::msg::IgnoreClasses>::SharedPtr ignore_classes_sub_;
     rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
-    rclcpp::Publisher<communicate::msg::SerialInfo>::SharedPtr no_armor_pub_;
 };
 } // namespace armor

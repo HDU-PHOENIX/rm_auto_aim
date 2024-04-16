@@ -7,7 +7,6 @@
 namespace armor {
 ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     Node("armor_detector", options) {
-    lost_count_ = 0;
     detector_ = CreateDetector();
     InitMarkers();
 
@@ -26,7 +25,6 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     );
 
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
-    no_armor_pub_ = create_publisher<communicate::msg::SerialInfo>("/shoot_info/left", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
         "/detector/ignore_classes",
@@ -186,30 +184,18 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
 }
 
 void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
-    if (!armors.empty()) {
-        auto_aim_interfaces::msg::Armors armors_msg;
-        armors_msg.header = header;
-        for (const auto& armor: armors) {
-            auto_aim_interfaces::msg::Armor armor_msg;
-            armor_msg.set__number(armor.number);
-            armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
-            armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
-            armor_msg.set__pose(armor.pose);
-            armors_msg.armors.push_back(armor_msg);
-        }
-
-        armors_pub_->publish(armors_msg);
-        lost_count_ = 0;
-    } else if (++lost_count_ > 5) {
-        communicate::msg::SerialInfo no_armor_msg;
-        no_armor_msg.is_find.set__data('0');
-        no_armor_msg.can_shoot.set__data('0');
-        // no_armor_msg.euler = {
-        //     msg->yaw_and_pitch[0],
-        //     msg->yaw_and_pitch[1]
-        // };
-        no_armor_pub_->publish(no_armor_msg);
+    auto_aim_interfaces::msg::Armors armors_msg;
+    armors_msg.header = header;
+    for (const auto& armor: armors) {
+        auto_aim_interfaces::msg::Armor armor_msg;
+        armor_msg.set__number(armor.number);
+        armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
+        armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
+        armor_msg.set__pose(armor.pose);
+        armors_msg.armors.push_back(armor_msg);
     }
+
+    armors_pub_->publish(armors_msg);
 
     rclcpp::Time&& now = this->now();
     RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
