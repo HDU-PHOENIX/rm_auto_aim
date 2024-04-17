@@ -27,7 +27,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
             // RCLCPP_INFO(this->get_logger(), "ShooterNode update data");
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
-            if (!msg->is_find || !msg->tracking) {
+            if (!msg->is_find && !msg->tracking) {
                 serial_info_.is_find.set__data('0');
                 return;
             }
@@ -63,6 +63,7 @@ void ShooterNode::Start() {
     if (updateflag_) {
         insert_count_ = 0;
         serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
+        updateflag_ = false;
     } else {
         if (record_last_.Empty() || record_last_last_.Empty()) {
             // RCLCPP_INFO(this->get_logger(), "No data in the past two times.");
@@ -90,12 +91,12 @@ void ShooterNode::Start() {
         serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
         insert_count_++;
     }
+
     ShootingJudge(serial_info_); //射击判断
     shooter_info_pub_->publish(serial_info_);
     if (debug_) {
         PublishMarkers(shooter_->GetShootPw(), this->now());
     }
-    updateflag_ = false;
 }
 
 void ShooterNode::ShootingJudge(

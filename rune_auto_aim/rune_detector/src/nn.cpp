@@ -1,8 +1,8 @@
 #include "rune_detector/nn.h"
 namespace rune {
 
-// static constexpr int INPUT_W = 640;    // Width of input
-// static constexpr int INPUT_H = 384;    // Height of input
+// static constexpr int INPUT_W = 640; // Width of input
+// static constexpr int INPUT_H = 640; // Height of input
 static constexpr int INPUT_W = 416;   // Width of input
 static constexpr int INPUT_H = 416;   // Height of input
 static constexpr int NUM_CLASSES = 3; // Number of classes

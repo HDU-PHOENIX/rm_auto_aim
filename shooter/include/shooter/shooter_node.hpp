@@ -45,11 +45,11 @@ private:
         float target_yaw_and_pitch[2] = { 0, 0 };
         float now_yaw_and_pitch[2] = { 0, 0 };
         bool Empty() {
-            return target_yaw_and_pitch[0] == 0 && target_yaw_and_pitch[1] == 0;
+            return this->target_yaw_and_pitch[0] == 0 && this->target_yaw_and_pitch[1] == 0;
         }
         void Clear() {
-            target_yaw_and_pitch[0] = 0;
-            target_yaw_and_pitch[1] = 0;
+            this->target_yaw_and_pitch[0] = 0;
+            this->target_yaw_and_pitch[1] = 0;
         }
 
     } record_last_, record_last_last_; //记录上一次的yaw和pitch
