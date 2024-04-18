@@ -66,6 +66,7 @@
     ros__parameters:
         videoflag: false
         video_path: "./Camera/new6.mp4"
+        rune_exposure: 4000
 
 /tf2_node:
     ros__parameters:

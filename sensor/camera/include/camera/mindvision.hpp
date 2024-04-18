@@ -18,6 +18,13 @@ public:
      * @return bool 是否成功获取图像
      */
     bool GetFrame(std::shared_ptr<cv::Mat>& frame);
+    void SetExposureTime(int time) {
+        CameraSetExposureTime(h_camera, time);
+    }
+
+    void SetExposureTime(std::string mindvision_config) {
+        CameraReadParameterFromFile(h_camera, mindvision_config.data());
+    }
 
 private:
     // 相机数量

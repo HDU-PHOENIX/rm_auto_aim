@@ -38,6 +38,7 @@ private:
     bool mode_; //决定图片往哪个topic发布 符或者装甲板 mode: rune true auto_aim false
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_pub_for_rune_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr img_pub_for_armor_;
+    int rune_use_exposure_;
 
     // 是否外部输入视频流标志位
     bool videoflag;

@@ -12,6 +12,7 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     //是否使用视频流标志位
     videoflag = this->declare_parameter("videoflag", false);
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
+    rune_use_exposure_ = this->declare_parameter("rune_exposure", 4000);
 
     // euler_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     //     "/communicate/gyro/left",
@@ -46,6 +47,12 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
 void CameraNode::ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::Request> request, std::shared_ptr<communicate::srv::ModeSwitch::Response> response) {
     //模式 0：自瞄 1：符
     this->mode_ = request->mode == 0 ? false : true;
+    if (mode_) {
+        this->SetExposureTime(rune_use_exposure_); //符曝光
+    } else {
+        //装甲板曝光
+        this->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
+    }
     this->enemy_color_or_rune_flag = request->mode == 0 ? std::to_string(request->enemy_color) : std::to_string(request->rune_state);
     response->success = true;
 }
