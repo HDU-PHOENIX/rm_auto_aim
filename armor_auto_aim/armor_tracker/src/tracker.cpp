@@ -105,13 +105,8 @@ void Tracker::Update(const Armors::SharedPtr& armors_msg) {
     }
 
     // 防止半径扩散
-    if (target_state(8) < 0.12) {
-        target_state(8) = 0.12;
-        ekf.SetState(target_state);
-    } else if (target_state(8) > 0.4) {
-        target_state(8) = 0.4;
-        ekf.SetState(target_state);
-    }
+    target_state(8) = std::clamp(target_state(8), 0.12, 0.4);
+    ekf.SetState(target_state);
 
     // 跟踪状态机
     if (tracker_state == DETECTING) {
