@@ -48,10 +48,10 @@ void PnPSolver::CalculatePose(Armor& armor) {
 
 void PnPSolver::SolvePnP(const Armor& armor) {
     std::vector<cv::Point2f> image_armor_points;
-    image_armor_points.emplace_back(armor.left_light.bottom);
-    image_armor_points.emplace_back(armor.left_light.top);
-    image_armor_points.emplace_back(armor.right_light.top);
-    image_armor_points.emplace_back(armor.right_light.bottom);
+    image_armor_points.emplace_back(armor.left_light.center);
+    image_armor_points.emplace_back((armor.left_light.top + armor.right_light.top) / 2);
+    image_armor_points.emplace_back(armor.right_light.center);
+    image_armor_points.emplace_back((armor.left_light.bottom + armor.right_light.bottom) / 2);
 
     // 装甲板四个点在三维坐标系中的坐标
     auto object_points = armor.type == ArmorType::SMALL ? SMALL_ARMOR_POINTS : LARGE_ARMOR_POINTS;

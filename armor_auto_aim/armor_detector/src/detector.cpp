@@ -158,17 +158,12 @@ void Detector::DrawResult(const cv::Mat& input) {
     cv::circle(input, pnp_solver_->GetCameraCenter(), 5, cv::Scalar(255, 0, 0), 1);
 
     for (const auto& light: lights_) {
-        cv::Point2f vertices[4];
-        light.points(vertices);
-        for (int i = 0; i < 4; i++) {
-            cv::line(input, vertices[i], vertices[(i + 1) % 4], cv::Scalar(0, 255, 0), 1);
-        }
-        cv::putText(input, std::to_string(light.tilt_angle), light.center, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
+        cv::line(input, light.top, light.bottom, cv::Scalar(0, 255, 0), 1);
     }
 
     for (const auto& armor: armors_) {
-        cv::line(input, armor.left_light.top, armor.right_light.bottom, cv::Scalar(0, 255, 0), 1);
-        cv::line(input, armor.left_light.bottom, armor.right_light.top, cv::Scalar(0, 255, 0), 1);
+        cv::line(input, armor.left_light.top, armor.right_light.top, cv::Scalar(0, 255, 0), 1);
+        cv::line(input, armor.left_light.bottom, armor.right_light.bottom, cv::Scalar(0, 255, 0), 1);
         cv::circle(input, armor.center, 3, cv::Scalar(0, 255, 0), 1);
         cv::putText(input, armor.number, armor.center, cv::FONT_HERSHEY_SIMPLEX, 2.5, cv::Scalar(255, 0, 0), 1);
     }
