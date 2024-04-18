@@ -86,23 +86,18 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     tracker_->Predict(rune_ptr, runes_msg_, debug_msg_);
 
     cv::Mat rvec, tvec; //tvec为旋转后的相机坐标系下的坐标
-    if (pnp_solver_->SolvePnP(tracker_->GetRotatedRune(), rvec, tvec, PNP_ITERATION)) {
-    } else {
-        RCLCPP_ERROR(this->get_logger(), "rune_tracker solve pnp failed");
-    }
+    pnp_solver_->SolvePnP(tracker_->GetRotatedRune(), rvec, tvec, PNP_ITERATION);
+
     geometry_msgs::msg::PoseStamped ps;
     ps.header = rune_ptr->header;
-    ps.pose.position.x = runes_msg_.pc.position.x = tvec.at<double>(0);
-    ps.pose.position.y = runes_msg_.pc.position.y = tvec.at<double>(1);
-    ps.pose.position.z = runes_msg_.pc.position.z = tvec.at<double>(2);
-    try {
-        // 将装甲板位置从 相机坐标系 转换到 odom（目标坐标系）
-        // 此后装甲板信息中的 armor.pose 为装甲板在 odom 系中的位置
-        runes_msg_.pw.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
-    } catch (const tf2::ExtrapolationException& ex) {
-        RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
-        return;
-    }
+    ps.pose.position.x = tvec.at<double>(0);
+    ps.pose.position.y = tvec.at<double>(1);
+    ps.pose.position.z = tvec.at<double>(2);
+    // 将符叶位置从 相机坐标系 转换到 odom（目标坐标系）
+    runes_msg_.predict_target.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
+    ps.pose.position = rune_ptr->pose_c.position;
+    runes_msg_.detect_target.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
+
     runes_msg_.mode = true; //true 表示符模式 false是装甲板
     target_pub_->publish(runes_msg_);
     if (debug_) {
@@ -112,19 +107,15 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
 }
 
 void RuneTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg) {
+    visualization_msgs::msg::MarkerArray marker_array;
     armor_marker_.header = target_msg.header;
+    armor_marker_.header.frame_id = target_frame_;
     armor_marker_.action = visualization_msgs::msg::Marker::ADD;
     armor_marker_.id = 0;
-    armor_marker_.pose.position.x = target_msg.pc.position.x;
-    armor_marker_.pose.position.y = target_msg.pc.position.y;
-    armor_marker_.pose.position.z = target_msg.pc.position.z; //可视化相机坐标系下的预测的装甲板位置
-    visualization_msgs::msg::MarkerArray marker_array;
+    armor_marker_.pose.position = target_msg.detect_target.position;
     marker_array.markers.emplace_back(armor_marker_);
-    armor_marker_.header.frame_id = target_frame_;
     armor_marker_.id = 1;
-    armor_marker_.pose.position.x = target_msg.pw.position.x;
-    armor_marker_.pose.position.y = target_msg.pw.position.y;
-    armor_marker_.pose.position.z = target_msg.pw.position.z; //可视化odom坐标系下的装甲板位置
+    armor_marker_.pose.position = target_msg.predict_target.position;
     marker_array.markers.emplace_back(armor_marker_);
     marker_pub_->publish(marker_array);
 }

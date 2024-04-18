@@ -188,9 +188,9 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         target_msg.mode = false; // armor: false, rune: true
         target_msg.yaw = predict_car_state(6);
         target_msg.v_yaw = predict_car_state(7);
-        target_msg.pw.position.x = predict_armor_position.x();
-        target_msg.pw.position.y = predict_armor_position.y();
-        target_msg.pw.position.z = predict_armor_position.z();
+        target_msg.predict_target.position.x = predict_armor_position.x();
+        target_msg.predict_target.position.y = predict_armor_position.y();
+        target_msg.predict_target.position.z = predict_armor_position.z();
         target_msg.origin_yaw_and_pitch = armors_msg->yaw_and_pitch;
 
         double roll, pitch, yaw;

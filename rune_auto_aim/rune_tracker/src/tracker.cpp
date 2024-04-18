@@ -54,10 +54,10 @@ void Tracker::InitCeres() {
     options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
     options.minimizer_progress_to_stdout = false;              //选择不打印拟合信息
     options.num_threads = 4;                                   //使用4个线程进行拟合
-    a_omega_phi_b[0] = RUNE_ROTATE_A_MIN;
-    a_omega_phi_b[1] = RUNE_ROTATE_O_MIN;
+    a_omega_phi_b[0] = RUNE_ROTATE_A_MEAN;
+    a_omega_phi_b[1] = RUNE_ROTATE_O_MEAN;
     a_omega_phi_b[2] = 0;
-    a_omega_phi_b[3] = 0;
+    a_omega_phi_b[3] = RUNE_ROTATE_A_ADD_B - RUNE_ROTATE_A_MEAN;
     count_cere = 0;
 }
 
@@ -266,15 +266,15 @@ void Tracker::Refitting() {
             a_omega_phi_b
         );
     }
-    problem.SetParameterLowerBound(a_omega_phi_b, 0, 0.78); //设置参数上下限
-    problem.SetParameterUpperBound(a_omega_phi_b, 0, 1.045);
-    problem.SetParameterLowerBound(a_omega_phi_b, 1, 1.884);
-    problem.SetParameterUpperBound(a_omega_phi_b, 1, 2); // 数据是官方的
+    problem.SetParameterLowerBound(a_omega_phi_b, 0, RUNE_ROTATE_A_MIN); //设置参数上下限
+    problem.SetParameterUpperBound(a_omega_phi_b, 0, RUNE_ROTATE_A_MAX);
+    problem.SetParameterLowerBound(a_omega_phi_b, 1, RUNE_ROTATE_O_MIN);
+    problem.SetParameterUpperBound(a_omega_phi_b, 1, RUNE_ROTATE_O_MAX); // 数据是官方的
 
     problem.SetParameterLowerBound(a_omega_phi_b, 2, -1 * M_PI);
     problem.SetParameterUpperBound(a_omega_phi_b, 2, 1 * M_PI);
-    problem.SetParameterLowerBound(a_omega_phi_b, 3, 1.045);
-    problem.SetParameterUpperBound(a_omega_phi_b, 3, 1.310);
+    problem.SetParameterLowerBound(a_omega_phi_b, 3, 2.090 - RUNE_ROTATE_A_MAX);
+    problem.SetParameterUpperBound(a_omega_phi_b, 3, 2.090 - RUNE_ROTATE_A_MIN);
 
     ceres::Solve(options, &problem, &summary); //开始拟合(解决问题)
 }

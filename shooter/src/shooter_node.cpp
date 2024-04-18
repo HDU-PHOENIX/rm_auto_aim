@@ -32,7 +32,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
                 return;
             }
             serial_info_.is_find.set__data('1');
-            Eigen::Vector2d yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->pw.position.x, msg->pw.position.y, msg->pw.position.z));
+            Eigen::Vector2d yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->predict_target.position.x, msg->predict_target.position.y, msg->predict_target.position.z));
             for (auto& euler: yaw_and_pitch) {
                 if (euler > M_PI) {
                     euler -= (2 * M_PI);

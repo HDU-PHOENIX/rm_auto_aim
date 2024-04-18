@@ -8,8 +8,8 @@ geometry_msgs/Point position
 geometry_msgs/Vector3 velocity
 float64 yaw
 float64 v_yaw
-geometry_msgs/Pose pw
-geometry_msgs/Pose pc
+geometry_msgs/Pose predict_target
+geometry_msgs/Pose detect_target
 float32 delay
 bool can_shoot
 float64 radius_1
