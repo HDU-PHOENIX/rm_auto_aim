@@ -1,4 +1,5 @@
 #include "rune_detector/detector_node.hpp"
+#include <complex>
 
 using std::placeholders::_1;
 #define PNP_ITERATION false
@@ -103,8 +104,7 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
                 // armor, 3.5542, 0)) / 2;
                 symbol = (get_symbol(tmp1, armor, 5.295454, true) + get_symbol(tmp2, armor, 4.0542, false)) / 2;
             }
-            flag1 = true;
-            flag2 = true;
+            flag1 = flag2 = true;
         } else if (object.cls == 2) {
             // 已激活的符叶，可以用来扩展一张图中的得到的信息数量
             // RuneClass::BlueActivated or RedActivated;
@@ -152,7 +152,6 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
             return true;
         }
         RCLCPP_WARN(this->get_logger(), "PnP failed!");
-        return false;
     }
     return false;
 }
@@ -165,7 +164,7 @@ void RuneDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr im
         // 符模式 0：不可激活 1：小符 2:大符
         runes_msg_.motion = img_msg->header.frame_id == "1" ? 1 : 2;
         img_msg->header.frame_id = "camera";
-        runes_msg_.is_find = DetectRunes(img_msg) ? true : false;
+        runes_msg_.is_find = DetectRunes(img_msg);
         if (debug_) {
             PublishMarkers(); // 发布标记
         }

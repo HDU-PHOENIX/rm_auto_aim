@@ -29,13 +29,13 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
     RCLCPP_DEBUG(node_->get_logger(), "leaf_angle %lf", leaf_angle);
     leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正后的角度差
-    CalSmallRune(data, debug_msg);                                           //计算小符角速度
-    Judge(debug_msg);                                                        //判断顺时针还是逆时针
-    FittingBig(data, runes_msg, debug_msg);                                  //拟合大符
-    Fitting(runes_msg);                                                      //计算预测角度
-    data_last = data;                                                        //记录上一帧的数据
-    leaf_angle_last = leaf_angle;                                            //记录上一帧的角度
-    cv::Point2d symbol(data->symbol.x, data->symbol.y);                      //R标
+    CalSmallRune(data, debug_msg);                                          //计算小符角速度
+    Judge(debug_msg);                                                       //判断顺时针还是逆时针
+    FittingBig(data, runes_msg, debug_msg);                               //拟合大符
+    Fitting(runes_msg);                                                     //计算预测角度
+    data_last = data;                                                          //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                                              //记录上一帧的角度
+    cv::Point2d symbol(data->symbol.x, data->symbol.y);                   //R标
     rotate_armors.clear();
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
@@ -100,10 +100,8 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 #if !NEW_METHOD
     if (abs(leaf_angle - leaf_angle_last) > 0.4 && abs(leaf_angle - leaf_angle_last) < 5.2) {
         //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
-        cere_rotated_angle = leaf_angle - leaf_angle_last + cere_rotated_angle; // 变换符叶初始角度
-        //角度变换后，需要矫正角度
-        cere_rotated_angle = cere_rotated_angle > M_PI ? cere_rotated_angle - 2 * M_PI : cere_rotated_angle;
-        cere_rotated_angle = cere_rotated_angle < -M_PI ? cere_rotated_angle + 2 * M_PI : cere_rotated_angle;
+        cere_rotated_angle += leaf_angle - leaf_angle_last; // 变换符叶初始角度
+        cere_rotated_angle = Revise(cere_rotated_angle, -M_PI, M_PI); //角度变换后矫正
         tracker.angle = leaf_angle;
         tracker.pred_time -= (rclcpp::Time(data->header.stamp) - tracker.timestamp).seconds();
         tracker.timestamp = data->header.stamp;
@@ -145,8 +143,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                 tracker.pred_angle *= -1;
             }
             //posteriori_angle 为预测的角度
-            double posteriori_angle = (tracker.angle + tracker.pred_angle) > M_PI ? (tracker.angle + tracker.pred_angle) - 2 * M_PI : (tracker.angle + tracker.pred_angle);
-            posteriori_angle = posteriori_angle < -M_PI ? posteriori_angle + 2 * M_PI : posteriori_angle;
+            double posteriori_angle = Revise(tracker.angle + tracker.pred_angle, -M_PI, M_PI);
             delta_angle = fabs(leaf_angle - posteriori_angle);
             delta_angle = delta_angle > M_PI ? fabs(2 * M_PI - delta_angle) : delta_angle;
             debug_msg.delta_angle = delta_angle;
