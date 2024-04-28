@@ -26,6 +26,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         rclcpp::SensorDataQoS(),
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
             // RCLCPP_INFO(this->get_logger(), "ShooterNode update data");
+            updateflag_ = true;
             shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             if (!msg->is_find && !msg->tracking) {
                 serial_info_.is_find.set__data('0');
@@ -50,7 +51,6 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             record_last_.now_yaw_and_pitch[0] = now_yaw_and_pitch_[0] = static_cast<float>(msg->origin_yaw_and_pitch[0]);
             record_last_.now_yaw_and_pitch[1] = now_yaw_and_pitch_[1] = static_cast<float>(msg->origin_yaw_and_pitch[1]);
             record_last_.time = this->now();
-            updateflag_ = true;
         }
 
     );
