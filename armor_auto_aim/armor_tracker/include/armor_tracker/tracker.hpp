@@ -26,11 +26,11 @@ enum class ArmorsNum {
 };
 
 struct ArmorPosition {
-    float x;               //装甲板在世界坐标系下的 x
-    float y;               //装甲板在世界坐标系下的 y
-    float z;               //装甲板在世界坐标系下的 z
-    float yaw;             //装甲板坐标系相对于世界坐标系的 yaw 角
-    float distance_square; //装甲板到小陀螺的距离的平方
+    float x;               // 装甲板在世界坐标系下的 x
+    float y;               // 装甲板在世界坐标系下的 y
+    float z;               // 装甲板在世界坐标系下的 z
+    float yaw;             // 装甲板坐标系相对于世界坐标系的 yaw 角
+    float distance_square; // 装甲板到小陀螺的距离的平方
 
     ArmorPosition() = default;
 
@@ -92,7 +92,7 @@ public:
 
     Eigen::VectorXd target_state; // 目标状态
 
-    Eigen::Vector3d ChooseArmor(const CarState& car_state, const ArmorsNum& armor_id);
+    Eigen::Vector3d ChooseArmor(const CarState& car_state, const float& shooter_yaw, const ArmorsNum& armor_id);
 
     // 用于存储另一对装甲消息
     double dz, another_r;

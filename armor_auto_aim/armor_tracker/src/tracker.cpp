@@ -220,13 +220,14 @@ Eigen::Vector3d Tracker::GetArmorPositionFromState(const Eigen::VectorXd& x) {
     return Eigen::Vector3d(xa, ya, za);
 }
 
-Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const ArmorsNum& armor_id) {
-    auto armor_number = static_cast<int>(armor_id);
-    std::vector<ArmorPosition> armors_position;
+Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& shooter_yaw, const ArmorsNum& armor_id) {
     ArmorPosition best_armor;
     best_armor.distance_square = std::numeric_limits<float>::max();
+    // float min_yaw_diff = std::numeric_limits<float>::max();
 
     // 迭代每一块装甲板
+    std::vector<ArmorPosition> armors_position;
+    auto armor_number = static_cast<int>(armor_id);
     for (int i = 0; i < armor_number; i++) {
         double yaw = car_state.yaw + i * (2 * M_PI / armor_number);
         armors_position.emplace_back(
@@ -237,16 +238,21 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const ArmorsNum&
         );
     }
 
-    // 选择距离最近的装甲板
-    for (auto armor: armors_position) {
+    for (auto& armor: armors_position) {
+        // 选择距离最近的装甲板
         if (armor.distance_square < best_armor.distance_square) {
             best_armor = armor;
         }
+
+        // 枪管 yaw，更具最小的 yaw 选择最佳装甲板
+        // float yaw_diff = armor.yaw - shooter_yaw;
+        // if (abs(yaw_diff) < min_yaw_diff) {
+        //     best_armor = armor;
+        //     min_yaw_diff = yaw_diff;
+        // }
     }
 
-    // TODO: 后续可以考虑传入枪管 yaw，更具最小的 yaw 选择最佳装甲板
-
-    return {best_armor.x, best_armor.y, best_armor.z};
+    return { best_armor.x, best_armor.y, best_armor.z };
 };
 
 } // namespace armor
