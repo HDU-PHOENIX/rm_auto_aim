@@ -27,7 +27,6 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
         [this](const auto_aim_interfaces::msg::Target::SharedPtr msg) {
             // RCLCPP_INFO(this->get_logger(), "ShooterNode update data");
             updateflag_ = true;
-            shooter_->SetHandOffSet(this->get_parameter("correction_of_y").as_double(), this->get_parameter("correction_of_z").as_double());
             if (!msg->is_find && !msg->tracking) {
                 serial_info_.is_find.set__data('0');
                 return;
@@ -173,8 +172,6 @@ std::unique_ptr<Shooter> ShooterNode::InitShooter() {
     param_desc.floating_point_range[0].from_value = -0.5;
     param_desc.floating_point_range[0].to_value = 0.5;
     param_desc.floating_point_range[0].step = 0.001;
-    auto correction_of_y = declare_parameter("correction_of_y", 0.0, param_desc);
-    auto correction_of_z = declare_parameter("correction_of_z", 0.0, param_desc);
     auto stop_error = declare_parameter("stop_error", 0.001);
     auto velocity = declare_parameter("bullet_speed", 25.0);
     int r_k_iter = declare_parameter("R_K_iter", 60);
@@ -183,8 +180,6 @@ std::unique_ptr<Shooter> ShooterNode::InitShooter() {
         mode,
         k_of_small,
         k_of_large,
-        correction_of_y,
-        correction_of_z,
         stop_error,
         r_k_iter,
         velocity

@@ -8,16 +8,12 @@ Shooter::Shooter(
     const char& mode,
     const double& kof_of_small,
     const double& kof_of_large,
-    const double& correction_of_x,
-    const double& correction_of_y,
     const double& stop_error,
     const int& R_K_iter,
     const double& velocity
 ):
     gravity_(gravity),
     kof_(mode == 's' ? kof_of_small : kof_of_large),
-    correction_of_x_(correction_of_x),
-    correction_of_y_(correction_of_y),
     stop_error_(stop_error),
     R_K_iter_(R_K_iter),
     velocity_(velocity) {}
@@ -29,7 +25,7 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
     }
 
     //TODO:根据陀螺仪安装位置调整距离求解方式
-    xyz = { xyz[0], xyz[1] + correction_of_x_, xyz[2] + correction_of_y_ };
+    xyz = { xyz[0], xyz[1], xyz[2] };
     orin_pw_ = xyz;
     auto dist_vertical = xyz[2]; //垂直距离
 
@@ -83,8 +79,8 @@ Eigen::Vector2d Shooter::DynamicCalcCompensate(Eigen::Vector3d xyz) {
         }
     }
     pitch_new = pitch_new / 180 * M_PI;
-    double&& yaw = atan2(xyz[1] , xyz[0]);
-    shoot_pw_ = { xyz[0], xyz[1] - correction_of_x_, vertical_tmp - correction_of_y_ };
+    double&& yaw = atan2(xyz[1], xyz[0]);
+    shoot_pw_ = { xyz[0], xyz[1], vertical_tmp };
     return Eigen::Vector2d(yaw, pitch_new * -1); //pitch向上为负
 }
 

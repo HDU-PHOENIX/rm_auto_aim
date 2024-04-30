@@ -121,8 +121,6 @@
         k_of_small: 0.01903
         k_of_big: 0.000556
         k_of_light: 0.00053
-        correction_of_y: 0.0
-        correction_of_z: 0.0
         stop_error: 0.001
         number_of_iterations: 60
         yaw_threshold: 0.02
