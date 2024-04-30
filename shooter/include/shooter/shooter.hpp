@@ -13,8 +13,6 @@ public:
         const char& mode,
         const double& kof_of_small,
         const double& kof_of_large,
-        const double& correction_of_x,
-        const double& correction_of_y,
         const double& stop_error,
         const int& R_K_iter,
         const double& velocity
@@ -30,28 +28,19 @@ public:
      */
     Eigen::Vector2d DynamicCalcCompensate(Eigen::Vector3d xyz);
 
-    /**
-     *@brief 设置手动补偿量,px,py的物理含义为相机到摩擦轮出射处的偏移量
-    */
-    void SetHandOffSet(const double& x, const double& y) {
-        correction_of_x_ = x;
-        correction_of_y_ = y;
-    }
     Eigen::Vector3d& GetShootPw() {
         return shoot_pw_;
     }
 
 private:
-    double gravity_;         //重力系数
-    double kof_;             //风阻系数
-    double kof_of_small;     //小弹丸风阻系数
-    double kof_of_large;     //大弹丸风阻系数
-    double kof_of_light;     //荧光弹丸风阻系数
-    double correction_of_x_; //yaw轴补偿
-    double correction_of_y_; //pitch轴补偿
-    double stop_error_;      //停止迭代的最小误差(单位m)
-    int R_K_iter_;           //龙格库塔法求解落点的迭代次数
-    double velocity_;        //子弹速度
+    double gravity_;     //重力系数
+    double kof_;         //风阻系数
+    double kof_of_small; //小弹丸风阻系数
+    double kof_of_large; //大弹丸风阻系数
+    double kof_of_light; //荧光弹丸风阻系数
+    double stop_error_;  //停止迭代的最小误差(单位m)
+    int R_K_iter_;       //龙格库塔法求解落点的迭代次数
+    double velocity_;    //子弹速度
     Eigen::Vector3d orin_pw_;
     Eigen::Vector3d shoot_pw_; //预瞄点的世界坐标下的坐标
     Eigen::Vector3d shoot_pc_; //预瞄点的相机坐标下的坐标

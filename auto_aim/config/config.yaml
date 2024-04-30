@@ -5,6 +5,7 @@
     enemy_color: 0 # 0-红色，1-蓝色
     bullet_speed: 27.0
 
+<<<<<<< HEAD
     ### balance camera 0
     # camera_matrix: [2097.493333644595, 0.0, 706.5615761242506, 0.0, 2092.719718931199, 195.76478478477716, 0.0, 0.0, 1.0]
     # distortion_coefficients: [-0.024906302374063632, 0.22070800030122006, 0.0006914404063304794, 0.007401472698630369, 0.0]
@@ -55,6 +56,11 @@
     # distortion_coefficients: [
     #     -0.086047, 0.114742, -0.002424, 0.006085, 0.000000
     # ]
+=======
+    # omni
+    camera_matrix: [2189.354844533515, 0.0, 644.7435314973159, 0.0, 2196.766927388486, 251.8039862086356, 0.0, 0.0, 1.0]
+    distortion_coefficients: [0.019548878513916755, 0.13092381310787202, 0.02703128536231332, 0.0035254460543056912, 0.0]
+>>>>>>> origin/dev
 
 /camera_node:
     ros__parameters:
@@ -64,24 +70,12 @@
 
 /tf2_node:
     ros__parameters:
-        # balance
-        # odom2shooter_r: 0.059 # odom to shooter ratio
-        # shooter2camera_tvec: [0.11, 0, 0.04]
         # omni
         odom2shooter_r: 0.056
         shooter2camera_tvec: [0.03805, 0, 0.0295]
         shooter_coordinate: "shooter"
         camera_coordinate: "camera"
         odom_coordinate: "odom"
-
-# /serial_node:
-#     ros__parameters:
-#         device_name: "/dev/ttyACM0"
-#         default_data_recv_mode: 97 # a:97 r:114
-#         default_data_recv_euler: [0.2, 0.0, 0.2]
-#         odom2shooter_r: 0.059 # odom to shooter ratio
-#         shooter2camera_tvec: [0.11, 0, 0.04]
-#         fix: 0.1
 
 /armor_detector_node:
     ros__parameters:
@@ -104,9 +98,9 @@
     ros__parameters:
         filter_astring_threshold: 20 #用于不可用数据的计数，当数据突变时候，则过滤一定数目的数据之后丢入 ukf
         chasedelay: 0.0
-        phase_offset: 0.22 #//相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
-        std_a: 3.0 #//加速度的标准差
-        std_yawdd: 2.09 #//角加速度的标准差
+        phase_offset: 0.22 # 相位差补偿，用于补偿观测到的角速度和滤波后角速度的相位差
+        std_a: 3.0 # 加速度的标准差
+        std_yawdd: 2.09 # 角加速度的标准差
 
 /shooter_node:
     ros__parameters:
@@ -115,9 +109,7 @@
         k_of_small: 0.01903
         k_of_big: 0.000556
         k_of_light: 0.00053
-        correction_of_y: 0.0
-        correction_of_z: 0.0
         stop_error: 0.001
         number_of_iterations: 60
-        yaw_threshold: 0.02
-        pitch_threshold: 0.005
+        yaw_threshold: 0.03
+        pitch_threshold: 0.01

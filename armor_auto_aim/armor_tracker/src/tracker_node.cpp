@@ -162,51 +162,48 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
     PublishMarkers(target_msg);
 
-    {
-        // odom 系下计算 car position 和 yaw 的预测位置
-        auto&& flytime = std::hypot(target_msg.position.x, target_msg.position.y, target_msg.position.z) / bullet_speed_ + flytime_offset_;
-        //这里飞机的向下的速度需要处理，这里忽略傾角
-        //auto&& flytime = -target_msg.velocity.z+sqrt(target_msg.velocity.z*target_msg.velocity.z-2*gravity*target_msg.position.z)/gravity;
-        auto predict_car_state = tracker_->target_state;
-        predict_car_state(0) += target_msg.velocity.x * flytime; // x predict
-        predict_car_state(2) += target_msg.velocity.y * flytime; // y predict
-        predict_car_state(4) += target_msg.velocity.z * flytime; // z predict
-        predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
-
-        auto predict_armor_position = tracker_->ChooseArmor(
-            CarState {
-                predict_car_state(0),
-                predict_car_state(2),
-                predict_car_state(4),
-                predict_car_state(6),
-                tracker_->dz,
-                { target_msg.radius_1,
-                  target_msg.radius_2 } },
-            tracker_->tracked_armors_num
-        );
-
-        target_msg.mode = false; // armor: false, rune: true
-        target_msg.yaw = predict_car_state(6);
-        target_msg.v_yaw = predict_car_state(7);
-        target_msg.predict_target.position.x = predict_armor_position.x();
-        target_msg.predict_target.position.y = predict_armor_position.y();
-        target_msg.predict_target.position.z = predict_armor_position.z();
-        target_msg.origin_yaw_and_pitch = armors_msg->yaw_and_pitch;
-
-        double roll, pitch, yaw;
-        auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
-        tf2::Matrix3x3(
-            tf2::Quaternion(
-                transform.rotation.x,
-                transform.rotation.y,
-                transform.rotation.z,
-                transform.rotation.w
-            )
+    // 当前枪口相对于 odom 系的位置
+    double roll, pitch, yaw;
+    auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
+    tf2::Matrix3x3(
+        tf2::Quaternion(
+            transform.rotation.x,
+            transform.rotation.y,
+            transform.rotation.z,
+            transform.rotation.w
         )
-            .getRPY(roll, pitch, yaw);
-        target_msg.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
-        target_pub_->publish(target_msg);
-    }
+    )
+        .getRPY(roll, pitch, yaw);
+    target_msg.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
+
+    auto&& flytime = std::hypot(target_msg.position.x, target_msg.position.y, target_msg.position.z) / bullet_speed_ + flytime_offset_;
+    auto predict_car_state = tracker_->target_state;
+    predict_car_state(0) += target_msg.velocity.x * flytime; // x predict
+    predict_car_state(2) += target_msg.velocity.y * flytime; // y predict
+    predict_car_state(4) += target_msg.velocity.z * flytime; // z predict
+    predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
+
+    auto predict_armor_position = tracker_->ChooseArmor(
+        CarState {
+            predict_car_state(0),
+            predict_car_state(2),
+            predict_car_state(4),
+            predict_car_state(6),
+            tracker_->dz,
+            { target_msg.radius_1,
+              target_msg.radius_2 } },
+        yaw,
+        tracker_->tracked_armors_num
+    );
+
+    target_msg.mode = false; // armor: false, rune: true
+    target_msg.yaw = predict_car_state(6);
+    target_msg.v_yaw = predict_car_state(7);
+    target_msg.predict_target.position.x = predict_armor_position.x();
+    target_msg.predict_target.position.y = predict_armor_position.y();
+    target_msg.predict_target.position.z = predict_armor_position.z();
+
+    target_pub_->publish(target_msg);
 }
 
 void ArmorTrackerNode::InitMarkers() {
