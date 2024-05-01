@@ -18,7 +18,7 @@ RuneDetectorNode::RuneDetectorNode(const rclcpp::NodeOptions& options):
     // 创建神符信息发布者
     runes_pub_ = this->create_publisher<auto_aim_interfaces::msg::Rune>("/detector/runes", rclcpp::SensorDataQoS());
 
-    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
+    auto&& camera_matrix = declare_parameter("rune_camera_matrix", std::vector<double> {});
     auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
     pnp_solver_ = std::make_unique<PnPSolver>(camera_matrix, distortion_coefficients);
 
@@ -126,6 +126,8 @@ bool RuneDetectorNode::DetectRunes(const sensor_msgs::msg::Image::SharedPtr& img
         cv::circle(img, cv::Point2f(img.cols / 2, img.rows / 2), 2, Colors::Blue, 3); // 图像中心点
         PublishImg(img, img_msg);                                                     // 发布图片
     }
+    // cv::imshow("img", img);
+    // cv::waitKey(1);
 
     if (flag1 && flag2) {
         // 有 R 标数据和符叶数据，则认为识别完成

@@ -23,7 +23,7 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
         armor_marker_.color.r = 1.0;
         marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/rune_tracker/marker", 10);
     }
-    auto&& camera_matrix = declare_parameter("camera_matrix", std::vector<double> {});
+    auto&& camera_matrix = declare_parameter("rune_camera_matrix", std::vector<double> {});
     auto&& distortion_coefficients = declare_parameter("distortion_coefficients", std::vector<double> {});
     pnp_solver_ = std::make_unique<PnPSolver>(camera_matrix, distortion_coefficients);
 
