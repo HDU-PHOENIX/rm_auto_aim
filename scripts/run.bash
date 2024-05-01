@@ -7,8 +7,6 @@ ros2 launch auto_aim launch.py &
 pid2=$!
 echo -e "auto_aim pid: $pid2\n\n"
 
-sleep 3
-
 bash ./communicate/reset.bash &
 pid1=$!
 echo -e "communicate_node pid: $pid1\n\n"
