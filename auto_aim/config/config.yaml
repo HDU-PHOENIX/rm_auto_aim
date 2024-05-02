@@ -60,6 +60,11 @@
     # omni
     camera_matrix: [2189.354844533515, 0.0, 644.7435314973159, 0.0, 2196.766927388486, 251.8039862086356, 0.0, 0.0, 1.0]
     distortion_coefficients: [0.019548878513916755, 0.13092381310787202, 0.02703128536231332, 0.0035254460543056912, 0.0]
+<<<<<<< HEAD
+>>>>>>> origin/dev
+=======
+    rune_camera_matrix: [2189.354844533515, 0.0, 644.7435314973159, 0.0, 2196.766927388486, 501.8039862086356, 0.0, 0.0, 1.0]
+
 >>>>>>> origin/dev
 
 /camera_node:
@@ -90,9 +95,9 @@
 
 /rune_detector_node:
     ros__parameters:
-        confidence_threshold: 0.60 #神经网络置信度阈值
+        confidence_threshold: 0.40 #神经网络置信度阈值
         # model_path: "/model/2023/yolox.onnx" #这里的路径是相对路径
-        model_path: "/model/2023/yolox.xml"
+        model_path: "/model/yolox_fp16.onnx"
 
 /rune_tracker_node:
     ros__parameters:

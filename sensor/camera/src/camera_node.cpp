@@ -48,6 +48,7 @@ void CameraNode::ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::R
     //模式 0：自瞄 1：符
     this->mode_ = request->mode == 0 ? false : true;
     if (mode_) {
+        this->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/rune_mindvision.config");
         this->SetExposureTime(rune_use_exposure_); //符曝光
     } else {
         //装甲板曝光
