@@ -49,7 +49,13 @@ std::vector<Armor> Detector::DetectArmor(const cv::Mat& input) {
 cv::Mat Detector::PreprocessImage(const cv::Mat& input) {
     cv::Mat gray, binary;
     cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
-    cv::threshold(gray, binary, detector_param_.binary_threshold[static_cast<int>(enemy_color_)], 255, cv::THRESH_BINARY);
+    cv::threshold(
+        gray,
+        binary,
+        detector_param_.binary_threshold[static_cast<int>(enemy_color_)],
+        255,
+        cv::THRESH_BINARY
+    );
     return binary;
 }
 
@@ -64,7 +70,13 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     } else {
         cv::subtract(channels_[0], channels_[2], color_mask_);
     }
-    cv::threshold(color_mask_, light_contour_binary_image_, detector_param_.light_contour_threshold[static_cast<int>(enemy_color_)], 255, cv::THRESH_BINARY);
+    cv::threshold(
+        color_mask_,
+        light_contour_binary_image_,
+        detector_param_.light_contour_threshold[static_cast<int>(enemy_color_)],
+        255,
+        cv::THRESH_BINARY
+    );
     cv::dilate(light_contour_binary_image_, light_contour_binary_image_, kernel_);
     cv::bitwise_and(preprocessed_image_, light_contour_binary_image_, light_contour_binary_image_);
 
