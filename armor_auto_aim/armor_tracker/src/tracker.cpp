@@ -220,20 +220,25 @@ Eigen::Vector3d Tracker::GetArmorPositionFromState(const Eigen::VectorXd& x) {
     return Eigen::Vector3d(xa, ya, za);
 }
 
-Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& shooter_yaw, const ArmorsNum& armor_id) {
+Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& shooter_yaw, const float& bullet_speed, const float& flytime_offset) {
+    auto&& flytime = std::hypot(car_state.position.x(), car_state.position.y(), car_state.position.z()) / bullet_speed + flytime_offset;
+
+    CarState predict_car_state(car_state);
+    predict_car_state.position = car_state.position + car_state.velocity * flytime;
+
     ArmorPosition best_armor;
     best_armor.distance_square = std::numeric_limits<float>::max();
     // float min_yaw_diff = std::numeric_limits<float>::max();
 
     // 迭代每一块装甲板
     std::vector<ArmorPosition> armors_position;
-    auto armor_number = static_cast<int>(armor_id);
+    auto armor_number = predict_car_state.armors_num;
     for (int i = 0; i < armor_number; i++) {
-        double yaw = car_state.yaw + i * (2 * M_PI / armor_number);
+        double yaw = predict_car_state.position.w() + i * (2 * M_PI / armor_number);
         armors_position.emplace_back(
-            car_state.x - car_state.r[0] * cos(yaw),
-            car_state.y - car_state.r[0] * sin(yaw),
-            car_state.z,
+            predict_car_state.position.x() - predict_car_state.r[0] * cos(yaw),
+            predict_car_state.position.y() - predict_car_state.r[0] * sin(yaw),
+            predict_car_state.position.z(),
             yaw
         );
     }

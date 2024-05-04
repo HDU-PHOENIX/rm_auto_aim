@@ -16,9 +16,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             rclcpp::SensorDataQoS()
         );
     }
-    last_shoot_time = this->now();
-    yaw_threshold_ = this->declare_parameter("yaw_threshold", 0.01);
-    pitch_threshold_ = this->declare_parameter("pitch_threshold", 0.005);
+
     shooter_info_pub_ = this->create_publisher<communicate::msg::SerialInfo>(
         "/shoot_info/left",
         rclcpp::SensorDataQoS()
@@ -30,9 +28,15 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             updateflag_ = true;
             if (!msg->is_find && !msg->tracking) {
                 serial_info_.is_find.set__data('0');
+                return;
             } else {
                 serial_info_.is_find.set__data('1');
             }
+            serial_info_.distance = std::hypot(
+                msg->predict_target.position.x,
+                msg->predict_target.position.y,
+                msg->predict_target.position.z
+            );
             Eigen::Vector2d yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->predict_target.position.x, msg->predict_target.position.y, msg->predict_target.position.z));
             for (auto& euler: yaw_and_pitch) {
                 if (euler > M_PI) {
@@ -41,62 +45,28 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
                     euler += (2 * M_PI);
                 }
             }
-            mode_ = msg->mode;
-            delay_ = msg->delay;
-            rune_shoot_permit_ = msg->can_shoot;
 
-            // 记录当前的yaw和pitch
             target_yaw_and_pitch_[0] = yaw_and_pitch[0];
             target_yaw_and_pitch_[1] = yaw_and_pitch[1];
-            // 记录当前自身车yaw和pitch
-            now_yaw_and_pitch_[0] = static_cast<float>(msg->origin_yaw_and_pitch[0]);
-            now_yaw_and_pitch_[1] = static_cast<float>(msg->origin_yaw_and_pitch[1]);
 #ifndef TIMER_CALLBACK
             serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
-            ShootingJudge(serial_info_); //射击判断
             shooter_info_pub_->publish(serial_info_);
+#endif
             if (debug_) {
                 PublishMarkers(shooter_->GetShootPw(), this->now());
             }
-#endif
         }
 
     );
 #ifdef TIMER_CALLBACK
-    timer_ = this->create_wall_timer(std::chrono::microseconds(3), std::bind(&ShooterNode::Start, this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(3), std::bind(&ShooterNode::Start, this));
 #endif
 }
 
 void ShooterNode::Start() {
     // TODO: 可做插值
     serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
-    ShootingJudge(serial_info_); //射击判断
     shooter_info_pub_->publish(serial_info_);
-    if (debug_) {
-        PublishMarkers(shooter_->GetShootPw(), this->now());
-    }
-}
-
-void ShooterNode::ShootingJudge(
-    communicate::msg::SerialInfo& serial_info
-) {
-    serial_info.can_shoot.set__data('0');
-    if (mode_) {
-        // rune
-        //解算欧拉角收敛且tracker算法认为可以射击
-        if ((std::hypot(target_yaw_and_pitch_[0] - now_yaw_and_pitch_[0], target_yaw_and_pitch_[0] - now_yaw_and_pitch_[0]) < 0.05)
-            && (this->now() - last_shoot_time).seconds() > this->delay_ && rune_shoot_permit_) {
-            //确保子弹不会没有飞到就开下一枪
-            serial_info.can_shoot.set__data('1');
-            last_shoot_time = this->now();
-        }
-    } else {
-        // armor
-        if (abs(target_yaw_and_pitch_[0] - now_yaw_and_pitch_[0]) < yaw_threshold_
-            && abs(target_yaw_and_pitch_[1] - now_yaw_and_pitch_[1]) < pitch_threshold_) {
-            serial_info.can_shoot.set__data('1');
-        }
-    }
 }
 
 void ShooterNode::AngleRevise(float& yaw, float& pitch) {

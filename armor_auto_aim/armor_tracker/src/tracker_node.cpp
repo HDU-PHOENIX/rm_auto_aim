@@ -109,6 +109,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
 
     auto_aim_interfaces::msg::TrackerInfo info_msg;
     auto_aim_interfaces::msg::Target target_msg;
+    CarState car_state;
     rclcpp::Time time = armors_msg->header.stamp;
     target_msg.header.stamp = time;
     target_msg.header.frame_id = target_frame_;
@@ -142,67 +143,37 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             target_msg.tracking = true;
             // 填充目标消息
             const auto& state = tracker_->target_state;
-            target_msg.id = tracker_->tracked_id;
-            target_msg.armors_num = static_cast<int>(tracker_->tracked_armors_num);
-            target_msg.position.x = state(0);
-            target_msg.velocity.x = state(1);
-            target_msg.position.y = state(2);
-            target_msg.velocity.y = state(3);
-            target_msg.position.z = state(4);
-            target_msg.velocity.z = state(5);
-            target_msg.yaw = state(6);
-            target_msg.v_yaw = state(7);
-            target_msg.radius_1 = state(8);
-            target_msg.radius_2 = tracker_->another_r;
-            target_msg.dz = tracker_->dz;
+            car_state = {
+                tracker_->tracked_id,
+                static_cast<int>(tracker_->tracked_armors_num),
+                { state(0), state(2), state(4), state(6) },
+                { state(1), state(3), state(5), state(7) },
+                { state(8), tracker_->another_r },
+                tracker_->dz
+            };
+
+            double roll, pitch, yaw;
+            auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
+            tf2::Matrix3x3(
+                tf2::Quaternion(
+                    transform.rotation.x,
+                    transform.rotation.y,
+                    transform.rotation.z,
+                    transform.rotation.w
+                )
+            )
+                .getRPY(roll, pitch, yaw);
+
+            auto predict_armor_position = tracker_->ChooseArmor(car_state, yaw, bullet_speed_, flytime_offset_);
+
+            target_msg.predict_target.position.set__x(predict_armor_position.x());
+            target_msg.predict_target.position.set__y(predict_armor_position.y());
+            target_msg.predict_target.position.set__z(predict_armor_position.z());
         }
     }
 
     last_time_ = time;
-
-    PublishMarkers(target_msg);
-
-    // 当前枪口相对于 odom 系的位置
-    double roll, pitch, yaw;
-    auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
-    tf2::Matrix3x3(
-        tf2::Quaternion(
-            transform.rotation.x,
-            transform.rotation.y,
-            transform.rotation.z,
-            transform.rotation.w
-        )
-    )
-        .getRPY(roll, pitch, yaw);
-    target_msg.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
-
-    auto&& flytime = std::hypot(target_msg.position.x, target_msg.position.y, target_msg.position.z) / bullet_speed_ + flytime_offset_;
-    auto predict_car_state = tracker_->target_state;
-    predict_car_state(0) += target_msg.velocity.x * flytime; // x predict
-    predict_car_state(2) += target_msg.velocity.y * flytime; // y predict
-    predict_car_state(4) += target_msg.velocity.z * flytime; // z predict
-    predict_car_state(6) += target_msg.v_yaw * flytime;      // yaw predict
-
-    auto predict_armor_position = tracker_->ChooseArmor(
-        CarState {
-            predict_car_state(0),
-            predict_car_state(2),
-            predict_car_state(4),
-            predict_car_state(6),
-            tracker_->dz,
-            { target_msg.radius_1,
-              target_msg.radius_2 } },
-        yaw,
-        tracker_->tracked_armors_num
-    );
-
-    target_msg.mode = false; // armor: false, rune: true
-    target_msg.yaw = predict_car_state(6);
-    target_msg.v_yaw = predict_car_state(7);
-    target_msg.predict_target.position.x = predict_armor_position.x();
-    target_msg.predict_target.position.y = predict_armor_position.y();
-    target_msg.predict_target.position.z = predict_armor_position.z();
-
+    PublishMarkers(target_msg, car_state);
     target_pub_->publish(target_msg);
 }
 
@@ -338,18 +309,17 @@ ExtendedKalmanFilter ArmorTrackerNode::CreateEKF() {
     return ExtendedKalmanFilter { f, h, j_f, j_h, u_q, u_r, p0 };
 }
 
-void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg) {
-    position_marker_.header = target_msg.header;
-    linear_v_marker_.header = target_msg.header;
-    angular_v_marker_.header = target_msg.header;
-    armor_marker_.header = target_msg.header;
+void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg, const CarState& car_state) {
+    position_marker_.header = linear_v_marker_.header = angular_v_marker_.header = armor_marker_.header = target_msg.header;
 
+    const auto& position = car_state.position;
+    const auto& velocity = car_state.velocity;
     visualization_msgs::msg::MarkerArray marker_array;
     if (target_msg.tracking) {
-        double yaw = target_msg.yaw, r1 = target_msg.radius_1, r2 = target_msg.radius_2;
-        double robot_center_x = target_msg.position.x, yc = target_msg.position.y, armor_z = target_msg.position.z;
-        double vx = target_msg.velocity.x, vy = target_msg.velocity.y, vz = target_msg.velocity.z;
-        double dz = target_msg.dz;
+        double yaw = position.w(), r1 = car_state.r[0], r2 = car_state.r[1];
+        double robot_center_x = position.x(), yc = position.y(), armor_z = position.z();
+        double vx = velocity.x(), vy = velocity.y(), vz = velocity.z();
+        double dz = car_state.dz;
 
         position_marker_.action = visualization_msgs::msg::Marker::ADD;
         position_marker_.pose.position.x = robot_center_x;
@@ -369,13 +339,13 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
         angular_v_marker_.points.clear();
         angular_v_marker_.points.emplace_back(position_marker_.pose.position);
         arrow_end = position_marker_.pose.position;
-        arrow_end.z += target_msg.v_yaw / M_PI;
+        arrow_end.z += velocity.w() / M_PI;
         angular_v_marker_.points.emplace_back(arrow_end);
 
         armor_marker_.action = visualization_msgs::msg::Marker::ADD;
         armor_marker_.scale.y = tracker_->tracked_armor.type == "small" ? 0.135 : 0.23;
         bool is_current_pair = true;
-        size_t a_n = target_msg.armors_num;
+        size_t a_n = car_state.armors_num;
         geometry_msgs::msg::Point p_a;
         double r = 0;
         for (size_t i = 0; i < a_n; i++) {
@@ -395,7 +365,7 @@ void ArmorTrackerNode::PublishMarkers(const auto_aim_interfaces::msg::Target& ta
             armor_marker_.id = i;
             armor_marker_.pose.position = p_a;
             tf2::Quaternion q;
-            q.setRPY(0, target_msg.id == "outpost" ? -0.26 : 0.26, tmp_yaw);
+            q.setRPY(0, car_state.id == "outpost" ? -0.26 : 0.26, tmp_yaw);
             armor_marker_.pose.orientation = tf2::toMsg(q);
             marker_array.markers.emplace_back(armor_marker_);
         }

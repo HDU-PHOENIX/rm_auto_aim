@@ -43,12 +43,12 @@ struct ArmorPosition {
 };
 
 struct CarState {
-    double x;
-    double y;
-    double z;
-    double yaw;
-    double dz;
+    std::string id;
+    int armors_num;
+    Eigen::Vector4d position;
+    Eigen::Vector4d velocity;
     double r[2];
+    double dz;
 };
 
 // 装甲追踪器类
@@ -92,7 +92,7 @@ public:
 
     Eigen::VectorXd target_state; // 目标状态
 
-    Eigen::Vector3d ChooseArmor(const CarState& car_state, const float& shooter_yaw, const ArmorsNum& armor_id);
+    Eigen::Vector3d ChooseArmor(const CarState& car_state, const float& shooter_yaw, const float& bullet_speed, const float& flytime_offset);
 
     // 用于存储另一对装甲消息
     double dz, another_r;
