@@ -53,7 +53,7 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
 
     );
 #ifdef TIMER_CALLBACK
-    timer_ = this->create_wall_timer(std::chrono::microseconds(3), std::bind(&ShooterNode::Start, this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(3), std::bind(&ShooterNode::Start, this));
 #endif
 }
 
