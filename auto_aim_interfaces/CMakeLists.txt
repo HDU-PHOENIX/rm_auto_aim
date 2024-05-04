@@ -27,13 +27,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Armors.msg"
   "msg/Target.msg"
   "msg/Rune.msg"
-  "msg/Image.msg"
   "msg/DebugLight.msg"
   "msg/DebugLights.msg"
   "msg/DebugArmor.msg"
   "msg/DebugArmors.msg"
   "msg/TrackerInfo.msg"
-  "msg/SerialInfo.msg"
   "msg/DebugRune.msg"
   "msg/IgnoreClasses.msg"
 

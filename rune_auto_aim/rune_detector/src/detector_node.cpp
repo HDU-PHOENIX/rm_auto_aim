@@ -1,5 +1,4 @@
 #include "rune_detector/detector_node.hpp"
-#include <complex>
 
 using std::placeholders::_1;
 #define PNP_ITERATION false

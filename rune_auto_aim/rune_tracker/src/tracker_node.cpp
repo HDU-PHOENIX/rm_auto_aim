@@ -59,20 +59,6 @@ RuneTrackerNode::RuneTrackerNode(const rclcpp::NodeOptions& option):
 
 // runeCallback函数实现 接收rune_detector发布的rune消息
 void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::SharedPtr rune_ptr) {
-    try {
-        auto&& transform_stamped = tf2_buffer_->lookupTransform(target_frame_, "shooter", tf2::TimePointZero);
-        // 四元数转换为欧拉角计算yaw和pitch
-        tf2::Quaternion quat_tf; // tf2的四元数对象
-        tf2::fromMsg(transform_stamped.transform.rotation, quat_tf);
-        // 将消息中的四元数（geometry_msgs/Quaternion）转换为一个四元数对象；
-        double roll, pitch, yaw;
-        tf2::Matrix3x3(quat_tf).getRPY(roll, pitch, yaw);
-        // 将四元数对象，转换为欧拉角
-        runes_msg_.origin_yaw_and_pitch = { static_cast<float>(yaw), static_cast<float>(pitch) };
-    } catch (const tf2::LookupException& ex) {
-        RCLCPP_ERROR(this->get_logger(), "Error while transforming  %s", ex.what());
-        return;
-    }
     if (rune_ptr->is_find == false) {
         RCLCPP_INFO(this->get_logger(), "No target found");
         runes_msg_.is_find = false;
@@ -80,6 +66,7 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
         return;
     }
     runes_msg_.is_find = true;
+    // 可以动态调参
     rune_ptr->speed = this->get_parameter("bullet_speed").as_double();
     rune_ptr->chasedelay = this->get_parameter("chasedelay").as_double();
     rune_ptr->phase_offset = this->get_parameter("phase_offset").as_double();
@@ -98,7 +85,6 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     ps.pose.position = rune_ptr->pose_c.position;
     runes_msg_.detect_target.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
 
-    runes_msg_.mode = true; //true 表示符模式 false是装甲板
     target_pub_->publish(runes_msg_);
     if (debug_) {
         PublishMarkers(runes_msg_);

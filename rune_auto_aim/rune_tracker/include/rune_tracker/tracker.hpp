@@ -140,16 +140,16 @@ private:
     bool Judge(auto_aim_interfaces::msg::DebugRune& debug_msg);
 
     //拟合大符参数并计算预测角度
-    bool FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg);
+    bool FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg);
 
     //predict_angle计算
-    bool Fitting(auto_aim_interfaces::msg::Target& runes_msg);
+    bool Fitting();
 
     //数据处理，判断角速度是否正常，正常则记录数据并且丢入ukf，传入的参数为符叶角度
     void DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg);
 
     //ceres求解器求解 获得大符角速度参数 A omega phi b 并且验证预测参数是否正确
-    bool CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg);
+    bool CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg);
 
     //积分,用于大符预测角度计算
     inline double Integral(double& w, const std::vector<double>& params, const double& t_s, const double& pred_time) {
@@ -175,8 +175,8 @@ private:
         }
     }
 
-    Filter* ukf_; // ukf滤波器
-    double delay; //理论延迟和追踪延迟之和
+    std::shared_ptr<Filter> ukf_; // ukf滤波器
+    double delay;                 //理论延迟和追踪延迟之和
 
     double leaf_angle, leaf_angle_last, leaf_angle_diff; //符叶角度 上一帧符叶角度 符叶角度差
     double leaf_angular_velocity;                        //符叶角速度

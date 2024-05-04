@@ -4,14 +4,14 @@ namespace rune {
 Tracker::Tracker(rclcpp::Node* node, double& std_a_, double& std_yawdd_, int& filter_astring_threshold_):
     node_(node) {
     RCLCPP_INFO(node_->get_logger(), "Starting RuneTracker!");
-    ukf_ = new UKF_PLUS(false, true, false, std_a_, std_yawdd_);
+    ukf_ = std::make_shared<UKF_PLUS>(false, true, false, std_a_, std_yawdd_);
     this->filter_astring_threshold = filter_astring_threshold_;
     InitCeres(); //初始化ceres
 }
 
 void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     auto&& theory_delay = data->pose_c.position.z / data->speed;
-    debug_msg.delay = runes_msg.delay = delay = theory_delay + data->chasedelay;
+    debug_msg.delay = delay = theory_delay + data->chasedelay;
     runes_msg.header = data->header; //时间戳赋值
     phase_offset = data->phase_offset;
     if (data->motion == 0) {
@@ -29,13 +29,13 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
     RCLCPP_DEBUG(node_->get_logger(), "leaf_angle %lf", leaf_angle);
     leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正后的角度差
-    CalSmallRune(data, debug_msg);                                          //计算小符角速度
-    Judge(debug_msg);                                                       //判断顺时针还是逆时针
-    FittingBig(data, runes_msg, debug_msg);                               //拟合大符
-    Fitting(runes_msg);                                                     //计算预测角度
-    data_last = data;                                                          //记录上一帧的数据
-    leaf_angle_last = leaf_angle;                                              //记录上一帧的角度
-    cv::Point2d symbol(data->symbol.x, data->symbol.y);                   //R标
+    CalSmallRune(data, debug_msg);                                           //计算小符角速度
+    Judge(debug_msg);                                                        //判断顺时针还是逆时针
+    FittingBig(data, debug_msg);                                             //拟合大符
+    Fitting();                                                               //计算预测角度
+    data_last = data;                                                        //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                                            //记录上一帧的角度
+    cv::Point2d symbol(data->symbol.x, data->symbol.y);                      //R标
     rotate_armors.clear();
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
@@ -80,7 +80,7 @@ void Tracker::CalSmallRune(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
     debug_msg.small_rune_speed = speed.Mean();
 }
 
-bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
+bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (motion_state_ != MotionState::BIG) {
         return false;
     }
@@ -100,7 +100,7 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 #if !NEW_METHOD
     if (abs(leaf_angle - leaf_angle_last) > 0.4 && abs(leaf_angle - leaf_angle_last) < 5.2) {
         //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
-        cere_rotated_angle += leaf_angle - leaf_angle_last; // 变换符叶初始角度
+        cere_rotated_angle += leaf_angle - leaf_angle_last;           // 变换符叶初始角度
         cere_rotated_angle = Revise(cere_rotated_angle, -M_PI, M_PI); //角度变换后矫正
         tracker.angle = leaf_angle;
         tracker.pred_time -= (rclcpp::Time(data->header.stamp) - tracker.timestamp).seconds();
@@ -116,15 +116,14 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         RCLCPP_DEBUG(node_->get_logger(), "rune_leaf change!");
     }
 #endif
-    CeresProcess(data, runes_msg, debug_msg);
+    CeresProcess(data, debug_msg);
     return true;
 }
 
-bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
+bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (cere_param_list.size() < 100) {
         debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(leaf_angle - leaf_angle_last, 0, 36_deg / 2) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
         DataProcess(data, debug_msg);
-        runes_msg.can_shoot = false;
         return false;
     } else if (cere_param_list.size() == 100) {
         //队列数据已满
@@ -158,8 +157,7 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                     (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
                     delay + (node_->now() - data->header.stamp).seconds()
                 );
-                runes_msg.can_shoot = true; //可以发射
-                count_cere = 0;             //将count_cere置为0，非连续5次拟合不良
+                count_cere = 0; //将count_cere置为0，非连续5次拟合不良
                 finish_fitting = true;
                 tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - data->header.stamp).seconds(), leaf_angle);
             } else {
@@ -188,7 +186,6 @@ bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_
                     (delay + (node_->now() - data->header.stamp).seconds())
                 );
                 tracker.Record(pred_angle, data->header.stamp, delay + (node_->now() - rclcpp::Time(data->header.stamp)).seconds(), leaf_angle);
-                runes_msg.can_shoot = false;
                 return true;
             }
         } else {
@@ -298,7 +295,7 @@ bool Tracker::Judge(auto_aim_interfaces::msg::DebugRune& debug_msg) {
     return false;
 }
 
-bool Tracker::Fitting(auto_aim_interfaces::msg::Target& runes_msg) {
+bool Tracker::Fitting() {
     switch (motion_state_) {
         case MotionState::STATIC: {
             rotate_angle = 0;
@@ -307,14 +304,11 @@ bool Tracker::Fitting(auto_aim_interfaces::msg::Target& runes_msg) {
             switch (rotation_direction_) {
                 case RotationDirection::CLOCKWISE: {
                     rotate_angle = speed.Mean() * delay;
-                    runes_msg.can_shoot = true;
                 } break;
                 case RotationDirection::ANTICLOCKWISE: {
                     rotate_angle = -speed.Mean() * delay;
-                    runes_msg.can_shoot = true;
                 } break;
                 default: {
-                    runes_msg.can_shoot = false;
                     return false;
                 }
             }

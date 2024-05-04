@@ -1,11 +1,9 @@
 #ifndef CAMERA_NODE_HPP
 #define CAMERA_NODE_HPP
 
-#include "auto_aim_interfaces/msg/image.hpp"
 #include "camera/mindvision.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
 #include <communicate/srv/mode_switch.hpp>
 #include <opencv2/videoio.hpp>
 
@@ -23,15 +21,8 @@ private:
 
     void GetImg(); //获取图像
 
-    // void EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg);
-
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
-
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr euler_sub_;
-
-    // 原始图像发布者
-    rclcpp::Publisher<auto_aim_interfaces::msg::Image>::SharedPtr image_publisher_;
 
     rclcpp::Service<communicate::srv::ModeSwitch>::SharedPtr mode_switch_server_;
     std::string enemy_color_or_rune_flag;

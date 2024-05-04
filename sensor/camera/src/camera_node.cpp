@@ -14,20 +14,9 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
     rune_use_exposure_ = this->declare_parameter("rune_exposure", 4000);
 
-    // euler_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
-    //     "/communicate/gyro/left",
-    //     rclcpp::SensorDataQoS().keep_last(2),
-    //     std::bind(&CameraNode::EulerCallback, this, std::placeholders::_1)
-    // );
-
     if (this->videoflag) {
         capture.open(video_path);
     }
-    // 创建发布者
-    image_publisher_ = this->create_publisher<auto_aim_interfaces::msg::Image>(
-        "/camera/armor_image",
-        rclcpp::SensorDataQoS().keep_last(2)
-    );
 
     img_pub_for_rune_ = this->create_publisher<sensor_msgs::msg::Image>(
         "/image_for_rune",
@@ -61,27 +50,6 @@ void CameraNode::ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::R
 CameraNode::~CameraNode() {
     RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
 }
-
-// void CameraNode::EulerCallback(const sensor_msgs::msg::JointState::SharedPtr msg) {
-//     auto_aim_interfaces::msg::Image::UniquePtr image_msg(new auto_aim_interfaces::msg::Image());
-//     image_msg->header.stamp = msg->header.stamp;
-//     this->GetImg();
-//     image_msg->header.frame_id = "camera";
-//     image_msg->color = msg->header.frame_id;
-//     image_msg->raw_image.height = frame_->rows;
-//     image_msg->raw_image.width = frame_->cols;
-//     image_msg->raw_image.encoding = "bgr8";
-//     image_msg->raw_image.is_bigendian = 0u;
-//     image_msg->raw_image.step = static_cast<sensor_msgs::msg::Image::_step_type>(frame_->step);
-//     image_msg->raw_image.data.assign(frame_->datastart, frame_->dataend);
-
-//     image_msg->yaw_and_pitch = {
-//         static_cast<float>(msg->position[0]),
-//         static_cast<float>(msg->position[1])
-//     };
-
-//     image_publisher_->publish(std::move(image_msg));
-// }
 
 void CameraNode::GetImg() {
     if (videoflag) {
