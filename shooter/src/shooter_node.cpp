@@ -28,9 +28,15 @@ ShooterNode::ShooterNode(const rclcpp::NodeOptions& options):
             updateflag_ = true;
             if (!msg->is_find && !msg->tracking) {
                 serial_info_.is_find.set__data('0');
+                return;
             } else {
                 serial_info_.is_find.set__data('1');
             }
+            serial_info_.distance = std::hypot(
+                msg->predict_target.position.x,
+                msg->predict_target.position.y,
+                msg->predict_target.position.z
+            );
             Eigen::Vector2d yaw_and_pitch = shooter_->DynamicCalcCompensate(Eigen::Vector3d(msg->predict_target.position.x, msg->predict_target.position.y, msg->predict_target.position.z));
             for (auto& euler: yaw_and_pitch) {
                 if (euler > M_PI) {
