@@ -53,7 +53,7 @@ private:
     /**
      * @brief 发布 Marker debug 信息
      */
-    void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg);
+    void PublishMarkers(const auto_aim_interfaces::msg::Target& target_msg, const CarState& car_state);
 
     // 子弹速度
     double bullet_speed_;
