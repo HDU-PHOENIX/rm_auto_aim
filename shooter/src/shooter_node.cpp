@@ -67,6 +67,15 @@ void ShooterNode::Start() {
     // TODO: 可做插值
     serial_info_.euler = { static_cast<float>(target_yaw_and_pitch_[0]), static_cast<float>(target_yaw_and_pitch_[1]) };
     shooter_info_pub_->publish(serial_info_);
+//     static int count = 0;
+//     serial_info_.is_find.data = '1';
+//     if (count++ < 300) {
+//     serial_info_.euler = { 0.0, 0.0};
+//     } else if (count < 600) {
+//     serial_info_.euler = { 0.0, 0.3};
+//     } else {
+//     count = 0;
+//     }
 }
 
 void ShooterNode::AngleRevise(float& yaw, float& pitch) {
