@@ -13,7 +13,10 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
     rune_use_exposure_ = this->declare_parameter("rune_exposure", 4000);
 
-    mindvision_ = std::make_shared<MindVision>(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
+    mindvision_ = std::make_shared<MindVision>(
+        ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config",
+        this->declare_parameter("sn", "").c_str()
+    );
     if (!mindvision_->GetCameraStatus() && !videoflag) {
         RCLCPP_ERROR(this->get_logger(), "mindvision failed");
         exit(-1);

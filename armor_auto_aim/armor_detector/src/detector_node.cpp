@@ -46,7 +46,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
     detector_->UpdateEnemyColor(msg->header.frame_id == "0" ? Color::RED : Color::BLUE);
-    msg->header.frame_id = "camera";
+    msg->header.frame_id = camera_coordinate_;
     auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());
     std::vector<Armor> armors;
 

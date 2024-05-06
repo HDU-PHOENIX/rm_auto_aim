@@ -9,7 +9,7 @@ namespace sensor {
 
 class MindVision {
 public:
-    explicit MindVision(std::string mindvision_config = "");
+    explicit MindVision(std::string mindvision_config = "", const std::string sn = "");
     ~MindVision();
 
     /**
@@ -38,7 +38,7 @@ private:
     int i_status;
 
     // 相机其他信息
-    tSdkCameraDevInfo t_camera_enum_list;
+    tSdkCameraDevInfo t_camera_enum_list[2];
     int h_camera;
     tSdkCameraCapbility t_capability;
     tSdkFrameHead s_frame_info;
