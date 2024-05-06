@@ -9,10 +9,9 @@
 
 namespace sensor {
 
-class CameraNode: public rclcpp::Node, MindVision {
+class CameraNode: public rclcpp::Node {
 public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
-    ~CameraNode() override;
 
 private:
     void LoopForPublish(); //发布图像
@@ -34,6 +33,7 @@ private:
     // 是否外部输入视频流标志位
     bool videoflag;
     std::string video_path;
+    std::shared_ptr<MindVision> mindvision_;
     cv::VideoCapture capture;
     std::thread thread_for_publish_; //获取图像的线程
 };

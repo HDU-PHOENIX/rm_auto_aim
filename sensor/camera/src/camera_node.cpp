@@ -5,14 +5,19 @@
 namespace sensor {
 
 CameraNode::CameraNode(const rclcpp::NodeOptions& options):
-    Node("camera_node", options),
-    MindVision(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config") {
+    Node("camera_node", options) {
     RCLCPP_INFO(this->get_logger(), "camera_node start");
 
     //是否使用视频流标志位
     videoflag = this->declare_parameter("videoflag", false);
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
     rune_use_exposure_ = this->declare_parameter("rune_exposure", 4000);
+
+    mindvision_ = std::make_shared<MindVision>(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
+    if (!mindvision_->GetCameraStatus() && !videoflag) {
+        RCLCPP_ERROR(this->get_logger(), "mindvision failed");
+        exit(-1);
+    }
 
     if (this->videoflag) {
         capture.open(video_path);
@@ -37,18 +42,14 @@ void CameraNode::ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::R
     //模式 0：自瞄 1：符
     this->mode_ = request->mode == 0 ? false : true;
     if (mode_) {
-        this->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/rune_mindvision.config");
-        this->SetExposureTime(rune_use_exposure_); //符曝光
+        mindvision_->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/rune_mindvision.config");
+        mindvision_->SetExposureTime(rune_use_exposure_); //符曝光
     } else {
         //装甲板曝光
-        this->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
+        mindvision_->SetExposureTime(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
     }
     this->enemy_color_or_rune_flag = request->mode == 0 ? std::to_string(request->enemy_color) : std::to_string(request->rune_state);
     response->success = true;
-}
-
-CameraNode::~CameraNode() {
-    RCLCPP_INFO(this->get_logger(), "Camera node destroyed!");
 }
 
 void CameraNode::GetImg() {
@@ -60,7 +61,7 @@ void CameraNode::GetImg() {
             capture >> *frame_;
         }
     } else {
-        if (!this->GetFrame(frame_)) {
+        if (!mindvision_->GetFrame(frame_)) {
             RCLCPP_ERROR(this->get_logger(), "mindvision get image failed");
         }
     }
@@ -79,7 +80,6 @@ void CameraNode::LoopForPublish() {
         image_msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame_->step);
         image_msg->data.assign(frame_->datastart, frame_->dataend);
         mode_ ? img_pub_for_rune_->publish(std::move(image_msg)) : img_pub_for_armor_->publish(std::move(image_msg));
-        // RCLCPP_INFO(this->get_logger(), "publish image");
     }
 }
 

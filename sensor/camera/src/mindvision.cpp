@@ -35,7 +35,7 @@ MindVision::MindVision(std::string mindvision_config):
 
         if (i_camera_counts == 0) {
             RCLCPP_ERROR(logger, "Reconnect failed. State = %d", i_status);
-            // exit(-1);
+            return;
         } else {
             RCLCPP_INFO(logger, "Reconnect success.");
         }
@@ -55,14 +55,13 @@ MindVision::MindVision(std::string mindvision_config):
             } else {
                 RCLCPP_WARN(logger, "Camera Init failed.");
             }
-            // rclcpp::sleep_for(std::chrono::seconds(1));
         }
 
         if (i_status == CAMERA_STATUS_SUCCESS) {
             RCLCPP_INFO(logger, "Camera reinit success.");
         } else {
             RCLCPP_ERROR(logger, "Camera reinit failed. State = %d", i_status);
-            // exit(-1);
+            return;
         }
     }
 

@@ -18,6 +18,11 @@ public:
      * @return bool 是否成功获取图像
      */
     bool GetFrame(std::shared_ptr<cv::Mat>& frame);
+
+    bool GetCameraStatus() {
+        return (i_camera_counts != 0) && (i_status == CAMERA_STATUS_SUCCESS);
+    }
+
     void SetExposureTime(int time) {
         CameraSetExposureTime(h_camera, time);
     }
