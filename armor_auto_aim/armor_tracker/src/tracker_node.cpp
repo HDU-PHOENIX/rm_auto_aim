@@ -15,6 +15,9 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     max_armor_distance_ = this->declare_parameter("max_armor_distance", 10.0);
     bullet_speed_ = declare_parameter("bullet_speed", 25.0);
 
+    this->shooter_coordinate = declare_parameter("shooter_coordinate", "shooter");
+    this->odom_coordinate = declare_parameter("odom_coordinate", "odom");
+
     // Tracker 参数设置
     double max_match_distance = this->declare_parameter("tracker.max_match_distance", 0.15);
     double max_match_yaw_diff = this->declare_parameter("tracker.max_match_yaw_diff", 1.0);
@@ -56,7 +59,6 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
 
     // 订阅器和过滤器
     armors_sub_.subscribe(this, "/detector/armors", rmw_qos_profile_sensor_data);
-    target_frame_ = this->declare_parameter("target_frame", "odom");
     tf2_filter_ = std::make_shared<tf2_filter>(
         armors_sub_,                        // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
@@ -86,7 +88,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         ps.pose = armor.pose;
         try {
             // TODO: armors_msg 中 pose 变了但是 header 中的 frame id 没变！
-            armor.pose = tf2_buffer_->transform(ps, target_frame_).pose;
+            armor.pose = tf2_buffer_->transform(ps, odom_coordinate).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
             return;
@@ -153,7 +155,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             };
 
             double roll, pitch, yaw;
-            auto transform = tf2_buffer_->lookupTransform("odom", "shooter", tf2::TimePointZero).transform;
+            auto transform = tf2_buffer_->lookupTransform(odom_coordinate, shooter_coordinate, tf2::TimePointZero).transform;
             tf2::Matrix3x3(
                 tf2::Quaternion(
                     transform.rotation.x,

@@ -5,6 +5,10 @@
     enemy_color: 0 # 0-红色，1-蓝色
     bullet_speed: 27.0
 
+    odom_coordinate: "odom"
+    shooter_coordinate: "shooter"
+    camera_coordinate: "odom"
+
     # omni
     camera_matrix: [2189.354844533515, 0.0, 644.7435314973159, 0.0, 2196.766927388486, 251.8039862086356, 0.0, 0.0, 1.0]
     distortion_coefficients: [0.019548878513916755, 0.13092381310787202, 0.02703128536231332, 0.0035254460543056912, 0.0]

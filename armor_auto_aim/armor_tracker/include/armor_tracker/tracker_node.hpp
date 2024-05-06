@@ -93,8 +93,9 @@ private:
     visualization_msgs::msg::Marker angular_v_marker_;
     visualization_msgs::msg::Marker armor_marker_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
-};
 
+    std::string shooter_coordinate, odom_coordinate;
+};
 } // namespace armor
 
 #endif // ARMOR_PROCESSOR__PROCESSOR_NODE_HPP_
