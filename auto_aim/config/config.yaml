@@ -65,9 +65,9 @@
 
 /tf2_node:
     ros__parameters:
-        # omni
-        odom2shooter_r: 0.056
-        shooter2camera_tvec: [0.03805, 0, 0.0295]
+        # plane 
+        odom2shooter_r: 0.078
+        shooter2camera_tvec: [0.0523, 0, 0.0336]
         shooter_coordinate: "shooter"
         camera_coordinate: "camera"
         odom_coordinate: "odom"
@@ -75,6 +75,7 @@
 /armor_detector_node:
     ros__parameters:
         binary_threshold_red: 50
+        binary_threshold_blue: 100
 
 /armor_tracker_node:
     ros__parameters:
@@ -108,3 +109,4 @@
         number_of_iterations: 60
         yaw_threshold: 0.03
         pitch_threshold: 0.01
+
