@@ -56,5 +56,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Subscription<auto_aim_interfaces::msg::IgnoreClasses>::SharedPtr ignore_classes_sub_;
     rclcpp::Publisher<auto_aim_interfaces::msg::Armors>::SharedPtr armors_pub_;
+
+    std::string camera_coordinate_;
 };
 } // namespace armor

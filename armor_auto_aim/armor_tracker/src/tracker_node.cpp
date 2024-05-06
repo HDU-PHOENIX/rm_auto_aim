@@ -62,7 +62,7 @@ ArmorTrackerNode::ArmorTrackerNode(const rclcpp::NodeOptions& options):
     tf2_filter_ = std::make_shared<tf2_filter>(
         armors_sub_,                        // message_filters subscriber
         *tf2_buffer_,                       // tf2 buffer
-        target_frame_,                      // frame this filter should attempt to transform to
+        odom_coordinate,                    // frame this filter should attempt to transform to
         100,                                // size of the tf2 cache
         this->get_node_logging_interface(), // node logging interface
         this->get_node_clock_interface(),   // node clock interface
@@ -114,7 +114,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
     CarState car_state;
     rclcpp::Time time = armors_msg->header.stamp;
     target_msg.header.stamp = time;
-    target_msg.header.frame_id = target_frame_;
+    target_msg.header.frame_id = odom_coordinate;
 
     if (tracker_->tracker_state == Tracker::LOST) {
         // 如果追踪器状态为 LOST，重新初始化追踪器

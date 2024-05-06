@@ -24,6 +24,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         }
     );
 
+    camera_coordinate_ = declare_parameter("camera_coordinate", "camera");
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(

@@ -7,7 +7,7 @@
 
     odom_coordinate: "odom"
     shooter_coordinate: "shooter"
-    camera_coordinate: "odom"
+    camera_coordinate: "camera"
 
     # omni
     camera_matrix: [2189.354844533515, 0.0, 644.7435314973159, 0.0, 2196.766927388486, 251.8039862086356, 0.0, 0.0, 1.0]

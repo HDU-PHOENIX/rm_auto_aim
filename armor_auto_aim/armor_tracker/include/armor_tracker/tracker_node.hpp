@@ -78,7 +78,6 @@ private:
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_tracker_srv_;
 
     // 使用 tf 2消息过滤器的订阅器
-    std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
     message_filters::Subscriber<auto_aim_interfaces::msg::Armors> armors_sub_;
