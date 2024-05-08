@@ -7,7 +7,7 @@
 
 namespace sensor {
 
-class CameraForCalibrate: public rclcpp::Node, MindVision {
+class CameraForCalibrate: public rclcpp::Node {
 public:
     explicit CameraForCalibrate(const rclcpp::NodeOptions& options);
     ~CameraForCalibrate() override;
@@ -23,6 +23,8 @@ private:
     // 原始图像发布者
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
     std::thread thread_for_publish_; //获取图像的线程
+
+    std::shared_ptr<MindVision> mindvision_;
 };
 
 } // namespace sensor

@@ -5,9 +5,11 @@
 namespace sensor {
 
 CameraForCalibrate::CameraForCalibrate(const rclcpp::NodeOptions& options):
-    Node("camera_node", options),
-    MindVision(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config") {
+    Node("camera_node", options) {
     RCLCPP_INFO(this->get_logger(), "camera_node start");
+
+    mindvision_ = std::make_shared<MindVision>(ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config");
+    mindvision_->SetExposureTime(5000);
 
     // 创建发布者
     image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
@@ -24,7 +26,7 @@ CameraForCalibrate::~CameraForCalibrate() {
 }
 
 void CameraForCalibrate::GetImg() {
-    if (!this->GetFrame(frame_)) {
+    if (!mindvision_->GetFrame(frame_)) {
         RCLCPP_ERROR(this->get_logger(), "mindvision get image failed");
         exit(-1);
     }
