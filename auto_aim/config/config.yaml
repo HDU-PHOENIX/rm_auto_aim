@@ -2,14 +2,13 @@
   ros__parameters:
     debug: false
     show_pic: false
-    enemy_color: 0 # 0-红色，1-蓝色
+    enemy_color: 1 # 0-红色，1-蓝色
     bullet_speed: 27.0
 
     
     ### plane camera 1
-    camera_matrix: [2055.094493, 0.000000, 664.381065,0.000000, 2051.913811, 222.698165,0.000000, 0.000000, 1.000000]
-    distortion_coefficients: [-0.044477, 0.070170, -0.004976, 0.005518, 0.000000]
-
+    camera_matrix: [2165.250352, 0.000000, 566.067790,0.000000, 2167.790162, 126.674204,0.000000, 0.000000, 1.000000]
+    distortion_coefficients: [-0.024666,0.156683, -0.009248, -0.011454, 0.000000]
    
 
 /camera_node:
@@ -51,4 +50,6 @@
         number_of_iterations: 60
         yaw_threshold: 0.03
         pitch_threshold: 0.01
+
+        
 
