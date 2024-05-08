@@ -135,7 +135,6 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         info_msg.position.y = tracker_->measurement(1);
         info_msg.position.z = tracker_->measurement(2);
         info_msg.yaw = tracker_->measurement(3);
-        info_pub_->publish(info_msg);
 
         if (tracker_->tracker_state == Tracker::DETECTING) {
             target_msg.tracking = false;
@@ -169,11 +168,19 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             target_msg.predict_target.position.set__x(predict_armor_position.x());
             target_msg.predict_target.position.set__y(predict_armor_position.y());
             target_msg.predict_target.position.set__z(predict_armor_position.z());
+
+
+            //debug info 
+            info_msg.v_yaw = state(7);
+            info_msg.radius_1 = state(8);
+            info_msg.radius_2 =tracker_->another_r;
+            info_msg.dz = tracker_->dz;
         }
     }
 
     last_time_ = time;
     PublishMarkers(target_msg, car_state);
+    info_pub_->publish(info_msg);
     target_pub_->publish(target_msg);
 }
 

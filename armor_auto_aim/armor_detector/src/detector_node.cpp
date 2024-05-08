@@ -11,6 +11,7 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     InitMarkers();
 
     // 监视 Debug 参数变化
+    show_image_ = declare_parameter("show_pic", false);
     debug_ = declare_parameter("debug", false);
     if (debug_) {
         CreateDebugPublishers();
@@ -101,18 +102,22 @@ void ArmorDetectorNode::CreateDebugPublishers() {
     debug_lights_pub_ = create_publisher<auto_aim_interfaces::msg::DebugLights>("/detector/debug_lights", 10);
     debug_armors_pub_ = create_publisher<auto_aim_interfaces::msg::DebugArmors>("/detector/debug_armors", 10);
     armor_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>("/detector/marker", 10);
-    binary_img_pub_ = image_transport::create_publisher(this, "/detector/binary_img");
-    number_img_pub_ = image_transport::create_publisher(this, "/detector/number_img");
-    result_img_pub_ = image_transport::create_publisher(this, "/detector/result_img");
+    if(show_image_) {
+        binary_img_pub_ = image_transport::create_publisher(this, "/detector/binary_image");
+        number_img_pub_ = image_transport::create_publisher(this, "/detector/number_image");
+        result_img_pub_ = image_transport::create_publisher(this, "/detector/result_image");
+    }
 }
 
 void ArmorDetectorNode::DestroyDebugPublishers() {
     debug_lights_pub_.reset();
     debug_armors_pub_.reset();
     armor_marker_pub_.reset();
-    binary_img_pub_.shutdown();
-    number_img_pub_.shutdown();
-    result_img_pub_.shutdown();
+    if (show_image_) {
+        binary_img_pub_.shutdown();
+        number_img_pub_.shutdown();
+        result_img_pub_.shutdown();
+    }
 }
 
 void ArmorDetectorNode::UpdateDetectorParameters() {
@@ -131,9 +136,11 @@ void ArmorDetectorNode::UpdateDetectorParameters() {
 }
 
 void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {
-    binary_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetBinaryImage()).toImageMsg());
-    number_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetAllNumbersImage()).toImageMsg());
-    result_img_pub_.publish(cv_bridge::CvImage(header, "bgr8", result_image_).toImageMsg());
+    if(show_image_){
+        binary_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetBinaryImage()).toImageMsg());
+        number_img_pub_.publish(cv_bridge::CvImage(header, "mono8", detector_->GetAllNumbersImage()).toImageMsg());
+        result_img_pub_.publish(cv_bridge::CvImage(header, "bgr8", result_image_).toImageMsg());
+    }
 
     auto_aim_interfaces::msg::DebugArmors debug_armors_msg;
     auto_aim_interfaces::msg::DebugLights debug_lights_msg;
