@@ -22,24 +22,26 @@ const std::string ARMOR_TYPE_STR[3] = {
     "invalid"
 };
 
-const float HALF_SMALL_ARMOR_WIDTH = 0.135 / 2;
-const float HALF_LARGE_ARMOR_WIDTH = 0.225 / 2;
-const float HALF_SMALL_ARMOR_HEIGHT = 0.055 / 2;
-const float HALF_LARGE_ARMOR_HEIGHT = 0.055 / 2;
-// 右手系，x 轴垂直装甲板向内
-// 角点顺序：0-左灯条中点 1-两灯条顶部连线中点 2-右灯条中点 3-两灯条底部连线中点
+// clang-format off
+const float SMALL_ARMOR_WIDTH  = 0.135;
+const float SMALL_ARMOR_HEIGHT = 0.055;
+const float LARGE_ARMOR_WIDTH  = 0.225;
+const float LARGE_ARMOR_HEIGHT = 0.055;
+// x 垂直装甲板向内，从左下角开始顺时针
 const std::vector<cv::Point3f> SMALL_ARMOR_POINTS = {
-    { 0, HALF_SMALL_ARMOR_WIDTH, 0 },
-    { 0, 0, HALF_SMALL_ARMOR_HEIGHT },
-    { 0, -HALF_SMALL_ARMOR_WIDTH, 0 },
-    { 0, 0, -HALF_SMALL_ARMOR_HEIGHT }
+    { 0, +SMALL_ARMOR_WIDTH / 2, -SMALL_ARMOR_HEIGHT / 2},
+    { 0, +SMALL_ARMOR_WIDTH / 2, +SMALL_ARMOR_HEIGHT / 2},
+    { 0, -SMALL_ARMOR_WIDTH / 2, +SMALL_ARMOR_HEIGHT / 2},
+    { 0, -SMALL_ARMOR_WIDTH / 2, -SMALL_ARMOR_HEIGHT / 2}
 };
+// x 垂直装甲板向内，从左下角开始顺时针
 const std::vector<cv::Point3f> LARGE_ARMOR_POINTS = {
-    { 0, HALF_LARGE_ARMOR_WIDTH, 0 },
-    { 0, 0, HALF_LARGE_ARMOR_HEIGHT },
-    { 0, -HALF_LARGE_ARMOR_WIDTH, 0 },
-    { 0, 0, -HALF_LARGE_ARMOR_HEIGHT }
+    { 0, +LARGE_ARMOR_WIDTH / 2, -LARGE_ARMOR_HEIGHT / 2 },
+    { 0, +LARGE_ARMOR_WIDTH / 2, +LARGE_ARMOR_HEIGHT / 2 },
+    { 0, -LARGE_ARMOR_WIDTH / 2, +LARGE_ARMOR_HEIGHT / 2 },
+    { 0, -LARGE_ARMOR_WIDTH / 2, -LARGE_ARMOR_HEIGHT / 2 }
 };
+// clang-format on
 
 // 灯条参数
 struct LightParams {
