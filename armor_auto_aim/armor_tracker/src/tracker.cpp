@@ -231,15 +231,17 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& sho
     // float min_yaw_diff = std::numeric_limits<float>::max();
 
     // 迭代每一块装甲板
+    auto&& average_armor_radius = (predict_car_state.r[0] + predict_car_state.r[1]) / 2;
     std::vector<ArmorPosition> armors_position;
     auto armor_number = predict_car_state.armors_num;
     for (int i = 0; i < armor_number; i++) {
         double yaw = predict_car_state.position.w() + i * (2 * M_PI / armor_number);
         armors_position.emplace_back(
-            predict_car_state.position.x() - predict_car_state.r[0] * cos(yaw),
-            predict_car_state.position.y() - predict_car_state.r[0] * sin(yaw),
-            predict_car_state.position.z(),
-            yaw
+            predict_car_state.position.x() - predict_car_state.r[i % 2] * cos(yaw),
+            predict_car_state.position.y() - predict_car_state.r[i % 2] * sin(yaw),
+            predict_car_state.position.z() + i % 2 * dz,
+            yaw,
+            pow(predict_car_state.position.x() - average_armor_radius * cos(yaw), 2) + pow(predict_car_state.position.x() - average_armor_radius * cos(yaw), 2)
         );
     }
 

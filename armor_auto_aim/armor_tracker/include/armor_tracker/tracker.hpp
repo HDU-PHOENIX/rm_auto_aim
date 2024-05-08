@@ -34,12 +34,12 @@ struct ArmorPosition {
 
     ArmorPosition() = default;
 
-    ArmorPosition(float x, float y, float z, float yaw):
+    ArmorPosition(float x, float y, float z, float yaw, float distance_square):
         x(x),
         y(y),
         z(z),
         yaw(yaw),
-        distance_square(x * x + y * y) {};
+        distance_square(distance_square) {};
 };
 
 struct CarState {
