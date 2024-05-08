@@ -41,6 +41,20 @@ public:
         return a_omega_phi_b;
     }
 
+    bool IsCeresFull() {
+        return cere_param_list.size() >= 99;
+    }
+
+    int GetRuneState() {
+        if (motion_state_ == MotionState::BIG) {
+            return 2;
+        } else if (motion_state_ == MotionState::SMALL) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
 private:
     enum class MotionState {
         UNKNOWN,

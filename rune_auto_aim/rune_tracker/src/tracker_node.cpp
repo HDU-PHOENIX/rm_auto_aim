@@ -85,7 +85,14 @@ void RuneTrackerNode::RunesCallback(const auto_aim_interfaces::msg::Rune::Shared
     ps.pose.position = rune_ptr->pose_c.position;
     runes_msg_.detect_target.position = tf2_buffer_->transform(ps, target_frame_).pose.position;
 
-    target_pub_->publish(runes_msg_);
+    if (tracker_->GetRuneState() == 2 && tracker_->IsCeresFull()) {
+        // 如果符叶运动状态为大符，且cereslist数据量够了，则发布消息
+        target_pub_->publish(runes_msg_);
+    } else if (tracker_->GetRuneState() == 1) {
+        // 如果符叶运动状态为小符，则发布消息
+        target_pub_->publish(runes_msg_);
+    }
+
     if (debug_) {
         PublishMarkers(runes_msg_);
         PublishDebugInfo();
@@ -137,7 +144,7 @@ void RuneTrackerNode::InitParams() {
     param_desc.floating_point_range[0].to_value = 1;
     chasedelay = this->declare_parameter("chasedelay", 0.0, param_desc); //设置chasedelay的默认值0.0
     param_desc.floating_point_range.resize(1);
-    param_desc.floating_point_range[0].step = 0.01;
+    param_desc.floating_point_range[0].step = 0.001;
     param_desc.floating_point_range[0].from_value = -3.0;
     param_desc.floating_point_range[0].to_value = 3.0;
     phase_offset = this->declare_parameter("phase_offset", 0.0, param_desc); //设置phaseoffset的默认值0.0
