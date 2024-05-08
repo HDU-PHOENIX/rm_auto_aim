@@ -44,16 +44,9 @@ def generate_launch_description():
                 }],
                 parameters = [config]
             ),
-            ComposableNode(
-                package = 'rune_detector',
-                plugin = 'rune::RuneDetectorNode',
-                name = 'rune_detector_node',
-                extra_arguments = [{
-                    "use_intra_process_comms": True,
-                    "respawn": True,
-                }],
-                parameters = [config]
-            ),
+        
+            
+    
             ComposableNode(
                 package = 'camera',
                 plugin = 'sensor::CameraNode',
@@ -62,8 +55,8 @@ def generate_launch_description():
                     "use_intra_process_comms": True,
                     "respawn": True,
                 }],
-                parameters = [config]
-            )
+                parameters = [config]            
+                )
         ]
     )
 
@@ -83,17 +76,8 @@ def generate_launch_description():
                     "respawn": True,
                 }],
                 parameters = [config]
-            ),
-            ComposableNode(
-                package='rune_tracker',
-                plugin='rune::RuneTrackerNode',
-                name='rune_tracker_node',
-                extra_arguments = [{
-                    "use_intra_process_comms": True,
-                    "respawn": True,
-                }],
-                parameters = [config]
             )
+            
         ]
     )
 
