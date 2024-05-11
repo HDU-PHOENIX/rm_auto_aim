@@ -1,0 +1,10 @@
+[Unit]
+Description=rm_auto_aim
+
+[Service]
+ExecStart=/home/rm/rm_auto_aim/scripts/rm_auto_aim.bash
+WorkingDirectory=/home/rm/rm_auto_aim/
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
