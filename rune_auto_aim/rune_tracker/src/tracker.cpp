@@ -122,14 +122,13 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
 
 bool Tracker::CeresProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_aim_interfaces::msg::DebugRune& debug_msg) {
     if (cere_param_list.size() < 100) {
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(leaf_angle - leaf_angle_last, 0, 36_deg / 2) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(fabs(leaf_angle - leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds(), 0.0, 2.090);
         DataProcess(data, debug_msg);
         return false;
     } else if (cere_param_list.size() == 100) {
         //队列数据已满
         cere_param_list.pop_front(); //队列头数据弹出
-        //TODO:这里可能会有问题后续逻辑得仔细考虑一下
-        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(leaf_angle - leaf_angle_last, 0, 36_deg / 2) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds();
+        debug_msg.origin_big_rune_speed = leaf_angular_velocity = Revise(fabs(leaf_angle - leaf_angle_last) / (rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp)).seconds(), 0.0, 2.090);
         DataProcess(data, debug_msg);
         RCLCPP_DEBUG(node_->get_logger(), "finish_fitting flag %d", finish_fitting);
         //当现在的时间减去上一次拟合的时间大于预测的时间时，开始验证预测的准确性
