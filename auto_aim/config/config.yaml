@@ -17,6 +17,7 @@
 
 /camera_node:
     ros__parameters:
+        inner_shot_flag: false
         videoflag: false
         video_path: "./Camera/new6.mp4"
         rune_exposure: 4000

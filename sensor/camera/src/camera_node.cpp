@@ -12,6 +12,9 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     videoflag = this->declare_parameter("videoflag", false);
     video_path = this->declare_parameter("video_path", "/home/robot/1.avi"); //默认路径
     rune_use_exposure_ = this->declare_parameter("rune_exposure", 4000);
+    inner_shot_flag = this->declare_parameter("inner_shot_flag", false);
+
+    RCLCPP_INFO(this->get_logger(), "inner_shot flag %d", inner_shot_flag);
 
     mindvision_ = std::make_shared<MindVision>(
         ament_index_cpp::get_package_share_directory("auto_aim") + "/config/mindvision.config",
@@ -24,6 +27,10 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
 
     if (this->videoflag) {
         capture.open(video_path);
+    }
+
+    if (inner_shot_flag) {
+        thread_for_inner_shot_ = std::thread(std::bind(&CameraNode::InnerShot, this));
     }
 
     img_pub_for_rune_ = this->create_publisher<sensor_msgs::msg::Image>(
@@ -39,6 +46,12 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     mode_ = false;
     mode_switch_server_ = this->create_service<communicate::srv::ModeSwitch>("/communicate/autoaim", std::bind(&CameraNode::ServiceCB, this, std::placeholders::_1, std::placeholders::_2));
     thread_for_publish_ = std::thread(std::bind(&CameraNode::LoopForPublish, this));
+}
+
+void CameraNode::InnerShot() {
+    auto inner_shot = std::make_shared<InnerShotNode>();
+    RCLCPP_INFO(this->get_logger(), "inner_shot start !.............. ");
+    rclcpp::spin(inner_shot);
 }
 
 void CameraNode::ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::Request> request, std::shared_ptr<communicate::srv::ModeSwitch::Response> response) {

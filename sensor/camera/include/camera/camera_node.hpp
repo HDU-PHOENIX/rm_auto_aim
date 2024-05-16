@@ -2,11 +2,11 @@
 #define CAMERA_NODE_HPP
 
 #include "camera/mindvision.hpp"
+#include "inner_shot.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <communicate/srv/mode_switch.hpp>
 #include <opencv2/videoio.hpp>
-
 namespace sensor {
 
 class CameraNode: public rclcpp::Node {
@@ -19,6 +19,8 @@ private:
     void ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::Request> request, std::shared_ptr<communicate::srv::ModeSwitch::Response> response);
 
     void GetImg(); //获取图像
+
+    void InnerShot();
 
     // 保存从摄像头获取的图像
     std::shared_ptr<cv::Mat> frame_;
@@ -35,7 +37,9 @@ private:
     std::string video_path;
     std::shared_ptr<MindVision> mindvision_;
     cv::VideoCapture capture;
-    std::thread thread_for_publish_; //获取图像的线程
+    std::thread thread_for_publish_;    //获取图像的线程
+    std::thread thread_for_inner_shot_; //获取图像的线程
+    bool inner_shot_flag;
 };
 
 } // namespace sensor
