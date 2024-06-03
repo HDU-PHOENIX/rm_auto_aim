@@ -40,6 +40,8 @@ private:
     std::thread thread_for_publish_;    //获取图像的线程
     std::thread thread_for_inner_shot_; //获取图像的线程
     bool inner_shot_flag;
+
+    int failed_count;
 };
 
 } // namespace sensor

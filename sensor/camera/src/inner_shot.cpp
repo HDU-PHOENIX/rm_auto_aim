@@ -5,7 +5,7 @@ InnerShotNode::InnerShotNode():
     Node("innershot_node") {
     RCLCPP_INFO(this->get_logger(), "innershot_node start");
     video_writer_ = std::make_shared<cv::VideoWriter>();
-    img_inner_shot_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor ", rclcpp::SensorDataQoS().keep_last(2), std::bind(&InnerShotNode::InnerShotCallback, this, std::placeholders::_1));
+    img_inner_shot_sub_ = this->create_subscription<sensor_msgs::msg::Image>("/image_for_armor", rclcpp::SensorDataQoS().keep_last(2), std::bind(&InnerShotNode::InnerShotCallback, this, std::placeholders::_1));
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm* now_tm = std::localtime(&t);

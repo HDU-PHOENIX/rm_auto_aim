@@ -46,6 +46,8 @@ CameraNode::CameraNode(const rclcpp::NodeOptions& options):
     mode_ = false;
     mode_switch_server_ = this->create_service<communicate::srv::ModeSwitch>("/communicate/autoaim", std::bind(&CameraNode::ServiceCB, this, std::placeholders::_1, std::placeholders::_2));
     thread_for_publish_ = std::thread(std::bind(&CameraNode::LoopForPublish, this));
+
+    failed_count = 0;
 }
 
 void CameraNode::InnerShot() {
@@ -78,8 +80,15 @@ void CameraNode::GetImg() {
         }
     } else {
         if (!mindvision_->GetFrame(frame_)) {
+            failed_count++;
             RCLCPP_ERROR(this->get_logger(), "mindvision get image failed");
+        } else {
+            failed_count = 0;
         }
+    }
+
+    if (failed_count > 10) {
+        exit(-1);
     }
 }
 

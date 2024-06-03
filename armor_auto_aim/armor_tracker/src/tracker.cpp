@@ -241,7 +241,7 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& sho
             predict_car_state.position.y() - predict_car_state.r[i % 2] * sin(yaw),
             predict_car_state.position.z() + i % 2 * dz,
             yaw,
-            pow(predict_car_state.position.x() - average_armor_radius * cos(yaw), 2) + pow(predict_car_state.position.x() - average_armor_radius * cos(yaw), 2)
+            pow(predict_car_state.position.x() - average_armor_radius * cos(yaw), 2) + pow(predict_car_state.position.y() - average_armor_radius * sin(yaw), 2)
         );
     }
 
