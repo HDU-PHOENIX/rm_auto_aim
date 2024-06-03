@@ -63,8 +63,8 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     std::vector<Light> lights;
     debug_lights_.clear();
 
-    cv::split(input, channels_);
     // 敌方颜色通道 - 己方颜色通道
+    cv::split(input, channels_);
     if (enemy_color_ == Color::RED) {
         cv::subtract(channels_[2], channels_[0], color_mask_);
     } else {
@@ -77,9 +77,12 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
         255,
         cv::THRESH_BINARY
     );
+    // 膨胀，使灯条更加连续
     cv::dilate(light_contour_binary_image_, light_contour_binary_image_, kernel_);
+    // 与预处理图像取交集，获取又亮又符合颜色的絮语
     cv::bitwise_and(preprocessed_image_, light_contour_binary_image_, light_contour_binary_image_);
 
+    // 寻找轮廓
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(this->light_contour_binary_image_, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
     for (const auto& contour: contours) {
@@ -101,6 +104,7 @@ std::vector<Armor> Detector::FilterArmor(const cv::Mat& input, const std::vector
     armors.reserve(lights.size() / 2);
     debug_armors_.clear();
 
+    // 两两配对遍历灯条进行装甲板匹配
     for (const auto& left_light: lights) {
         for (const auto& right_light: lights) {
             if (left_light.center.x >= right_light.center.x) {

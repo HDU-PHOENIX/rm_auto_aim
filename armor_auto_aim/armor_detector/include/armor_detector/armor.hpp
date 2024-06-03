@@ -23,18 +23,18 @@ const std::string ARMOR_TYPE_STR[3] = {
 };
 
 // clang-format off
+// 装甲板大小参数，用于 PnP 结算
 const float SMALL_ARMOR_WIDTH  = 0.135;
 const float SMALL_ARMOR_HEIGHT = 0.055;
 const float LARGE_ARMOR_WIDTH  = 0.225;
 const float LARGE_ARMOR_HEIGHT = 0.055;
-// x 垂直装甲板向内，从左下角开始顺时针
+// PnP 角点顺序：右手系，x 垂直装甲板向内，从左下角开始顺时针
 const std::vector<cv::Point3f> SMALL_ARMOR_POINTS = {
     { 0, +SMALL_ARMOR_WIDTH / 2, -SMALL_ARMOR_HEIGHT / 2},
     { 0, +SMALL_ARMOR_WIDTH / 2, +SMALL_ARMOR_HEIGHT / 2},
     { 0, -SMALL_ARMOR_WIDTH / 2, +SMALL_ARMOR_HEIGHT / 2},
     { 0, -SMALL_ARMOR_WIDTH / 2, -SMALL_ARMOR_HEIGHT / 2}
 };
-// x 垂直装甲板向内，从左下角开始顺时针
 const std::vector<cv::Point3f> LARGE_ARMOR_POINTS = {
     { 0, +LARGE_ARMOR_WIDTH / 2, -LARGE_ARMOR_HEIGHT / 2 },
     { 0, +LARGE_ARMOR_WIDTH / 2, +LARGE_ARMOR_HEIGHT / 2 },

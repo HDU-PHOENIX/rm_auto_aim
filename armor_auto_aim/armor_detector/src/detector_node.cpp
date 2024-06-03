@@ -10,9 +10,12 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
     detector_ = CreateDetector();
     InitMarkers();
 
-    // 监视 Debug 参数变化
+    // 申明参数
     show_image_ = declare_parameter("show_pic", false);
     debug_ = declare_parameter("debug", false);
+    camera_coordinate_ = declare_parameter("camera_coordinate", "camera");
+
+    // 监视 Debug 参数变化
     if (debug_) {
         CreateDebugPublishers();
     }
@@ -25,7 +28,6 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         }
     );
 
-    camera_coordinate_ = declare_parameter("camera_coordinate", "camera");
     armors_pub_ = create_publisher<auto_aim_interfaces::msg::Armors>("/detector/armors", rclcpp::SensorDataQoS());
 
     ignore_classes_sub_ = create_subscription<auto_aim_interfaces::msg::IgnoreClasses>(
@@ -36,16 +38,18 @@ ArmorDetectorNode::ArmorDetectorNode(const rclcpp::NodeOptions& options):
         }
     );
 
-    last_publish_time_ = this->now();
-
     image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "/image_for_armor",
         rclcpp::SensorDataQoS().keep_last(2),
         std::bind(&ArmorDetectorNode::ImageCallback, this, std::placeholders::_1)
     );
+
+    last_publish_time_ = this->now();
 }
 
 void ArmorDetectorNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg) {
+    // 颜色信息借用图像信息的 frame_id 传递，具体看相机节点
+    // !比赛时一定要写死颜色，不要相信下位机的颜色数据！
     detector_->UpdateEnemyColor(msg->header.frame_id == "0" ? Color::RED : Color::BLUE);
     msg->header.frame_id = camera_coordinate_;
     auto&& raw_image = cv::Mat(msg->height, msg->width, CV_8UC3, msg->data.data());

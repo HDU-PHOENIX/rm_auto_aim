@@ -45,7 +45,6 @@ void CameraForCalibrate::LoopForPublish() {
         image_msg->data.assign(frame_->datastart, frame_->dataend);
 
         image_publisher_->publish(std::move(image_msg));
-        // RCLCPP_INFO(this->get_logger(), "publish image");
     }
 }
 
@@ -53,7 +52,4 @@ void CameraForCalibrate::LoopForPublish() {
 
 #include "rclcpp_components/register_node_macro.hpp"
 
-// Register the component with class_loader.
-// This acts as a sort of entry point, allowing the component to be discoverable
-// when its library is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(sensor::CameraForCalibrate)

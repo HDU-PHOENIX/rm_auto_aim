@@ -14,12 +14,27 @@ public:
     explicit CameraNode(const rclcpp::NodeOptions& options);
 
 private:
-    void LoopForPublish(); //发布图像
+    /**
+     * @brief 发布图像
+     */
+    void LoopForPublish();
 
+    /**
+     * @brief 通信节点模式切换的回调
+     * 
+     * @param request 
+     * @param response 
+     */
     void ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::Request> request, std::shared_ptr<communicate::srv::ModeSwitch::Response> response);
 
-    void GetImg(); //获取图像
+    /**
+     * @brief 获取图像保存到 frame，从相机或者视频流
+     */
+    void GetImg();
 
+    /**
+     * @brief 开启内录节点
+     */
     void InnerShot();
 
     // 保存从摄像头获取的图像

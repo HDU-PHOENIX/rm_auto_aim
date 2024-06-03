@@ -32,6 +32,7 @@ private:
     // 下位机欧拉角订阅
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr euler_sub_;
 
+    // 广播器
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_odom2shooter_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> broadcaster_shooter2camera_;
     std::unique_ptr<geometry_msgs::msg::TransformStamped> tfs_odom2shooter_;
@@ -40,6 +41,7 @@ private:
     std::vector<double> shooter2camera_tvec_; // 枪口坐标系到相机坐标系的平移向量
     double odom2shooter_r_;                   // 枪口到 odom 坐标系的距离
 
+    // 坐标系名称
     std::string shooter_coordinate, camera_coordinate, odom_coordinate;
 };
 } // namespace auto_aim

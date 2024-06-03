@@ -10,14 +10,20 @@ public:
         const std::vector<double>& distortion_coefficients
     );
 
-    void SolvePnP(const Armor& armor);
-
     /**
-     * @brief 计算相机坐标系到装甲板坐标系的旋转矩阵
-     * @param pose
+     * @brief 通过 PnP 计算装甲板位姿势
+     * @param armor
      */
     void CalculatePose(Armor& armor);
 
+    /**
+     * @brief 返回相机中心坐标
+     *
+     * @return Point2f 相机中心二维坐标
+     */
+    cv::Point2f GetCameraCenter();
+
+private:
     /**
      * @brief 计算装甲板中心到图像中心的距离
      *
@@ -28,13 +34,12 @@ public:
     float CalculateDistanceToCenter(const cv::Point2f& armor_center);
 
     /**
-     * @brief 返回相机中心坐标
-     *
-     * @return Point2f 相机中心二维坐标
+     * @brief PnP 求解
+     * 
+     * @param armor 
      */
-    cv::Point2f GetCameraCenter();
+    void SolvePnP(const Armor& armor);
 
-private:
     cv::Point2f camera_center_;
     cv::Mat camera_matrix_;
     cv::Mat distortion_coefficients_;
