@@ -175,7 +175,10 @@ private:
         return theta2 - theta1;
     };
 
-    //theta为当前角度，cere_rotated_angle为基准角度
+    /**
+     * @brief 返回theta角相对于cere_rotated_angle的角度，取值在-pi~pi区间
+     * @param theta为当前角度，cere_rotated_angle为基准角度
+     */
     double AngleRevise(double& theta, double& cere_rotated_angle) {
         if (cere_rotated_angle > 0 && theta < cere_rotated_angle - M_PI)
         {

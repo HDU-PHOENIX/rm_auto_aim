@@ -51,11 +51,17 @@ $$  w = A * cos (\omega * t + \phi) + b  $$
 - 输出能量机关旋转角速度三角函数参数(幅值、相位、角频率、上下位移)
 - 符面角度定义：![](docs/RuneCoordinate.png)
 
+本项目求解三角函数参数思路：
+$$ loss = (w - (A * cos (\omega * t + \phi) + b))^2 $$
+通过前面的检测器采集到符叶角速度数据和对应的时间戳数据，角速度公式已知，问题转化成一个求解最优化问题，
+即已知公式中w和t，求解loss最小的 $$A、\omega、\phi、b(幅值、角频率、相位、上下平移)$$
+使用最小二乘法来求解最优化问题
+
 订阅：
 - 接收detector的数据 `/detector/runes`
 
 发布：
-- 最终解算出来的数据发布 `/RuneTracker2Shooter`
+- 最终解算出来的数据发布 `/tracker/target`
 
 可视化：
 - 使用visualization_msgs::msg::Marker类型标记可视化 `/rune_tracker/marker`(红色)
@@ -85,14 +91,14 @@ $$  w = A * cos (\omega * t + \phi) + b  $$
 - 接收tracker的数据 `/RuneTracker2Shooter`
 
 发布：
-- 最终解算出来的数据发布 `/shooter_info`
+- 最终解算出来的数据发布 `/shoot_info/left`
 
 可视化：
-- 使用visualization_msgs::msg::Marker类型标记可视化 `/rune_shooter/marker`(绿色)
+- 使用visualization_msgs::msg::Marker类型标记可视化 `/shooter/marker`(绿色)
 
 参数：
 - 弹道解算参数
-  - 枪口坐标补偿量 `correction_of_x correction_of_y`
+  - 坐标补偿量可以通过调整相机内参矩阵中的相机中心坐标来补偿弹道偏移
   - 小弹丸风阻系数 `k_of_small`
   - 重力加速度 `gravity`
 

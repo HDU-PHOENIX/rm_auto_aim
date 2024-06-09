@@ -1,5 +1,4 @@
 #include "rune_tracker/tracker.hpp"
-#define NEW_METHOD false
 namespace rune {
 Tracker::Tracker(rclcpp::Node* node, double& std_a_, double& std_yawdd_, int& filter_astring_threshold_):
     node_(node) {
@@ -10,10 +9,10 @@ Tracker::Tracker(rclcpp::Node* node, double& std_a_, double& std_yawdd_, int& fi
 }
 
 void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, auto_aim_interfaces::msg::Target& runes_msg, auto_aim_interfaces::msg::DebugRune& debug_msg) {
-    auto&& theory_delay = data->pose_c.position.z / data->speed;
-    debug_msg.delay = delay = theory_delay + data->chasedelay;
-    runes_msg.header = data->header; //时间戳赋值
-    phase_offset = data->phase_offset;
+    auto&& theory_delay = data->pose_c.position.z / data->speed; //计算子弹飞行时间理论延迟
+    debug_msg.delay = delay = theory_delay + data->chasedelay;   //延迟等于理论延迟加上追踪延迟
+    runes_msg.header = data->header;                             //时间戳赋值
+    phase_offset = data->phase_offset;                           //相位差补偿
     if (data->motion == 0) {
         SetState(MotionState::STATIC);
         debug_msg.motion_state = "Static";
@@ -25,17 +24,19 @@ void Tracker::Predict(const auto_aim_interfaces::msg::Rune::SharedPtr& data, aut
         debug_msg.motion_state = "Big";
     } //从下位机来的数据，判断是静止还是小符还是大符
 
+    // SetState(MotionState::SMALL); //手动设置小符，调试的时候用的
+
     cv::Point2f tmp_dir(data->leaf_dir.x, data->leaf_dir.y); //符四个点中心到R标
     leaf_angle = Angle(std::move(tmp_dir));                  //返回弧度制的角度
     RCLCPP_DEBUG(node_->get_logger(), "leaf_angle %lf", leaf_angle);
     leaf_angle_diff = Revise(leaf_angle - leaf_angle_last, -36_deg, 36_deg); //修正后的角度差
-    CalSmallRune(data, debug_msg);                                           //计算小符角速度
-    Judge(debug_msg);                                                        //判断顺时针还是逆时针
-    FittingBig(data, debug_msg);                                             //拟合大符
-    Fitting();                                                               //计算预测角度
-    data_last = data;                                                        //记录上一帧的数据
-    leaf_angle_last = leaf_angle;                                            //记录上一帧的角度
-    cv::Point2d symbol(data->symbol.x, data->symbol.y);                      //R标
+    // CalSmallRune(data, debug_msg);                                           //计算小符角速度
+    Judge(debug_msg);                                   //判断顺时针还是逆时针
+    FittingBig(data, debug_msg);                        //拟合大符
+    Fitting();                                          //计算预测角度
+    data_last = data;                                   //记录上一帧的数据
+    leaf_angle_last = leaf_angle;                       //记录上一帧的角度
+    cv::Point2d symbol(data->symbol.x, data->symbol.y); //R标
     rotate_armors.clear();
     for (int i = 0; i < 4; i++) {
         rotate_armors.emplace_back(data->rune_points[i].x, data->rune_points[i].y);
@@ -53,7 +54,7 @@ void Tracker::InitCeres() {
     tracker.angle = 0;
     options.linear_solver_type = ceres::DENSE_NORMAL_CHOLESKY; //选择最小二乘的拟合模式
     options.minimizer_progress_to_stdout = false;              //选择不打印拟合信息
-    options.num_threads = 4;                                   //使用4个线程进行拟合
+    options.num_threads = 2;                                   //使用2个线程进行拟合
     a_omega_phi_b[0] = RUNE_ROTATE_A_MEAN;
     a_omega_phi_b[1] = RUNE_ROTATE_O_MEAN;
     a_omega_phi_b[2] = 0;
@@ -97,7 +98,6 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         Reset();
         return false;
     }
-#if !NEW_METHOD
     if (abs(leaf_angle - leaf_angle_last) > 0.4 && abs(leaf_angle - leaf_angle_last) < 5.2) {
         //上一帧与这一帧的角度差值超过阈值，则判断为可激活的符叶已转换
         cere_rotated_angle += leaf_angle - leaf_angle_last;           // 变换符叶初始角度
@@ -115,7 +115,6 @@ bool Tracker::FittingBig(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_ai
         );
         RCLCPP_DEBUG(node_->get_logger(), "rune_leaf change!");
     }
-#endif
     CeresProcess(data, debug_msg);
     return true;
 }
@@ -206,20 +205,9 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
     if ((rclcpp::Time(data->header.stamp) - rclcpp::Time(data_last->header.stamp))
             .seconds()
         > 0.15) {
-        count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置20个数据的收敛间隔
+        count_cant_use = filter_astring_threshold; //因为卡尔曼滤波在数据突变后需要一定时间收敛，所以设置数据的收敛间隔
     }
     count_cant_use--;
-#if NEW_METHOD
-    MeasurementPackage package = MeasurementPackage(
-        (rclcpp::Time(data->header.stamp) - t_zero).seconds(),
-        MeasurementPackage::SensorType::LASER,
-        Eigen::Vector2d { leaf_angular_velocity, 0 }
-    );
-    //直接输入角速度，然后进行滤波
-    ukf_->ProcessMeasurement(package); //估计当前真实的状态
-    double&& omega = 1.0 * abs(ukf_->x_(0));
-    debug_msg.big_rune_speed = omega;
-#else
     // 用二维坐标拟合
     auto&& theta = leaf_angle;
     MeasurementPackage package = MeasurementPackage(
@@ -235,7 +223,6 @@ void Tracker::DataProcess(auto_aim_interfaces::msg::Rune::SharedPtr data, auto_a
     ukf_->ProcessMeasurement(package);                              //估计当前真实的状态
     double&& omega = 1.0 * abs(ukf_->x_(2)) / RUNE_ARMOR_TO_SYMBOL; //从状态估计器中取出估计的omega
     debug_msg.big_rune_speed = omega;
-#endif
     if (count_cant_use <= 0) {
         cere_param_list.push_back(CereParam {
             .omega = omega,
@@ -302,10 +289,10 @@ bool Tracker::Fitting() {
         case MotionState::SMALL: {
             switch (rotation_direction_) {
                 case RotationDirection::CLOCKWISE: {
-                    rotate_angle = speed.Mean() * delay;
+                    rotate_angle = M_PI / 3 * delay;
                 } break;
                 case RotationDirection::ANTICLOCKWISE: {
-                    rotate_angle = -speed.Mean() * delay;
+                    rotate_angle = -M_PI / 3 * delay;
                 } break;
                 default: {
                     return false;
