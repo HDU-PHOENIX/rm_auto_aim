@@ -99,6 +99,19 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     return lights;
 }
 
+bool Detector::ContainLight(const Light& light1, const Light& light2) {
+    for (auto& light: lights_) {
+        if (light.center == light1.center || light.center == light2.center) {
+            continue;
+        }
+
+        if ((light.center.y > light1.center.y && light.center.y < light2.center.y) && (light.center.x > light1.center.x && light.center.x < light2.center.x)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<Armor> Detector::FilterArmor(const cv::Mat& input, const std::vector<Light>& lights) {
     std::vector<Armor> armors;
     armors.reserve(lights.size() / 2);
@@ -137,7 +150,8 @@ Armor Detector::FormArmor(const cv::Mat& input, const Light& left_light, const L
     bool light_center_distance_valid = (armor.light_center_distance > 0.8 && armor.light_center_distance < 3.2)
         || (armor.light_center_distance > 3.2 && armor.light_center_distance < 5.5);
 
-    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid && light_center_distance_valid) {
+    if (light_height_ratio_valid && light_angle_diff_valid && angle_valid && light_center_distance_valid
+        && !ContainLight(left_light, right_light)) {
         armor.type = (armor.light_center_distance > 3.2) ? ArmorType::LARGE : ArmorType::SMALL;
 
         if (!classifier_->Classify(input, armor)) {

@@ -117,6 +117,15 @@ private:
      */
     Armor FormArmor(const cv::Mat& input, const Light& left_light, const Light& right_light);
 
+    /**
+     * @brief 判断两个灯条之间是否包含其他灯条
+     * @param light1 第一个灯条
+     * @param light2 第二个灯条
+     *
+     * @return 是否包含其他灯条
+     */
+    bool ContainLight(const Light& light1, const Light& light2);
+
     DetectorParam detector_param_;
     cv::Mat preprocessed_image_;         // 预处理后的图片
     cv::Mat channels_[3];                // 通道相减模式下的三通道图
