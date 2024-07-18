@@ -46,7 +46,7 @@ std::vector<Armor> Detector::DetectArmor(const cv::Mat& input) {
     return armors_;
 }
 
-cv::Mat Detector::PreprocessImage(const cv::Mat& input) {
+cv::Mat Detector::PreprocessImage(const cv::Mat& input) const {
     cv::Mat gray, binary;
     cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
     cv::threshold(
@@ -79,7 +79,7 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     );
     // 膨胀，使灯条更加连续
     cv::dilate(light_contour_binary_image_, light_contour_binary_image_, kernel_);
-    // 与预处理图像取交集，获取又亮又符合颜色的絮语
+    // 与预处理图像取交集，获取又亮又符合颜色的区域
     cv::bitwise_and(preprocessed_image_, light_contour_binary_image_, light_contour_binary_image_);
 
     // 寻找轮廓
@@ -99,13 +99,14 @@ std::vector<Light> Detector::DetectLight(const cv::Mat& input) {
     return lights;
 }
 
-bool Detector::ContainLight(const Light& light1, const Light& light2) {
-    for (auto& light: lights_) {
+bool Detector::ContainLight(const Light& light1, const Light& light2) const {
+    for (const auto& light: lights_) {
         if (light.center == light1.center || light.center == light2.center) {
             continue;
         }
 
-        if ((light.center.y > light1.center.y && light.center.y < light2.center.y) && (light.center.x > light1.center.x && light.center.x < light2.center.x)) {
+        if ((light.center.y > light1.center.y && light.center.y < light2.center.y)
+            && (light.center.x > light1.center.x && light.center.x < light2.center.x)) {
             return true;
         }
     }
@@ -165,13 +166,13 @@ Armor Detector::FormArmor(const cv::Mat& input, const Light& left_light, const L
     return armor;
 }
 
-cv::Mat Detector::GetAllNumbersImage() {
+cv::Mat Detector::GetAllNumbersImage() const {
     if (armors_.empty()) {
         return cv::Mat(cv::Size(20, 28), CV_8UC1);
     } else {
         std::vector<cv::Mat> number_imgs;
         number_imgs.reserve(armors_.size());
-        for (auto& armor: armors_) {
+        for (const auto& armor: armors_) {
             number_imgs.emplace_back(armor.number_image);
         }
         cv::Mat all_num_img;
@@ -180,11 +181,7 @@ cv::Mat Detector::GetAllNumbersImage() {
     }
 }
 
-void Detector::UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
-    classifier_->UpdateIgnoreClasses(ignore_classes);
-}
-
-void Detector::DrawResult(const cv::Mat& input) {
+void Detector::DrawResult(const cv::Mat& input) const {
     cv::circle(input, pnp_solver_->GetCameraCenter(), 5, cv::Scalar(255, 0, 0), 1);
 
     for (const auto& light: lights_) {

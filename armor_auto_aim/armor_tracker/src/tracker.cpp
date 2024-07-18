@@ -223,6 +223,7 @@ Eigen::Vector3d Tracker::GetArmorPositionFromState(const Eigen::VectorXd& x) {
 Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& shooter_yaw, const float& bullet_speed, const float& flytime_offset) {
     auto&& flytime = std::hypot(car_state.position.x(), car_state.position.y(), car_state.position.z()) / bullet_speed + flytime_offset;
 
+    // 整车预测
     CarState predict_car_state(car_state);
     predict_car_state.position = car_state.position + car_state.velocity * flytime;
 
@@ -230,7 +231,8 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& sho
     best_armor.distance_square = std::numeric_limits<float>::max();
     // float min_yaw_diff = std::numeric_limits<float>::max();
 
-    // 迭代每一块装甲板
+    // 在选装甲板的时候用一个标准的圆更好一点
+    // 所以用平均半径计算标准圆上的四块装甲板距离车的距离，而不是当前装甲板的实际半径
     auto&& average_armor_radius = (predict_car_state.r[0] + predict_car_state.r[1]) / 2;
     std::vector<ArmorPosition> armors_position;
     auto armor_number = predict_car_state.armors_num;
@@ -245,7 +247,7 @@ Eigen::Vector3d Tracker::ChooseArmor(const CarState& car_state, const float& sho
         );
     }
 
-    for (auto& armor: armors_position) {
+    for (const auto& armor: armors_position) {
         // 选择距离最近的装甲板
         if (armor.distance_square < best_armor.distance_square) {
             best_armor = armor;

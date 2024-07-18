@@ -30,7 +30,7 @@ struct ArmorPosition {
     float y;               // 装甲板在世界坐标系下的 y
     float z;               // 装甲板在世界坐标系下的 z
     float yaw;             // 装甲板坐标系相对于世界坐标系的 yaw 角
-    float distance_square; // 装甲板到小陀螺的距离的平方
+    float distance_square; // 装甲板到小陀螺中心的距离的平方
 
     ArmorPosition() = default;
 

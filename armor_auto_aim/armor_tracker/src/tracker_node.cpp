@@ -87,7 +87,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
         ps.header = armors_msg->header;
         ps.pose = armor.pose;
         try {
-            // TODO: armors_msg 中 pose 变了但是 header 中的 frame id 没变！
+            armors_msg->header.frame_id = odom_coordinate;
             armor.pose = tf2_buffer_->transform(ps, odom_coordinate).pose;
         } catch (const tf2::ExtrapolationException& ex) {
             RCLCPP_ERROR(get_logger(), "Error while transforming  %s", ex.what());
@@ -153,6 +153,7 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
                 tracker_->dz
             };
 
+            // 获取当前时刻 odom to shooter 的转换
             double roll, pitch, yaw;
             auto transform = tf2_buffer_->lookupTransform(odom_coordinate, shooter_coordinate, tf2::TimePointZero).transform;
             tf2::Matrix3x3(
@@ -165,7 +166,13 @@ void ArmorTrackerNode::ArmorsCallback(const auto_aim_interfaces::msg::Armors::Sh
             )
                 .getRPY(roll, pitch, yaw);
 
-            auto predict_armor_position = tracker_->ChooseArmor(car_state, yaw, bullet_speed_, flytime_offset_);
+            // 预测装甲板位置
+            auto predict_armor_position = tracker_->ChooseArmor(
+                car_state,
+                yaw,
+                bullet_speed_,
+                flytime_offset_
+            );
 
             target_msg.predict_target.position.set__x(predict_armor_position.x());
             target_msg.predict_target.position.set__y(predict_armor_position.y());

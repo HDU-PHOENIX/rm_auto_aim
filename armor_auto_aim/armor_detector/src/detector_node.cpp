@@ -131,13 +131,14 @@ void ArmorDetectorNode::UpdateDetectorParameters() {
     int&& binary_threshold_blue = get_parameter("binary_threshold_blue").as_int();
     int&& light_contour_threshold_blue = get_parameter("light_contour_threshold_blue").as_int();
 
+    // clang-format off
     detector_->UpdateDetectorParam(
         DetectorParam {
-            { binary_threshold_red,
-              binary_threshold_blue },
-            { light_contour_threshold_red,
-              light_contour_threshold_blue } }
+            { binary_threshold_red, binary_threshold_blue},
+            { light_contour_threshold_red, light_contour_threshold_blue }
+        }
     );
+    // clang-format on
 }
 
 void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const std_msgs::msg::Header& header) {

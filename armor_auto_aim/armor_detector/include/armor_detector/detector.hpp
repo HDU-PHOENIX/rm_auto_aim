@@ -7,8 +7,8 @@
 namespace armor {
 
 struct DetectorParam {
-    int binary_threshold[2];
-    int light_contour_threshold[2];
+    // 参数顺序参考 emum Color, 0:RED 1:BLUE
+    int binary_threshold[2], light_contour_threshold[2];
 };
 
 class Detector {
@@ -44,7 +44,7 @@ public:
      * @brief 在输入图片上绘制装甲板和灯条
      * @param input 输入图片
      */
-    void DrawResult(const cv::Mat& input);
+    void DrawResult(const cv::Mat& input) const;
 
     inline std::vector<Armor> GetDebugArmors() const {
         return debug_armors_;
@@ -60,13 +60,15 @@ public:
      * @brief 获取所有数字的图像
      * @return 所有数字的图像
      */
-    cv::Mat GetAllNumbersImage();
+    cv::Mat GetAllNumbersImage() const;
 
     /**
      * @brief 更新忽略的类别
      * @param ignore_classes 忽略的类别
      */
-    void UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes);
+    inline void UpdateIgnoreClasses(const std::vector<std::string>& ignore_classes) {
+        classifier_->UpdateIgnoreClasses(ignore_classes);
+    }
 
     /**
      * @brief 更新敌方颜色
@@ -86,7 +88,7 @@ private:
      * @param input 输入图片
      * @return 预处理后的图片
      */
-    cv::Mat PreprocessImage(const cv::Mat& input);
+    cv::Mat PreprocessImage(const cv::Mat& input) const;
 
     /**
      * @brief 从预处理后的图片中检测灯条
@@ -124,7 +126,7 @@ private:
      *
      * @return 是否包含其他灯条
      */
-    bool ContainLight(const Light& light1, const Light& light2);
+    bool ContainLight(const Light& light1, const Light& light2) const;
 
     DetectorParam detector_param_;
     cv::Mat preprocessed_image_;         // 预处理后的图片
