@@ -68,12 +68,4 @@ void PnPSolver::SolvePnP(const Armor& armor) {
     );
 }
 
-float PnPSolver::CalculateDistanceToCenter(const cv::Point2f& armor_center) {
-    return cv::norm(armor_center - camera_center_);
-}
-
-cv::Point2f PnPSolver::GetCameraCenter() {
-    return camera_center_;
-}
-
 } // namespace armor

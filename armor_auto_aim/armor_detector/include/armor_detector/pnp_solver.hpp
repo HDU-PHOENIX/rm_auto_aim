@@ -21,7 +21,9 @@ public:
      *
      * @return Point2f 相机中心二维坐标
      */
-    cv::Point2f GetCameraCenter();
+    inline cv::Point2f GetCameraCenter() const {
+        return camera_center_;
+    }
 
 private:
     /**
@@ -31,7 +33,9 @@ private:
      *
      * @return float 距离 
      */
-    float CalculateDistanceToCenter(const cv::Point2f& armor_center);
+    inline float CalculateDistanceToCenter(const cv::Point2f& armor_center) const {
+        return static_cast<float>(cv::norm(armor_center - camera_center_));
+    };
 
     /**
      * @brief PnP 求解

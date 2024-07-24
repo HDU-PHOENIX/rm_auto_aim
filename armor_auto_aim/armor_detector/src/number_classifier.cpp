@@ -22,10 +22,12 @@ NumberClassifier::NumberClassifier(
 
 void NumberClassifier::ExtractNumbers(const cv::Mat& src, Armor& armor) {
     // 透视变换
-    cv::Point2f lights_vertices[4] = { armor.left_light.bottom,
-                                       armor.left_light.top,
-                                       armor.right_light.top,
-                                       armor.right_light.bottom };
+    cv::Point2f lights_vertices[4] = {
+        armor.left_light.bottom,
+        armor.left_light.top,
+        armor.right_light.top,
+        armor.right_light.bottom
+    };
 
     const int top_light_y = (warp_height - light_length) / 2 - 1;
     const int bottom_light_y = top_light_y + light_length;
