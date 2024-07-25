@@ -16,33 +16,10 @@ PnPSolver::PnPSolver(
 void PnPSolver::CalculatePose(Armor& armor) {
     this->SolvePnP(armor);
 
-    armor.pose.position.x = tvec_.at<double>(0);
-    armor.pose.position.y = tvec_.at<double>(1);
-    armor.pose.position.z = tvec_.at<double>(2);
-    // 旋转向量 to 旋转矩阵
-    cv::Mat rotation_matrix;
-    cv::Rodrigues(rvec_, rotation_matrix);
-    // tf2 旋转矩阵
-    tf2::Matrix3x3 tf2_rotation_matrix(
-        rotation_matrix.at<double>(0, 0),
-        rotation_matrix.at<double>(0, 1),
-        rotation_matrix.at<double>(0, 2),
-        rotation_matrix.at<double>(1, 0),
-        rotation_matrix.at<double>(1, 1),
-        rotation_matrix.at<double>(1, 2),
-        rotation_matrix.at<double>(2, 0),
-        rotation_matrix.at<double>(2, 1),
-        rotation_matrix.at<double>(2, 2)
-    );
-    // 旋转矩阵 to 四元数
-    tf2::Quaternion tf2_q;
-    tf2_rotation_matrix.getRotation(tf2_q);
-    armor.pose.orientation = tf2::toMsg(tf2_q);
-
+    armor.pose = { tvec_, rvec_ };
     armor.distance_to_image_center = cv::norm(
         armor.center - cv::Point2f(camera_matrix_.at<double>(0, 2), camera_matrix_.at<double>(1, 2))
     );
-
     armor.distance_to_center = CalculateDistanceToCenter(armor.center);
 }
 

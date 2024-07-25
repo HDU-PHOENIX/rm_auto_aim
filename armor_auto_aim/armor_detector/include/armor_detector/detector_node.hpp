@@ -4,6 +4,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include "armor_detector/armor.hpp"
@@ -59,6 +60,8 @@ private:
      * @param header 消息头，一般使用图像消息的 header
      */
     void PublishArmors(const std::vector<Armor>& armors, const std_msgs::msg::Header& header);
+
+    geometry_msgs::msg::Pose GetPoseMsg(const ArmorPose& pose) const;
 
     /**
      * @brief 初始化标记信息

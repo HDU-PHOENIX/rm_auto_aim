@@ -1,7 +1,6 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace armor {
 
@@ -84,6 +83,11 @@ struct Light: public cv::RotatedRect {
     std::string classification_result;
 };
 
+struct ArmorPose {
+    cv::Mat position;
+    cv::Mat rotation_vector;
+};
+
 struct Armor {
     Armor() = default;
     explicit Armor(const Light& left_light, const Light& right_light) {
@@ -114,7 +118,7 @@ struct Armor {
     float classification_confidence;
     std::string classification_result;
 
-    geometry_msgs::msg::Pose pose;
+    ArmorPose pose;
 
     float distance_to_image_center;
 };

@@ -179,11 +179,12 @@ void ArmorDetectorNode::PublishDebugInfo(const std::vector<Armor>& armors, const
     for (const auto& armor: armors) {
         // Fill the markers
         if (armor.type != ArmorType::INVALID) {
+            auto&& armor_pose_msg = GetPoseMsg(armor.pose);
             armor_marker_.id++;
             armor_marker_.scale.y = armor.type == ArmorType::SMALL ? 0.135 : 0.23;
-            armor_marker_.pose = armor.pose;
+            armor_marker_.pose = armor_pose_msg;
             text_marker_.id++;
-            text_marker_.pose.position = armor.pose.position;
+            text_marker_.pose.position = armor_pose_msg.position;
             text_marker_.pose.position.y -= 0.1;
             text_marker_.text = armor.classification_result;
             marker_array.markers.emplace_back(armor_marker_);
@@ -204,7 +205,7 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
         armor_msg.set__number(armor.number);
         armor_msg.set__type(ARMOR_TYPE_STR[static_cast<int>(armor.type)]);
         armor_msg.set__distance_to_image_center(armor.distance_to_image_center);
-        armor_msg.set__pose(armor.pose);
+        armor_msg.set__pose(GetPoseMsg(armor.pose));
         armors_msg.armors.push_back(armor_msg);
     }
 
@@ -213,6 +214,37 @@ void ArmorDetectorNode::PublishArmors(const std::vector<Armor>& armors, const st
     rclcpp::Time&& now = this->now();
     RCLCPP_DEBUG(this->get_logger(), "fps: %f", 1.0 / (now - last_publish_time_).seconds());
     last_publish_time_ = now;
+}
+
+geometry_msgs::msg::Pose ArmorDetectorNode::GetPoseMsg(const ArmorPose& pose) const {
+    geometry_msgs::msg::Pose pose_msg;
+
+    // 平移
+    pose_msg.position.x = pose.position.at<double>(0);
+    pose_msg.position.y = pose.position.at<double>(1);
+    pose_msg.position.z = pose.position.at<double>(2);
+
+    // 旋转向量 to 旋转矩阵
+    cv::Mat rotation_matrix;
+    cv::Rodrigues(pose.rotation_vector, rotation_matrix);
+    // tf2 旋转矩阵
+    tf2::Matrix3x3 tf2_rotation_matrix(
+        rotation_matrix.at<double>(0, 0),
+        rotation_matrix.at<double>(0, 1),
+        rotation_matrix.at<double>(0, 2),
+        rotation_matrix.at<double>(1, 0),
+        rotation_matrix.at<double>(1, 1),
+        rotation_matrix.at<double>(1, 2),
+        rotation_matrix.at<double>(2, 0),
+        rotation_matrix.at<double>(2, 1),
+        rotation_matrix.at<double>(2, 2)
+    );
+    // tf2 旋转矩阵 to tf2 四元数
+    tf2::Quaternion tf2_q;
+    tf2_rotation_matrix.getRotation(tf2_q);
+    pose_msg.orientation = tf2::toMsg(tf2_q);
+
+    return pose_msg;
 }
 
 void ArmorDetectorNode::InitMarkers() {
