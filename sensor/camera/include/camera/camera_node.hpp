@@ -7,6 +7,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include <communicate/srv/mode_switch.hpp>
 #include <opencv2/videoio.hpp>
+
 namespace sensor {
 
 class CameraNode: public rclcpp::Node {
@@ -25,7 +26,10 @@ private:
      * @param request 
      * @param response 
      */
-    void ServiceCB(const std::shared_ptr<communicate::srv::ModeSwitch::Request> request, std::shared_ptr<communicate::srv::ModeSwitch::Response> response);
+    void ServiceCB(
+        communicate::srv::ModeSwitch::Request::ConstSharedPtr request,
+        communicate::srv::ModeSwitch::Response::SharedPtr response
+    );
 
     /**
      * @brief 获取图像保存到 frame，从相机或者视频流

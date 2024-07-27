@@ -2,6 +2,9 @@
 source /opt/ros/humble/setup.bash
 source ./install/setup.bash
 
+cd "$(dirname "$0")"
+cd ..
+
 sudo chmod 777 /dev/ttyACM0
 
 ros2 launch auto_aim launch.py &

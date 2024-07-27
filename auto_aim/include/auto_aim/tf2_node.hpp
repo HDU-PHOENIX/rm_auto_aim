@@ -12,7 +12,7 @@ public:
 
 private:
     /**
-     * @brief 发布坐标系转换
+     * @brief 发布坐标系转换，先平移再旋转
      * 
      * @param frame_id 当前坐标系
      * @param child_frame_id 子坐标系

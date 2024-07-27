@@ -25,3 +25,8 @@ TEST(camera, camera_frame_get) {
     avg_fps /= frame_count;
     ASSERT_GE(avg_fps, 180); // 断言帧率不低于 180
 }
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

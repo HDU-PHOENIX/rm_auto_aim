@@ -3,11 +3,10 @@
 echo ">>> APT update" && sleep 1
 sudo apt update
 
-echo -e "\n\n>>> wget ceres pip" && sleep 1
-sudo apt install wget libceres-dev python3-pip -y
+echo -e "\n\n>>> wget eigen3 ceres pip" && sleep 1
+sudo apt install wget libeigen3-dev libceres-dev python3-pip -y
 
 echo -e "\n\n>>> MindVision SDK" && sleep 1
-sudo apt install wget -y
 if [ -d /usr/include/mindvision/ ]; then
     echo "mindvision-sdk already installed"
 else
@@ -48,5 +47,7 @@ sudo pip3 install rosdepc
 sudo rosdepc init # 小鱼的 rosdepc init 会自动 update
 rosdep install --from-paths ./ --ignore-src -r -y
 
+cd "$(dirname "$0")"
+cd ..
 git submodule init
 git submodule update
